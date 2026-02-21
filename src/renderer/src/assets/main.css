@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: oklch(0.7 0.18 200);
+  --color-accent-hover: oklch(0.75 0.18 200);
+  --color-danger: oklch(0.65 0.2 25);
+  --color-success: oklch(0.7 0.18 150);
+  --color-warning: oklch(0.8 0.15 85);
+  --color-chat-bg: oklch(0.15 0.02 260);
+  --color-chat-sidebar: oklch(0.18 0.02 260);
+  --color-bubble-user: oklch(0.35 0.12 260);
+  --color-bubble-assistant: oklch(0.25 0.02 260);
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+/* ── Fishing Cat Animations ── */
+.cat-fishing {
+  animation: fishing-bob 2.5s ease-in-out infinite;
+}
+@keyframes fishing-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-3px) rotate(-1deg); }
+  60% { transform: translateY(1px) rotate(0.5deg); }
+}
+
+.cat-caught {
+  animation: caught-bounce 2s ease-in-out infinite;
+}
+@keyframes caught-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.03); }
+}
+
+.cat-bite {
+  animation: bite-shake 0.12s ease-in-out infinite alternate;
+}
+@keyframes bite-shake {
+  0% { transform: translateX(-2px) rotate(-2deg); }
+  100% { transform: translateX(2px) rotate(2deg); }
+}
+
+/* Dock slot hover */
+.fishing-slot { transition: transform 0.2s ease; }
+.fishing-slot:hover { transform: translateY(-10px) scale(1.08); }
+
+/* ── Chat animations ── */
+@keyframes bounce-dot {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+}
+.typing-dot { animation: bounce-dot 1.4s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.message-enter { animation: slide-up 0.2s ease-out; }
+
+/* ── Base ── */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: white;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* 독 위젯은 드래그 방지, 채팅은 텍스트 선택 가능 */
+.dock-area { user-select: none; }
+.chat-content { user-select: text; cursor: text; }
