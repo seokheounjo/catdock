@@ -1,16 +1,20 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
-import { AgentConfig, ChatMessage, SessionInfo } from '../../shared/types'
+import { AgentConfig, ChatMessage, SessionInfo, ConversationConfig, ConversationMessage } from '../../shared/types'
 
 interface StoreSchema {
   agents: AgentConfig[]
   sessions: Record<string, SessionInfo>
+  conversations: ConversationConfig[]
+  conversationHistories: Record<string, ConversationMessage[]>
 }
 
 const defaults: StoreSchema = {
   agents: [],
-  sessions: {}
+  sessions: {},
+  conversations: [],
+  conversationHistories: {}
 }
 
 let storePath: string
@@ -106,5 +110,58 @@ export function updateSessionId(agentId: string, sessionId: string): void {
 export function clearSessionHistory(agentId: string): void {
   const d = load()
   delete d.sessions[agentId]
+  save()
+}
+
+// ── 그룹 대화 ──
+
+export function getConversationConfigs(): ConversationConfig[] {
+  return load().conversations || []
+}
+
+export function getConversationConfig(id: string): ConversationConfig | undefined {
+  return getConversationConfigs().find((c) => c.id === id)
+}
+
+export function addConversationConfig(config: ConversationConfig): void {
+  const d = load()
+  if (!d.conversations) d.conversations = []
+  d.conversations.push(config)
+  save()
+}
+
+export function updateConversationConfig(id: string, updates: Partial<ConversationConfig>): ConversationConfig | null {
+  const d = load()
+  if (!d.conversations) return null
+  const idx = d.conversations.findIndex((c) => c.id === id)
+  if (idx === -1) return null
+  d.conversations[idx] = { ...d.conversations[idx], ...updates, updatedAt: Date.now() }
+  save()
+  return d.conversations[idx]
+}
+
+export function deleteConversationConfig(id: string): void {
+  const d = load()
+  if (!d.conversations) return
+  d.conversations = d.conversations.filter((c) => c.id !== id)
+  if (d.conversationHistories) delete d.conversationHistories[id]
+  save()
+}
+
+export function getConversationHistory(id: string): ConversationMessage[] {
+  const d = load()
+  return d.conversationHistories?.[id] ?? []
+}
+
+export function saveConversationHistory(id: string, messages: ConversationMessage[]): void {
+  const d = load()
+  if (!d.conversationHistories) d.conversationHistories = {}
+  d.conversationHistories[id] = messages
+  save()
+}
+
+export function clearConversationHistory(id: string): void {
+  const d = load()
+  if (d.conversationHistories) delete d.conversationHistories[id]
   save()
 }

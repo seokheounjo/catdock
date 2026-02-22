@@ -13,7 +13,8 @@ interface ActiveSession {
   abortController: AbortController
   messages: ChatMessage[]
   configDir: string
-  hasConversation: boolean // -c (continue) 플래그 사용 여부 결정
+  hasConversation: boolean // --resume 사용 여부 결정
+  cliSessionId: string | null // Claude CLI의 session_id (--resume용)
 }
 
 const activeSessions = new Map<string, ActiveSession>()
@@ -40,7 +41,8 @@ function getSession(agentId: string): ActiveSession {
       abortController: new AbortController(),
       messages,
       configDir: getConfigDir(agentId),
-      hasConversation: messages.length > 0 // 이전 대화가 있으면 true
+      hasConversation: false, // CLI session_id가 있을 때만 true
+      cliSessionId: null
     })
   }
   return activeSessions.get(agentId)!
@@ -116,18 +118,18 @@ async function runClaudeSession(
     '-p',
     '--output-format', 'stream-json',
     '--verbose',
-    '--include-partial-messages',
     '--model', config.model,
     '--max-turns', '25',
     '--permission-mode', 'acceptEdits'
   ]
 
-  // 이전 대화가 있으면 --continue 사용
-  if (session.hasConversation) {
-    args.push('-c')
+  // 이전 CLI 세션이 있으면 --resume으로 이어서 대화
+  if (session.hasConversation && session.cliSessionId) {
+    args.push('--resume', session.cliSessionId)
   }
 
   // 시스템 프롬프트 (첫 대화 시에만 필요하지만 매번 보내도 안전)
+  // ★ shell: false 사용하므로 직접 전달 가능
   if (config.systemPrompt) {
     args.push('--system-prompt', config.systemPrompt)
   }
@@ -137,20 +139,22 @@ async function runClaudeSession(
   return new Promise<void>((resolve, reject) => {
     const cwd = config.workingDirectory || process.cwd()
 
-    // CLAUDECODE 환경변수 제거 — nested session 감지 우회
+    // Claude Code 관련 환경변수 모두 제거 — nested session 감지 우회 + 인증 충돌 방지
     const cleanEnv = { ...process.env }
-    delete cleanEnv.CLAUDECODE
+    for (const key of Object.keys(cleanEnv)) {
+      if (key === 'CLAUDECODE' || key === 'CLAUDE_CODE_ENTRYPOINT' || key === 'CLAUDE_CODE_SESSION') {
+        delete cleanEnv[key]
+      }
+    }
 
     let proc: ChildProcess
     try {
       proc = spawn(claudePath, args, {
         cwd,
-        env: {
-          ...cleanEnv,
-          CLAUDE_CONFIG_DIR: session.configDir
-        },
+        env: cleanEnv, // ★ CLAUDE_CONFIG_DIR 제거 — 기본 인증 정보 사용
         signal: session.abortController.signal,
-        shell: true
+        shell: false, // ★ Windows cmd.exe 파싱 문제 회피 (shell: true 대신)
+        stdio: ['ignore', 'pipe', 'pipe'] // ★ stdin 닫기 — CLI가 입력 대기하지 않도록
       })
     } catch (err) {
       reject(err)
@@ -164,6 +168,44 @@ async function runClaudeSession(
     let streamingMsgId = uuid()
     let lineBuffer = ''
     let costTotal = 0
+    let finished = false // result 이벤트 수신 후 중복 완료 방지
+
+    // ★ result 이벤트 수신 시 즉시 완료 처리 (close를 기다리지 않음)
+    const finishSession = (): void => {
+      if (finished) return
+      finished = true
+      session.process = null
+
+      if (session.abortController.signal.aborted) {
+        resolve()
+        return
+      }
+
+      const finalContent = fullResponse.trim() || resultText.trim()
+      const assistantMsg: ChatMessage = {
+        id: streamingMsgId,
+        agentId,
+        role: 'assistant',
+        content: finalContent,
+        timestamp: Date.now(),
+        costDelta: costTotal
+      }
+      session.messages.push(assistantMsg)
+      session.hasConversation = true
+
+      broadcastToChat(agentId, 'session:stream-end', assistantMsg)
+      agentManager.setAgentStatus(agentId, 'idle')
+      agentManager.setLastMessage(agentId, finalContent.slice(0, 100))
+      agentManager.addAgentCost(agentId, costTotal)
+      broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
+
+      // 프로세스가 아직 살아있으면 종료
+      if (proc && !proc.killed) {
+        try { proc.kill() } catch { /* already dead */ }
+      }
+
+      resolve()
+    }
 
     // stream-start 이벤트
     const streamStart: ChatMessage = {
@@ -189,9 +231,14 @@ async function runClaudeSession(
           }, (cost) => {
             costTotal = cost
           })
-          // result 이벤트에서 최종 텍스트 추출 (fallback용)
-          if (event.type === 'result' && event.result) {
-            resultText = event.result as string
+          // init 이벤트에서 CLI session_id 저장
+          if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
+            session.cliSessionId = event.session_id as string
+          }
+          // result 이벤트에서 최종 텍스트 추출 + 즉시 완료
+          if (event.type === 'result') {
+            if (event.result) resultText = event.result as string
+            finishSession()
           }
         } catch {
           // JSON 파싱 실패 시 무시 (verbose 로그 등)
@@ -204,8 +251,6 @@ async function runClaudeSession(
     })
 
     proc.on('close', (code) => {
-      session.process = null
-
       // 버퍼에 남은 라인 처리
       if (lineBuffer.trim()) {
         try {
@@ -215,43 +260,23 @@ async function runClaudeSession(
           }, (cost) => {
             costTotal = cost
           })
-          if (event.type === 'result' && event.result) {
-            resultText = event.result as string
+          if (event.type === 'result') {
+            if (event.result) resultText = event.result as string
           }
         } catch {
           // ignore
         }
       }
 
-      if (session.abortController.signal.aborted) {
-        resolve()
-        return
-      }
+      // result 이벤트에서 이미 완료 처리된 경우 스킵
+      if (finished) return
 
-      // fullResponse가 비어있으면 result 이벤트의 텍스트를 fallback으로 사용
-      const finalContent = fullResponse.trim() || resultText.trim()
-
-      const assistantMsg: ChatMessage = {
-        id: streamingMsgId,
-        agentId,
-        role: 'assistant',
-        content: finalContent,
-        timestamp: Date.now(),
-        costDelta: costTotal
-      }
-      session.messages.push(assistantMsg)
-      session.hasConversation = true // 다음부터 -c 사용
-
-      broadcastToChat(agentId, 'session:stream-end', assistantMsg)
-      agentManager.setAgentStatus(agentId, 'idle')
-      agentManager.setLastMessage(agentId, finalContent.slice(0, 100))
-      agentManager.addAgentCost(agentId, costTotal)
-      broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
-
-      if (code !== 0 && !finalContent) {
+      // result 없이 프로세스가 종료된 경우 (에러 등)
+      if (code !== 0 && !fullResponse.trim() && !resultText.trim()) {
+        session.process = null
         reject(new Error(`Claude process exited with code ${code}`))
       } else {
-        resolve()
+        finishSession()
       }
     })
 
@@ -367,6 +392,7 @@ export function clearSession(agentId: string): void {
     abortSession(agentId)
     session.messages = []
     session.hasConversation = false
+    session.cliSessionId = null
   }
   store.clearSessionHistory(agentId)
   broadcastToChat(agentId, 'session:cleared', agentId)

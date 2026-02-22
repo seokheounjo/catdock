@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
-import { AgentConfig } from '../shared/types'
+import { AgentConfig, ConversationConfig, ConversationMode } from '../shared/types'
 
 const api = {
   // Agent CRUD
@@ -24,10 +24,43 @@ const api = {
     getHistory: (agentId: string) => ipcRenderer.invoke('session:get-history', agentId)
   },
 
+  // Conversation (그룹 채팅)
+  conversation: {
+    create: (config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<ConversationConfig> =>
+      ipcRenderer.invoke('conversation:create', config),
+    list: (): Promise<ConversationConfig[]> => ipcRenderer.invoke('conversation:list'),
+    get: (id: string) => ipcRenderer.invoke('conversation:get', id),
+    update: (id: string, updates: Partial<ConversationConfig>) =>
+      ipcRenderer.invoke('conversation:update', id, updates),
+    delete: (id: string): Promise<void> => ipcRenderer.invoke('conversation:delete', id),
+    send: (conversationId: string, message: string): Promise<void> =>
+      ipcRenderer.invoke('conversation:send', conversationId, message),
+    triggerAgent: (conversationId: string, agentId: string): Promise<void> =>
+      ipcRenderer.invoke('conversation:trigger-agent', conversationId, agentId),
+    pause: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('conversation:pause', conversationId),
+    resume: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('conversation:resume', conversationId),
+    abort: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('conversation:abort', conversationId),
+    clear: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('conversation:clear', conversationId),
+    getHistory: (conversationId: string) =>
+      ipcRenderer.invoke('conversation:get-history', conversationId),
+    getState: (conversationId: string) =>
+      ipcRenderer.invoke('conversation:get-state', conversationId),
+    setMode: (conversationId: string, mode: ConversationMode): Promise<void> =>
+      ipcRenderer.invoke('conversation:set-mode', conversationId, mode)
+  },
+
   // Windows
   window: {
     openChat: (agentId: string): Promise<void> =>
       ipcRenderer.invoke('window:open-chat', agentId),
+    openGroupChat: (conversationId: string): Promise<void> =>
+      ipcRenderer.invoke('window:open-group-chat', conversationId),
+    openNewConversation: (): Promise<void> =>
+      ipcRenderer.invoke('window:open-new-conversation'),
     openEditor: (agentId?: string): Promise<void> =>
       ipcRenderer.invoke('window:open-editor', agentId),
     closeEditor: (): Promise<void> => ipcRenderer.invoke('window:close-editor'),

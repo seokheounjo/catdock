@@ -39,7 +39,7 @@ export function Dock() {
           )
         })}
 
-        {/* + 버튼: 박스 색 + 십자가만 */}
+        {/* + 버튼: 에이전트 추가 */}
         <button
           className="cursor-pointer border-none outline-none flex items-center justify-center"
           style={{
@@ -50,6 +50,23 @@ export function Dock() {
           onClick={() => window.api.window.openEditor()}
           title="Add Agent"
         >+</button>
+
+        {/* 그룹 채팅 버튼 */}
+        <button
+          className="cursor-pointer border-none outline-none flex items-center justify-center"
+          style={{
+            width: 48, height: 48, borderRadius: 10,
+            background: 'rgba(80, 60, 120, 0.6)',
+            color: 'rgba(255,255,255,0.5)', fontSize: 18
+          }}
+          onClick={() => window.api.window.openNewConversation()}
+          title="New Group Chat"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 14v1a2 2 0 002 2h8l4 3v-3a2 2 0 002-2V7a2 2 0 00-2-2h-3" />
+            <rect x="1" y="1" width="12" height="10" rx="2" />
+          </svg>
+        </button>
       </div>
 
       {/* 컨텍스트 메뉴 */}

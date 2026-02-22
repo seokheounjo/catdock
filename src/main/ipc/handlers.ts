@@ -1,14 +1,18 @@
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import * as agentManager from '../services/agent-manager'
 import * as sessionManager from '../services/session-manager'
-import { AgentConfig } from '../../shared/types'
+import * as conversationManager from '../services/conversation-manager'
+import { AgentConfig, ConversationConfig, ConversationMode } from '../../shared/types'
 
 // 윈도우 함수는 나중에 index.ts에서 주입
 let windowFns: {
   createChatWindow: (agentId: string, agentName: string) => void
   createEditorWindow: (agentId?: string) => void
   closeEditorWindow: () => void
+  createGroupChatWindow: (conversationId: string, name: string) => void
+  createConversationCreatorWindow: () => void
   resizeDock: (count: number) => void
+  isDockWindow: (win: BrowserWindow) => boolean
 }
 
 export function setWindowFunctions(fns: typeof windowFns): void {
@@ -87,8 +91,9 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('window:close-editor', (e) => {
-    // 에디터 창 자체를 닫기
-    BrowserWindow.fromWebContents(e.sender)?.close()
+    const win = BrowserWindow.fromWebContents(e.sender)
+    // ★ destroy()로 renderer close 과정 우회 → 크래시 방지
+    if (win) setTimeout(() => { if (!win.isDestroyed()) win.destroy() }, 50)
   })
 
   ipcMain.handle('window:minimize', (e) => {
@@ -96,7 +101,12 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('window:close', (e) => {
-    BrowserWindow.fromWebContents(e.sender)?.close()
+    const win = BrowserWindow.fromWebContents(e.sender)
+    // ★ 독 윈도우는 절대 닫지 않음
+    // ★ destroy()로 renderer close 과정 우회 → 크래시 방지
+    if (win && !windowFns?.isDockWindow(win)) {
+      setTimeout(() => { if (!win.isDestroyed()) win.destroy() }, 50)
+    }
   })
 
   ipcMain.handle('window:select-directory', async () => {
@@ -104,5 +114,82 @@ export function registerIpcHandlers(): void {
       properties: ['openDirectory']
     })
     return result.canceled ? null : result.filePaths[0]
+  })
+
+  // Group Chat Windows
+  ipcMain.handle('window:open-group-chat', (_e, conversationId: string) => {
+    const config = conversationManager.getConversationConfig(conversationId)
+    if (config) {
+      windowFns?.createGroupChatWindow(conversationId, config.name)
+    }
+  })
+
+  ipcMain.handle('window:open-new-conversation', () => {
+    windowFns?.createConversationCreatorWindow()
+  })
+
+  // Conversation CRUD
+  ipcMain.handle('conversation:create', (_e, config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const conv = conversationManager.createConversation(config)
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('conversation:created', conv)
+    )
+    return conv
+  })
+
+  ipcMain.handle('conversation:list', () => {
+    return conversationManager.listConversations()
+  })
+
+  ipcMain.handle('conversation:get', (_e, id: string) => {
+    return conversationManager.getConversationConfig(id)
+  })
+
+  ipcMain.handle('conversation:update', (_e, id: string, updates: Partial<ConversationConfig>) => {
+    return conversationManager.updateConversation(id, updates)
+  })
+
+  ipcMain.handle('conversation:delete', (_e, id: string) => {
+    conversationManager.deleteConversation(id)
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('conversation:deleted', id)
+    )
+  })
+
+  // Conversation messaging
+  ipcMain.handle('conversation:send', (_e, conversationId: string, message: string) => {
+    return conversationManager.sendMessage(conversationId, message)
+  })
+
+  ipcMain.handle('conversation:trigger-agent', (_e, conversationId: string, agentId: string) => {
+    return conversationManager.triggerAgent(conversationId, agentId)
+  })
+
+  ipcMain.handle('conversation:pause', (_e, conversationId: string) => {
+    conversationManager.pauseConversation(conversationId)
+  })
+
+  ipcMain.handle('conversation:resume', (_e, conversationId: string) => {
+    return conversationManager.resumeConversation(conversationId)
+  })
+
+  ipcMain.handle('conversation:abort', (_e, conversationId: string) => {
+    conversationManager.abortConversation(conversationId)
+  })
+
+  ipcMain.handle('conversation:clear', (_e, conversationId: string) => {
+    conversationManager.clearConversation(conversationId)
+  })
+
+  ipcMain.handle('conversation:get-history', (_e, conversationId: string) => {
+    return conversationManager.getHistory(conversationId)
+  })
+
+  ipcMain.handle('conversation:get-state', (_e, conversationId: string) => {
+    return conversationManager.getState(conversationId)
+  })
+
+  ipcMain.handle('conversation:set-mode', (_e, conversationId: string, mode: ConversationMode) => {
+    conversationManager.setMode(conversationId, mode)
   })
 }

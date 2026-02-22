@@ -54,6 +54,32 @@ export interface SessionInfo {
   updatedAt: number
 }
 
+// ── 그룹 대화 ──
+
+export type ConversationMode = 'auto-chain' | 'manual'
+export type ConversationStatus = 'idle' | 'chaining' | 'paused' | 'waiting-agent'
+
+export interface ConversationConfig {
+  id: string
+  name: string
+  participantIds: string[]
+  mode: ConversationMode
+  maxRoundsPerChain: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface ConversationMessage {
+  id: string
+  conversationId: string
+  senderType: 'user' | 'agent' | 'system'
+  agentId: string | null
+  agentName: string | null
+  content: string
+  timestamp: number
+  costDelta?: number
+}
+
 // IPC channel types
 export interface AgentApi {
   list(): Promise<AgentConfig[]>
@@ -72,8 +98,28 @@ export interface SessionApi {
 
 export interface WindowApi {
   openChat(agentId: string): Promise<void>
+  openGroupChat(conversationId: string): Promise<void>
+  openNewConversation(): Promise<void>
   getAgentId(): Promise<string | null>
+  getConversationId(): Promise<string | null>
   minimize(): Promise<void>
   close(): Promise<void>
   selectDirectory(): Promise<string | null>
+}
+
+export interface ConversationApi {
+  create(config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<ConversationConfig>
+  list(): Promise<ConversationConfig[]>
+  get(id: string): Promise<ConversationConfig | null>
+  update(id: string, updates: Partial<ConversationConfig>): Promise<ConversationConfig | null>
+  delete(id: string): Promise<void>
+  send(conversationId: string, message: string): Promise<void>
+  triggerAgent(conversationId: string, agentId: string): Promise<void>
+  pause(conversationId: string): Promise<void>
+  resume(conversationId: string): Promise<void>
+  abort(conversationId: string): Promise<void>
+  clear(conversationId: string): Promise<void>
+  getHistory(conversationId: string): Promise<ConversationMessage[]>
+  getState(conversationId: string): Promise<{ status: ConversationStatus; currentAgentId: string | null } | null>
+  setMode(conversationId: string, mode: ConversationMode): Promise<void>
 }
