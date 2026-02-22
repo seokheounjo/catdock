@@ -53,21 +53,40 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
           value={input}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={streaming ? "응답 생성 중..." : "메시지를 입력하세요..."}
           rows={1}
           disabled={disabled}
-          className="flex-1 bg-transparent text-white text-sm outline-none resize-none max-h-[150px] py-1 placeholder:text-white/30"
+          aria-label="채팅 메시지 입력"
+          aria-describedby={streaming ? "chat-status" : undefined}
+          className="flex-1 bg-transparent text-white text-sm resize-none max-h-[150px] py-1
+                     placeholder:text-white/40 focus:outline-2 focus:outline-accent
+                     focus:outline-offset-2 transition-all duration-200"
         />
+        {streaming && (
+          <span id="chat-status" className="sr-only" aria-live="polite">
+            에이전트가 응답을 생성하고 있습니다
+          </span>
+        )}
         <button
           onClick={handleSubmit}
-          className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none cursor-pointer transition-all ${
+          disabled={disabled && !streaming}
+          aria-label={
             streaming
-              ? 'bg-danger hover:bg-danger/80 text-white'
+              ? "응답 생성 중단하기"
               : input.trim()
-                ? 'bg-accent hover:bg-accent-hover text-white'
-                : 'bg-white/10 text-white/30'
-          }`}
-          title={streaming ? 'Stop' : 'Send'}
+                ? "메시지 전송하기"
+                : "메시지를 입력한 후 전송하세요"
+          }
+          className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none
+                      cursor-pointer transition-all duration-200
+                      focus:outline-2 focus:outline-accent focus:outline-offset-2 focus:ring-2 focus:ring-accent/50
+                      ${streaming
+                        ? 'bg-danger hover:bg-danger/80 text-white focus:bg-danger/70'
+                        : input.trim()
+                          ? 'bg-accent hover:bg-accent-hover text-white focus:bg-accent-hover'
+                          : 'bg-white/10 text-white/40 cursor-not-allowed'
+                      }`}
+          title={streaming ? '중단' : '전송'}
         >
           {streaming ? (
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">

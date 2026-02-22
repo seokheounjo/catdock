@@ -332,6 +332,9 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
 
 // ── 컨텍스트 빌드 ──
 
+// ★ Windows spawn 커맨드 라인 최대 32,767자. 안전 마진 확보하여 프롬프트를 제한.
+const MAX_PROMPT_LENGTH = 24000
+
 function buildContextForAgent(conv: ActiveConversation, agentName: string, agentRole: string): string {
   const participants = conv.config.participantIds
     .map((id) => {
@@ -340,17 +343,30 @@ function buildContextForAgent(conv: ActiveConversation, agentName: string, agent
     })
     .join(', ')
 
-  // 최근 20개 메시지
-  const recent = conv.messages.slice(-20)
-  const transcript = recent
-    .map((m) => {
-      if (m.senderType === 'user') return `[User]: ${m.content}`
-      if (m.senderType === 'agent') return `[${m.agentName}]: ${m.content}`
-      return `[System]: ${m.content}`
-    })
-    .join('\n')
+  const header = `그룹 토론 참여자: ${participants}\n---\n`
+  const footer = `\n---\n지금 네 차례. ${agentName}(${agentRole})로서 자연스럽게 응답해. 다른 참여자의 의견을 참고하고, 네 전문 분야 관점에서 기여해.`
+  const budgetForTranscript = MAX_PROMPT_LENGTH - header.length - footer.length
 
-  return `그룹 토론 참여자: ${participants}\n---\n${transcript}\n---\n지금 네 차례. ${agentName}(${agentRole})로서 자연스럽게 응답해. 다른 참여자의 의견을 참고하고, 네 전문 분야 관점에서 기여해.`
+  // 최근 메시지부터 역순으로 채워 넣기 (최신 컨텍스트 우선)
+  const recent = conv.messages.slice(-15)
+  const lines: string[] = []
+  let totalLen = 0
+
+  for (let i = recent.length - 1; i >= 0; i--) {
+    const m = recent[i]
+    // 개별 메시지 내용 truncate (최대 400자)
+    const content = m.content.length > 400 ? m.content.slice(0, 400) + '...' : m.content
+    let line: string
+    if (m.senderType === 'user') line = `[User]: ${content}`
+    else if (m.senderType === 'agent') line = `[${m.agentName}]: ${content}`
+    else line = `[System]: ${content}`
+
+    if (totalLen + line.length + 1 > budgetForTranscript) break
+    lines.unshift(line)
+    totalLen += line.length + 1
+  }
+
+  return header + lines.join('\n') + footer
 }
 
 // ── Claude CLI 스폰 ──

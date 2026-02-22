@@ -53,7 +53,10 @@ export function createDockWindow(): BrowserWindow {
     fullscreenable: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false
     }
   })
   creatingDock = false
@@ -98,7 +101,13 @@ export function createChatWindow(agentId: string, agentName: string): BrowserWin
     width: 520, height: 700, minWidth: 400, minHeight: 500,
     frame: false, backgroundColor: '#1a1a2e',
     title: `Chat - ${agentName}`,
-    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false
+    }
   })
   chatWindows.set(agentId, win)
   loadRoute(win, `/chat/${agentId}`)
@@ -125,7 +134,13 @@ export function createEditorWindow(agentId?: string): BrowserWindow {
     x: Math.round(workArea.x + (workArea.width - 460) / 2),
     y: Math.round(workArea.y + (workArea.height - 620) / 2),
     frame: false, backgroundColor: '#1e1e30', resizable: false, alwaysOnTop: true,
-    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false
+    }
   })
   loadRoute(editorWindow, agentId ? `/editor/${agentId}` : '/editor')
   editorWindow.on('closed', () => {
@@ -149,7 +164,13 @@ export function createGroupChatWindow(conversationId: string, name: string): Bro
     width: 650, height: 750, minWidth: 450, minHeight: 550,
     frame: false, backgroundColor: '#1a1a2e',
     title: `Group - ${name}`,
-    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false
+    }
   })
   groupChatWindows.set(conversationId, win)
   loadRoute(win, `/group-chat/${conversationId}`)
@@ -174,7 +195,13 @@ export function createConversationCreatorWindow(): BrowserWindow {
     x: Math.round(workArea.x + (workArea.width - 460) / 2),
     y: Math.round(workArea.y + (workArea.height - 520) / 2),
     frame: false, backgroundColor: '#1e1e30', resizable: false, alwaysOnTop: true,
-    webPreferences: { preload: join(__dirname, '../preload/index.js'), sandbox: false }
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webviewTag: false
+    }
   })
   loadRoute(conversationCreatorWindow, '/new-conversation')
   conversationCreatorWindow.on('closed', () => {

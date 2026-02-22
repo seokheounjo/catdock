@@ -21,7 +21,7 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
   const catSrc = catImgMap[status] || caughtImg
 
   const statusLabel =
-    status === 'working' ? 'Working...' : status === 'error' ? 'Error' : 'Online'
+    status === 'working' ? '작업 중...' : status === 'error' ? '오류' : '온라인'
   const statusColor =
     status === 'working'
       ? 'text-accent'
@@ -41,24 +41,39 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
       <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
         <button
           onClick={onClear}
-          className="w-7 h-7 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80 flex items-center justify-center cursor-pointer bg-transparent border-none text-xs"
-          title="Clear chat"
+          className="w-7 h-7 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80
+                     flex items-center justify-center cursor-pointer bg-transparent border-none text-xs
+                     focus:outline-2 focus:outline-accent focus:outline-offset-1 transition-all duration-200"
+          title="채팅 기록 지우기"
+          aria-label="채팅 기록 지우기"
         >
-          &#x1f5d1;
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
         </button>
         <button
           onClick={onMinimize}
-          className="w-7 h-7 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80 flex items-center justify-center cursor-pointer bg-transparent border-none"
-          title="Minimize"
+          className="w-7 h-7 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80
+                     flex items-center justify-center cursor-pointer bg-transparent border-none
+                     focus:outline-2 focus:outline-accent focus:outline-offset-1 transition-all duration-200"
+          title="최소화"
+          aria-label="창 최소화"
         >
-          &#x2500;
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M6 12h12"/>
+          </svg>
         </button>
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded-md hover:bg-danger/20 text-white/40 hover:text-danger flex items-center justify-center cursor-pointer bg-transparent border-none"
-          title="Close"
+          className="w-7 h-7 rounded-md hover:bg-danger/20 text-white/40 hover:text-danger
+                     flex items-center justify-center cursor-pointer bg-transparent border-none
+                     focus:outline-2 focus:outline-danger focus:outline-offset-1 transition-all duration-200"
+          title="창 닫기"
+          aria-label="창 닫기"
         >
-          &#x2715;
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
         </button>
       </div>
     </div>

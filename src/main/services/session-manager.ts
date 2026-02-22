@@ -137,7 +137,42 @@ async function runClaudeSession(
   args.push(userMessage)
 
   return new Promise<void>((resolve, reject) => {
-    const cwd = config.workingDirectory || process.cwd()
+    // 경로 검증 추가
+    let cwd = config.workingDirectory || process.cwd()
+
+    // 상대 경로를 절대 경로로 변환
+    if (!path.isAbsolute(cwd)) {
+      cwd = path.resolve(process.cwd(), cwd)
+    }
+
+    // 경로 검증: 존재하고 디렉토리여야 함
+    try {
+      const stats = fs.statSync(cwd)
+      if (!stats.isDirectory()) {
+        reject(new Error(`Working directory is not a directory: ${cwd}`))
+        return
+      }
+    } catch (err) {
+      reject(new Error(`Working directory does not exist or is not accessible: ${cwd}`))
+      return
+    }
+
+    // 위험한 경로 차단 (시스템 디렉토리)
+    const dangerousPaths = [
+      process.platform === 'win32' ? 'C:\\Windows' : '/usr',
+      process.platform === 'win32' ? 'C:\\Program Files' : '/bin',
+      process.platform === 'win32' ? 'C:\\Program Files (x86)' : '/sbin',
+      '/etc',
+      '/sys'
+    ]
+
+    const normalizedCwd = path.normalize(cwd).toLowerCase()
+    for (const dangerous of dangerousPaths) {
+      if (normalizedCwd.startsWith(dangerous.toLowerCase())) {
+        reject(new Error(`Access to system directory denied: ${cwd}`))
+        return
+      }
+    }
 
     // Claude Code 관련 환경변수 모두 제거 — nested session 감지 우회 + 인증 충돌 방지
     const cleanEnv = { ...process.env }
