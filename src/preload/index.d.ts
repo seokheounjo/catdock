@@ -1,8 +1,20 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import {
-  AgentConfig, AgentState, AgentProcessInfo, ChatMessage,
-  ConversationConfig, ConversationMessage, ConversationMode, ConversationStatus,
-  DockSize, GlobalSettings, ActivityEvent, TaskDelegation, McpServerConfig, McpHealthResult, RoleTemplate,
+  AgentConfig,
+  AgentState,
+  AgentProcessInfo,
+  ChatMessage,
+  ConversationConfig,
+  ConversationMessage,
+  ConversationMode,
+  ConversationStatus,
+  DockSize,
+  GlobalSettings,
+  ActivityEvent,
+  TaskDelegation,
+  McpServerConfig,
+  McpHealthResult,
+  RoleTemplate,
   ErrorRecoveryEvent
 } from '../shared/types'
 
@@ -13,7 +25,11 @@ interface AgentApi {
   delete(id: string): Promise<void>
   getState(id: string): Promise<AgentState | null>
   getAllStates(): Promise<AgentState[]>
-  getOrgChart(): Promise<{ leaders: AgentConfig[]; members: AgentConfig[]; temporary: AgentConfig[] }>
+  getOrgChart(): Promise<{
+    leaders: AgentConfig[]
+    members: AgentConfig[]
+    temporary: AgentConfig[]
+  }>
   getProcessInfo(id: string): Promise<AgentProcessInfo | null>
   spawnTemporary(config: Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<AgentConfig>
   removeTemporary(id: string): Promise<void>
@@ -47,12 +63,18 @@ interface WindowApi {
 
 interface FileApi {
   readContent(filePath: string): Promise<{
-    success: boolean; error: string | null; content: string | null; fileName: string | null; fileSize: number
+    success: boolean
+    error: string | null
+    content: string | null
+    fileName: string | null
+    fileSize: number
   }>
 }
 
 interface ConversationApi {
-  create(config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<ConversationConfig>
+  create(
+    config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<ConversationConfig>
   list(): Promise<ConversationConfig[]>
   get(id: string): Promise<ConversationConfig | null>
   update(id: string, updates: Partial<ConversationConfig>): Promise<ConversationConfig | null>
@@ -64,7 +86,9 @@ interface ConversationApi {
   abort(conversationId: string): Promise<void>
   clear(conversationId: string): Promise<void>
   getHistory(conversationId: string): Promise<ConversationMessage[]>
-  getState(conversationId: string): Promise<{ status: ConversationStatus; currentAgentId: string | null } | null>
+  getState(
+    conversationId: string
+  ): Promise<{ status: ConversationStatus; currentAgentId: string | null } | null>
   setMode(conversationId: string, mode: ConversationMode): Promise<void>
 }
 
@@ -83,7 +107,14 @@ interface ActivityApi {
 
 interface TaskApi {
   create(task: Omit<TaskDelegation, 'id' | 'createdAt'>): Promise<TaskDelegation>
-  createManual(task: { title: string; description: string; toAgentId: string; priority?: string; dueDate?: number; tags?: string[] }): Promise<TaskDelegation>
+  createManual(task: {
+    title: string
+    description: string
+    toAgentId: string
+    priority?: string
+    dueDate?: number
+    tags?: string[]
+  }): Promise<TaskDelegation>
   list(): Promise<TaskDelegation[]>
   getForAgent(agentId: string): Promise<TaskDelegation[]>
   update(id: string, updates: Partial<TaskDelegation>): Promise<TaskDelegation | null>

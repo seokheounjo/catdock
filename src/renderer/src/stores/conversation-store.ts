@@ -1,5 +1,10 @@
 import { create } from 'zustand'
-import { ConversationConfig, ConversationMessage, ConversationMode, ConversationStatus } from '../../../shared/types'
+import {
+  ConversationConfig,
+  ConversationMessage,
+  ConversationMode,
+  ConversationStatus
+} from '../../../shared/types'
 
 interface ConversationStore {
   conversations: ConversationConfig[]
@@ -91,7 +96,13 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   finalizeStream: (msg: ConversationMessage) => {
     // 빈 응답 건너뛰기
     if ((msg as unknown as Record<string, unknown>).skipped) {
-      set({ streaming: false, streamingContent: '', streamingMsgId: null, streamingAgentId: null, streamingAgentName: null })
+      set({
+        streaming: false,
+        streamingContent: '',
+        streamingMsgId: null,
+        streamingAgentId: null,
+        streamingAgentName: null
+      })
       return
     }
     set({

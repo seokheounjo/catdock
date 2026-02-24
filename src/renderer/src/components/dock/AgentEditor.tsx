@@ -2,7 +2,13 @@ import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useAgentStore } from '../../stores/agent-store'
 import { generateAvatar, getRandomSeed } from '../../utils/avatar'
 import { CAT_BREEDS, CAT_BREED_LABELS } from '../../utils/cat-avatar'
-import { AgentConfig, AgentRole, PermissionMode, McpServerConfig, RoleTemplate } from '../../../../shared/types'
+import {
+  AgentConfig,
+  AgentRole,
+  PermissionMode,
+  McpServerConfig,
+  RoleTemplate
+} from '../../../../shared/types'
 import { MODEL_OPTIONS, PERMISSION_MODES, ROLE_PRESETS } from '../../../../shared/constants'
 import { useI18n } from '../../hooks/useI18n'
 
@@ -75,34 +81,40 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
   }, [])
 
   // 템플릿 적용 헬퍼
-  const applyTemplate = useCallback((tmpl: RoleTemplate) => {
-    setRole(tmpl.name)
-    setSystemPrompt(tmpl.systemPrompt)
-    const isKnown = MODEL_OPTIONS.some((m) => m.value === tmpl.defaultModel)
-    if (isKnown) {
-      setModel(tmpl.defaultModel)
-      setCustomModel('')
-    } else {
-      setModel('custom')
-      setCustomModel(tmpl.defaultModel)
-    }
-    setPermissionMode(tmpl.defaultPermissionMode)
-    setMaxTurns(tmpl.defaultMaxTurns)
-    if (tmpl.isLeaderTemplate) setHierarchyRole('leader')
+  const applyTemplate = useCallback(
+    (tmpl: RoleTemplate) => {
+      setRole(tmpl.name)
+      setSystemPrompt(tmpl.systemPrompt)
+      const isKnown = MODEL_OPTIONS.some((m) => m.value === tmpl.defaultModel)
+      if (isKnown) {
+        setModel(tmpl.defaultModel)
+        setCustomModel('')
+      } else {
+        setModel('custom')
+        setCustomModel(tmpl.defaultModel)
+      }
+      setPermissionMode(tmpl.defaultPermissionMode)
+      setMaxTurns(tmpl.defaultMaxTurns)
+      if (tmpl.isLeaderTemplate) setHierarchyRole('leader')
 
-    // 모델 표시명 조회
-    const modelLabel = MODEL_OPTIONS.find((m) => m.value === tmpl.defaultModel)?.label ?? tmpl.defaultModel
-    const permLabel = PERMISSION_MODES.find((m) => m.value === tmpl.defaultPermissionMode)?.label ?? tmpl.defaultPermissionMode
-    const bannerMsg = t('agentEditor.templateApplied', {
-      name: tmpl.name,
-      model: modelLabel,
-      perm: permLabel,
-      turns: String(tmpl.defaultMaxTurns)
-    })
-    setAutoFillBanner(bannerMsg)
-    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
-    bannerTimerRef.current = setTimeout(() => setAutoFillBanner(null), 3000)
-  }, [t])
+      // 모델 표시명 조회
+      const modelLabel =
+        MODEL_OPTIONS.find((m) => m.value === tmpl.defaultModel)?.label ?? tmpl.defaultModel
+      const permLabel =
+        PERMISSION_MODES.find((m) => m.value === tmpl.defaultPermissionMode)?.label ??
+        tmpl.defaultPermissionMode
+      const bannerMsg = t('agentEditor.templateApplied', {
+        name: tmpl.name,
+        model: modelLabel,
+        perm: permLabel,
+        turns: String(tmpl.defaultMaxTurns)
+      })
+      setAutoFillBanner(bannerMsg)
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current)
+      bannerTimerRef.current = setTimeout(() => setAutoFillBanner(null), 3000)
+    },
+    [t]
+  )
 
   // 기존 에이전트 편집 시 데이터 로드
   useEffect(() => {
@@ -168,16 +180,19 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
       workingDirectory,
       model: resolvedModel,
       group: group || undefined,
-      hierarchy: hierarchyRole === 'director'
-        ? { role: 'director' as const, subordinates: [] }
-        : hierarchyRole === 'leader'
-          ? { role: 'leader' as const, subordinates: [], reportsTo: reportsTo || undefined }
-          : { role: 'member' as const, reportsTo: reportsTo || undefined },
+      hierarchy:
+        hierarchyRole === 'director'
+          ? { role: 'director' as const, subordinates: [] }
+          : hierarchyRole === 'leader'
+            ? { role: 'leader' as const, subordinates: [], reportsTo: reportsTo || undefined }
+            : { role: 'member' as const, reportsTo: reportsTo || undefined },
       permissionMode,
       maxTurns,
       mcpConfig: mcpServers.length > 0 ? mcpServers : undefined,
-      teamMcpConfig: (hierarchyRole === 'leader' || hierarchyRole === 'director') && teamMcpServers.length > 0
-        ? teamMcpServers : undefined,
+      teamMcpConfig:
+        (hierarchyRole === 'leader' || hierarchyRole === 'director') && teamMcpServers.length > 0
+          ? teamMcpServers
+          : undefined,
       cliFlags: {
         verbose,
         debug: debug || undefined,
@@ -256,27 +271,30 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
           onClick={onClose}
           className="w-7 h-7 rounded-md hover:bg-white/10 text-text-muted hover:text-text-secondary flex items-center justify-center cursor-pointer bg-transparent border-none text-sm"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >✕</button>
+        >
+          ✕
+        </button>
       </div>
 
       {/* 탭 바 */}
       <div className="flex border-b border-white/10 px-2 shrink-0">
-        {TAB_KEYS.map((tab) => (
-          // Actions 탭은 편집 모드에서만
-          (tab.key !== 'actions' || editAgent) && (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-2 text-[11px] border-none cursor-pointer transition-colors ${
-                activeTab === tab.key
-                  ? 'text-accent border-b-2 border-b-accent bg-transparent'
-                  : 'text-text-muted hover:text-text-secondary bg-transparent'
-              }`}
-            >
-              {t(tab.labelKey)}
-            </button>
-          )
-        ))}
+        {TAB_KEYS.map(
+          (tab) =>
+            // Actions 탭은 편집 모드에서만
+            (tab.key !== 'actions' || editAgent) && (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-3 py-2 text-[11px] border-none cursor-pointer transition-colors ${
+                  activeTab === tab.key
+                    ? 'text-accent border-b-2 border-b-accent bg-transparent'
+                    : 'text-text-muted hover:text-text-secondary bg-transparent'
+                }`}
+              >
+                {t(tab.labelKey)}
+              </button>
+            )
+        )}
       </div>
 
       {/* 탭 내용 */}
@@ -306,13 +324,17 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                           : 'bg-white/5 text-text-muted border-white/10 hover:bg-white/10'
                       }`}
                       onClick={() => setAvatarStyle(breed)}
-                    >{CAT_BREED_LABELS[breed]}</button>
+                    >
+                      {CAT_BREED_LABELS[breed]}
+                    </button>
                   ))}
                 </div>
                 <button
                   className="text-xs text-accent hover:text-accent-hover cursor-pointer bg-transparent border-none text-left w-fit"
                   onClick={() => setAvatarSeed(getRandomSeed())}
-                >{t('agentEditor.randomize')}</button>
+                >
+                  {t('agentEditor.randomize')}
+                </button>
               </div>
             </div>
 
@@ -330,7 +352,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
 
             {/* 계층 역할 (리더/멤버 먼저 선택) */}
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.hierarchyRole')}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.hierarchyRole')}
+              </span>
               <select
                 value={hierarchyRole}
                 onChange={(e) => {
@@ -345,7 +369,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                   }
                   // 멤버로 전환 시 현재 역할이 리더 전용이면 첫 번째 멤버 템플릿으로 리셋
                   if (newRole === 'member' && (prevRole === 'leader' || prevRole === 'director')) {
-                    const isCurrentLeaderOnly = roleTemplates.some((tmpl) => tmpl.isLeaderTemplate && tmpl.name === role)
+                    const isCurrentLeaderOnly = roleTemplates.some(
+                      (tmpl) => tmpl.isLeaderTemplate && tmpl.name === role
+                    )
                     if (isCurrentLeaderOnly) {
                       const memberTmpl = roleTemplates.find((tmpl) => !tmpl.isLeaderTemplate)
                       if (memberTmpl) applyTemplate(memberTmpl)
@@ -354,15 +380,23 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                 }}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
               >
-                <option value="member" className="bg-surface">{t('agentEditor.member')}</option>
-                <option value="leader" className="bg-surface">{t('agentEditor.leader')}</option>
-                <option value="director" className="bg-surface">{t('agentEditor.director')}</option>
+                <option value="member" className="bg-surface">
+                  {t('agentEditor.member')}
+                </option>
+                <option value="leader" className="bg-surface">
+                  {t('agentEditor.leader')}
+                </option>
+                <option value="director" className="bg-surface">
+                  {t('agentEditor.director')}
+                </option>
               </select>
             </label>
 
             {/* 역할 템플릿 (설명 강화) */}
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.roleTemplate')}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.roleTemplate')}
+              </span>
               <select
                 value=""
                 onChange={(e) => {
@@ -371,12 +405,22 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                 }}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
               >
-                <option value="" className="bg-surface">{t('agentEditor.selectTemplateAutoFill')}</option>
+                <option value="" className="bg-surface">
+                  {t('agentEditor.selectTemplateAutoFill')}
+                </option>
                 {roleTemplates
-                  .filter((tmpl) => (hierarchyRole === 'leader' || hierarchyRole === 'director') ? tmpl.isLeaderTemplate : !tmpl.isLeaderTemplate)
+                  .filter((tmpl) =>
+                    hierarchyRole === 'leader' || hierarchyRole === 'director'
+                      ? tmpl.isLeaderTemplate
+                      : !tmpl.isLeaderTemplate
+                  )
                   .map((tmpl) => {
-                    const modelLabel = MODEL_OPTIONS.find((m) => m.value === tmpl.defaultModel)?.label ?? tmpl.defaultModel
-                    const permLabel = PERMISSION_MODES.find((m) => m.value === tmpl.defaultPermissionMode)?.label ?? tmpl.defaultPermissionMode
+                    const modelLabel =
+                      MODEL_OPTIONS.find((m) => m.value === tmpl.defaultModel)?.label ??
+                      tmpl.defaultModel
+                    const permLabel =
+                      PERMISSION_MODES.find((m) => m.value === tmpl.defaultPermissionMode)?.label ??
+                      tmpl.defaultPermissionMode
                     return (
                       <option key={tmpl.id} value={tmpl.id} className="bg-surface">
                         {tmpl.name} — {modelLabel} · {permLabel}
@@ -384,7 +428,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                     )
                   })}
               </select>
-              <span className="text-[10px] text-text-muted mt-1 block">{t('agentEditor.templateAutoFillHint')}</span>
+              <span className="text-[10px] text-text-muted mt-1 block">
+                {t('agentEditor.templateAutoFillHint')}
+              </span>
             </label>
 
             {/* 역할 (자유 텍스트 입력 + 자동완성) */}
@@ -418,24 +464,31 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
 
             {(hierarchyRole === 'member' || hierarchyRole === 'leader') && (
               <label className="block">
-                <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.reportsTo')}</span>
+                <span className="text-xs text-text-muted mb-1 block">
+                  {t('agentEditor.reportsTo')}
+                </span>
                 <select
                   value={reportsTo}
                   onChange={(e) => setReportsTo(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
                 >
-                  <option value="" className="bg-surface">{t('agentEditor.none')}</option>
+                  <option value="" className="bg-surface">
+                    {t('agentEditor.none')}
+                  </option>
                   {allAgents
                     .filter((a) => {
                       if (a.id === editAgent?.id) return false
                       // member → leader/director에 보고 가능
-                      if (hierarchyRole === 'member') return a.hierarchy?.role === 'leader' || a.hierarchy?.role === 'director'
+                      if (hierarchyRole === 'member')
+                        return a.hierarchy?.role === 'leader' || a.hierarchy?.role === 'director'
                       // leader → director에만 보고 가능
                       if (hierarchyRole === 'leader') return a.hierarchy?.role === 'director'
                       return false
                     })
                     .map((a) => (
-                      <option key={a.id} value={a.id} className="bg-surface">{a.name} ({a.role})</option>
+                      <option key={a.id} value={a.id} className="bg-surface">
+                        {a.name} ({a.role})
+                      </option>
                     ))}
                 </select>
               </label>
@@ -464,13 +517,17 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                     {m.label} ({m.tier})
                   </option>
                 ))}
-                <option value="custom" className="bg-surface">{t('agentEditor.customModelId')}</option>
+                <option value="custom" className="bg-surface">
+                  {t('agentEditor.customModelId')}
+                </option>
               </select>
             </label>
 
             {(model === 'custom' || !MODEL_OPTIONS.some((m) => m.value === model)) && (
               <label className="block">
-                <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.customModelId')}</span>
+                <span className="text-xs text-text-muted mb-1 block">
+                  {t('agentEditor.customModelId')}
+                </span>
                 <input
                   type="text"
                   value={customModel}
@@ -482,7 +539,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
             )}
 
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.permissionMode')}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.permissionMode')}
+              </span>
               <select
                 value={permissionMode}
                 onChange={(e) => setPermissionMode(e.target.value as PermissionMode)}
@@ -497,7 +556,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
             </label>
 
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.maxTurnsLabel', { count: String(maxTurns) })}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.maxTurnsLabel', { count: String(maxTurns) })}
+              </span>
               <input
                 type="range"
                 min="1"
@@ -507,7 +568,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                 className="w-full accent-accent"
               />
               <div className="flex justify-between text-[10px] text-text-muted">
-                <span>1</span><span>50</span><span>100</span>
+                <span>1</span>
+                <span>50</span>
+                <span>100</span>
               </div>
             </label>
           </div>
@@ -516,7 +579,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
         {activeTab === 'prompt' && (
           <div>
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.systemPrompt')}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.systemPrompt')}
+              </span>
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
@@ -538,7 +603,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                   <button
                     onClick={addTeamMcpServer}
                     className="text-xs text-accent hover:text-accent-hover bg-transparent border-none cursor-pointer"
-                  >+ 추가</button>
+                  >
+                    + 추가
+                  </button>
                 </div>
                 <div className="px-3 py-2 rounded-lg bg-accent/10 border border-accent/20 text-[10px] text-accent">
                   이 설정은 팀원 전체에 자동 적용됩니다
@@ -547,7 +614,10 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                   <div className="text-xs text-text-muted text-center py-3">팀 MCP 서버 없음</div>
                 ) : (
                   teamMcpServers.map((server, idx) => (
-                    <div key={`team-${idx}`} className="rounded-lg border border-accent/20 bg-accent/5 p-3 space-y-2">
+                    <div
+                      key={`team-${idx}`}
+                      className="rounded-lg border border-accent/20 bg-accent/5 p-3 space-y-2"
+                    >
                       <div className="flex items-center justify-between">
                         <button
                           onClick={() => updateTeamMcpServer(idx, { enabled: !server.enabled })}
@@ -555,14 +625,18 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                             server.enabled ? 'bg-green-500' : 'bg-gray-600'
                           }`}
                         >
-                          <div className={`w-3 h-3 rounded-full bg-white transition-transform ${
-                            server.enabled ? 'translate-x-4' : 'translate-x-0.5'
-                          }`} />
+                          <div
+                            className={`w-3 h-3 rounded-full bg-white transition-transform ${
+                              server.enabled ? 'translate-x-4' : 'translate-x-0.5'
+                            }`}
+                          />
                         </button>
                         <button
                           onClick={() => removeTeamMcpServer(idx)}
                           className="text-xs text-red-400 hover:text-red-300 bg-transparent border-none cursor-pointer"
-                        >삭제</button>
+                        >
+                          삭제
+                        </button>
                       </div>
                       <input
                         type="text"
@@ -581,7 +655,14 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                       <input
                         type="text"
                         value={(server.args ?? []).join(', ')}
-                        onChange={(e) => updateTeamMcpServer(idx, { args: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+                        onChange={(e) =>
+                          updateTeamMcpServer(idx, {
+                            args: e.target.value
+                              .split(',')
+                              .map((s) => s.trim())
+                              .filter(Boolean)
+                          })
+                        }
                         placeholder="인수 (쉼표 구분)"
                         className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-text text-xs outline-none focus:border-accent"
                       />
@@ -597,13 +678,20 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
               <button
                 onClick={addMcpServer}
                 className="text-xs text-accent hover:text-accent-hover bg-transparent border-none cursor-pointer"
-              >{t('agentEditor.addMcp')}</button>
+              >
+                {t('agentEditor.addMcp')}
+              </button>
             </div>
             {mcpServers.length === 0 ? (
-              <div className="text-xs text-text-muted text-center py-4">{t('agentEditor.noMcpServers')}</div>
+              <div className="text-xs text-text-muted text-center py-4">
+                {t('agentEditor.noMcpServers')}
+              </div>
             ) : (
               mcpServers.map((server, idx) => (
-                <div key={idx} className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2">
+                <div
+                  key={idx}
+                  className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2"
+                >
                   <div className="flex items-center justify-between">
                     <button
                       onClick={() => updateMcpServer(idx, { enabled: !server.enabled })}
@@ -611,14 +699,18 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                         server.enabled ? 'bg-green-500' : 'bg-gray-600'
                       }`}
                     >
-                      <div className={`w-3 h-3 rounded-full bg-white transition-transform ${
-                        server.enabled ? 'translate-x-4' : 'translate-x-0.5'
-                      }`} />
+                      <div
+                        className={`w-3 h-3 rounded-full bg-white transition-transform ${
+                          server.enabled ? 'translate-x-4' : 'translate-x-0.5'
+                        }`}
+                      />
                     </button>
                     <button
                       onClick={() => removeMcpServer(idx)}
                       className="text-xs text-red-400 hover:text-red-300 bg-transparent border-none cursor-pointer"
-                    >{t('agentEditor.removeMcp')}</button>
+                    >
+                      {t('agentEditor.removeMcp')}
+                    </button>
                   </div>
                   <input
                     type="text"
@@ -637,7 +729,14 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                   <input
                     type="text"
                     value={(server.args ?? []).join(', ')}
-                    onChange={(e) => updateMcpServer(idx, { args: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+                    onChange={(e) =>
+                      updateMcpServer(idx, {
+                        args: e.target.value
+                          .split(',')
+                          .map((s) => s.trim())
+                          .filter(Boolean)
+                      })
+                    }
                     placeholder={t('agentEditor.argsPlaceholder')}
                     className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-text text-xs outline-none focus:border-accent"
                   />
@@ -650,7 +749,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
         {activeTab === 'advanced' && (
           <div className="space-y-4">
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.workingDir')}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.workingDir')}
+              </span>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -662,7 +763,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                 <button
                   onClick={handleSelectDir}
                   className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-text-muted hover:bg-white/10 cursor-pointer text-sm transition-colors"
-                >{t('agentEditor.browse')}</button>
+                >
+                  {t('agentEditor.browse')}
+                </button>
               </div>
             </label>
 
@@ -688,7 +791,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
             </div>
 
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.jsonSchemaLabel')}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.jsonSchemaLabel')}
+              </span>
               <input
                 type="text"
                 value={jsonSchema}
@@ -699,7 +804,9 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
             </label>
 
             <label className="block">
-              <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.additionalArgs')}</span>
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.additionalArgs')}
+              </span>
               <input
                 type="text"
                 value={additionalArgs}
@@ -716,15 +823,21 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
             <button
               onClick={handleDuplicate}
               className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-text-secondary hover:bg-white/10 cursor-pointer text-sm text-left transition-colors"
-            >{t('agentEditor.duplicate')}</button>
+            >
+              {t('agentEditor.duplicate')}
+            </button>
             <button
               onClick={handleExport}
               className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-text-secondary hover:bg-white/10 cursor-pointer text-sm text-left transition-colors"
-            >{t('agentEditor.exportConfig')}</button>
+            >
+              {t('agentEditor.exportConfig')}
+            </button>
             <button
               onClick={handleImport}
               className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-text-secondary hover:bg-white/10 cursor-pointer text-sm text-left transition-colors"
-            >{t('agentEditor.importJson')}</button>
+            >
+              {t('agentEditor.importJson')}
+            </button>
           </div>
         )}
       </div>
@@ -734,12 +847,16 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
         <button
           onClick={onClose}
           className="px-4 py-2 rounded-lg bg-white/5 text-text-muted hover:bg-white/10 cursor-pointer border border-white/10 text-sm transition-colors"
-        >{t('agentEditor.cancel')}</button>
+        >
+          {t('agentEditor.cancel')}
+        </button>
         <button
           onClick={handleSubmit}
           disabled={!name.trim() || (!resolvedModel && model === 'custom')}
           className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white cursor-pointer border-none text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >{editAgent ? t('agentEditor.save') : t('agentEditor.create')}</button>
+        >
+          {editAgent ? t('agentEditor.save') : t('agentEditor.create')}
+        </button>
       </div>
     </div>
   )
@@ -755,11 +872,11 @@ function getDefaultPrompt(role: string): string {
       'You are a DevOps engineer. Focus on CI/CD, infrastructure, Docker, and deployment strategies.',
     'QA Tester':
       'You are a QA engineer. Focus on testing strategies, bug identification, and quality assurance.',
-    'Director':
+    Director:
       'You are a director overseeing multiple teams. Coordinate team leads, set cross-team strategy, and ensure alignment.',
     'Tech Lead':
       'You are a tech lead. Focus on architecture decisions, code review, and team coordination.',
-    'Designer':
+    Designer:
       'You are a UI/UX designer. Focus on design systems, user experience, and visual consistency.',
     'Product Manager':
       'You are a product manager. Focus on requirements, user stories, and feature prioritization.',

@@ -12,9 +12,7 @@ export function createTask(task: Omit<TaskDelegation, 'id' | 'createdAt'>): Task
   }
   store.addTask(newTask)
 
-  BrowserWindow.getAllWindows().forEach((w) =>
-    w.webContents.send('task:created', newTask)
-  )
+  BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('task:created', newTask))
 
   const fromAgent = store.getAgent(task.fromAgentId)
   const toAgent = store.getAgent(task.toAgentId)
@@ -39,14 +37,16 @@ export function getTasksForAgent(agentId: string): TaskDelegation[] {
 export function updateTask(id: string, updates: Partial<TaskDelegation>): TaskDelegation | null {
   const task = store.updateTask(id, updates)
   if (task) {
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('task:updated', task)
-    )
+    BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('task:updated', task))
   }
   return task
 }
 
-export function updateTaskStatus(id: string, status: TaskStatus, result?: string): TaskDelegation | null {
+export function updateTaskStatus(
+  id: string,
+  status: TaskStatus,
+  result?: string
+): TaskDelegation | null {
   const updates: Partial<TaskDelegation> = { status }
   if (status === 'completed' || status === 'failed') {
     updates.completedAt = Date.now()
@@ -80,9 +80,7 @@ export function createManualTask(opts: {
   }
   store.addTask(newTask)
 
-  BrowserWindow.getAllWindows().forEach((w) =>
-    w.webContents.send('task:created', newTask)
-  )
+  BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('task:created', newTask))
 
   const toAgent = store.getAgent(opts.toAgentId)
   logActivity(

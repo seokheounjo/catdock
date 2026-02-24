@@ -16,11 +16,14 @@ export function SettingsPage() {
     window.api.settings.get().then((s) => {
       if (s.dockSize) setDockSize(s.dockSize)
     })
-    window.api.cli.checkUpdate().then((result) => {
-      if (result.updateAvailable && result.latestVersion) {
-        setCliUpdate({ latestVersion: result.latestVersion })
-      }
-    }).catch(() => {})
+    window.api.cli
+      .checkUpdate()
+      .then((result) => {
+        if (result.updateAvailable && result.latestVersion) {
+          setCliUpdate({ latestVersion: result.latestVersion })
+        }
+      })
+      .catch(() => {})
 
     const unsubs = [
       window.api.on('dock:size-changed', (size: unknown) => setDockSize(size as DockSize)),
@@ -28,7 +31,9 @@ export function SettingsPage() {
         setCliUpdate(data as { latestVersion: string })
       })
     ]
-    return () => { unsubs.forEach(fn => fn()) }
+    return () => {
+      unsubs.forEach((fn) => fn())
+    }
   }, [])
 
   const menuBtn = `w-full px-4 py-3 text-left text-sm text-text hover:bg-white/10
@@ -38,8 +43,10 @@ export function SettingsPage() {
   return (
     <div className="w-full h-full bg-chat-bg flex flex-col select-none">
       {/* 타이틀 바 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10"
-           style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+      <div
+        className="flex items-center justify-between px-4 py-3 border-b border-white/10"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
         <span className="text-sm font-medium text-text">{t('settings.title')}</span>
         <button
           className="w-6 h-6 rounded flex items-center justify-center text-text-muted
@@ -47,26 +54,63 @@ export function SettingsPage() {
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           onClick={() => window.api.window.close()}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
       </div>
 
       {/* 메뉴 목록 */}
       <div className="flex-1 flex flex-col py-1">
-        <button className={menuBtn}
-          onClick={() => { window.api.window.openNewConversation(); window.api.window.close() }}>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <button
+          className={menuBtn}
+          onClick={() => {
+            window.api.window.openNewConversation()
+            window.api.window.close()
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M4 14v1a2 2 0 002 2h8l4 3v-3a2 2 0 002-2V7a2 2 0 00-2-2h-3" />
             <rect x="1" y="1" width="12" height="10" rx="2" />
           </svg>
           {t('settings.groupChat')}
         </button>
 
-        <button className={menuBtn}
-          onClick={() => { window.api.window.openDashboard(); window.api.window.close() }}>
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <button
+          className={menuBtn}
+          onClick={() => {
+            window.api.window.openDashboard()
+            window.api.window.close()
+          }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 20 20"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <rect x="2" y="2" width="7" height="7" rx="1" />
             <rect x="11" y="2" width="7" height="4" rx="1" />
             <rect x="11" y="8" width="7" height="10" rx="1" />
@@ -77,15 +121,33 @@ export function SettingsPage() {
 
         <button className={menuBtn} onClick={toggleTheme}>
           {isDark ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <circle cx="12" cy="12" r="5" />
-              <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-              <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
             </svg>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
             </svg>
           )}
@@ -145,7 +207,16 @@ export function SettingsPage() {
                 setCliUpdate(null)
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -159,11 +230,17 @@ export function SettingsPage() {
         {/* 종료 — 하단 고정 */}
         <div className="flex-1" />
         <div className="h-px bg-white/10 mx-4" />
-        <button
-          className={`${menuBtn} !text-red-400`}
-          onClick={() => window.api.app.quit()}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <button className={`${menuBtn} !text-red-400`} onClick={() => window.api.app.quit()}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
             <line x1="12" y1="2" x2="12" y2="12" />
           </svg>

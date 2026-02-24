@@ -80,7 +80,12 @@ export function useChat(agentId: string | null) {
     // 위임 이벤트 리스너
     unsubs.push(
       window.api.on('delegation:started', (data: unknown) => {
-        const d = data as { leaderAgentId: string; leaderName: string; delegatedTo: { id: string; name: string }[]; totalCount: number }
+        const d = data as {
+          leaderAgentId: string
+          leaderName: string
+          delegatedTo: { id: string; name: string }[]
+          totalCount: number
+        }
         if (d.leaderAgentId === agentId) {
           const names = d.delegatedTo.map((a) => a.name).join(', ')
           addMessage({
@@ -96,7 +101,13 @@ export function useChat(agentId: string | null) {
 
     unsubs.push(
       window.api.on('delegation:agent-completed', (data: unknown) => {
-        const d = data as { leaderAgentId: string; agentName: string; completedCount: number; totalCount: number; remainingCount: number }
+        const d = data as {
+          leaderAgentId: string
+          agentName: string
+          completedCount: number
+          totalCount: number
+          remainingCount: number
+        }
         if (d.leaderAgentId === agentId) {
           addMessage({
             id: `delegation-progress-${Date.now()}`,
@@ -171,17 +182,20 @@ export function useChat(agentId: string | null) {
     await window.api.session.clear(agentId)
   }, [agentId])
 
-  const respondToPermission = useCallback(async (requestId: string, allowed: boolean) => {
-    await window.api.permission.respond(requestId, allowed)
-    setPermissionRequest(null)
-    addMessage({
-      id: `perm-response-${Date.now()}`,
-      agentId: agentId || '',
-      role: 'system',
-      content: `퍼미션 ${allowed ? '허용' : '거부'}됨`,
-      timestamp: Date.now()
-    })
-  }, [agentId, addMessage])
+  const respondToPermission = useCallback(
+    async (requestId: string, allowed: boolean) => {
+      await window.api.permission.respond(requestId, allowed)
+      setPermissionRequest(null)
+      addMessage({
+        id: `perm-response-${Date.now()}`,
+        agentId: agentId || '',
+        role: 'system',
+        content: `퍼미션 ${allowed ? '허용' : '거부'}됨`,
+        timestamp: Date.now()
+      })
+    },
+    [agentId, addMessage]
+  )
 
   return {
     messages,

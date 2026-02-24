@@ -72,13 +72,10 @@ export function useMultiChat(agentIds: string[]) {
     return () => unsubs.forEach((fn) => fn())
   }, [agentIds.join(',')])
 
-  const sendMessage = useCallback(
-    async (agentId: string, message: string) => {
-      if (!agentId || !message.trim()) return
-      await window.api.session.send(agentId, message.trim())
-    },
-    []
-  )
+  const sendMessage = useCallback(async (agentId: string, message: string) => {
+    if (!agentId || !message.trim()) return
+    await window.api.session.send(agentId, message.trim())
+  }, [])
 
   const abort = useCallback(async (agentId: string) => {
     await window.api.session.abort(agentId)

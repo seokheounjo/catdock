@@ -2,7 +2,12 @@ import { BrowserWindow } from 'electron'
 import { AgentConfig, ChatMessage, AgentProcessInfo } from '../../shared/types'
 import * as agentManager from './agent-manager'
 import * as store from './store'
-import { buildCliArgs, buildCleanEnv, validateWorkingDirectory, checkClaudeCli } from './cli-builder'
+import {
+  buildCliArgs,
+  buildCleanEnv,
+  validateWorkingDirectory,
+  checkClaudeCli
+} from './cli-builder'
 import { buildMcpConfigFile } from './mcp-manager'
 import { logActivity } from './activity-logger'
 import { hasDelegation, executeDelegation } from './delegation-manager'
@@ -80,7 +85,7 @@ function broadcastProcessInfo(agentId: string, info: Partial<AgentProcessInfo>):
 // 에이전트가 바쁜지 확인 (프로세스 실행 중 or 위임 진행 중)
 function isAgentBusy(agentId: string): boolean {
   const session = activeSessions.get(agentId)
-  return !!(session?.process) || delegatingAgents.has(agentId)
+  return !!session?.process || delegatingAgents.has(agentId)
 }
 
 // 큐에서 다음 메시지 처리
@@ -111,9 +116,11 @@ function sendUpwardReport(agentId: string, userMessage: string, assistantRespons
 
   // 보고 내용 구성: 사용자 지시 요약 + 에이전트 응답 요약
   const userSummary = userMessage.length > 200 ? userMessage.slice(0, 200) + '...' : userMessage
-  const responseSummary = assistantResponse.length > 300 ? assistantResponse.slice(0, 300) + '...' : assistantResponse
+  const responseSummary =
+    assistantResponse.length > 300 ? assistantResponse.slice(0, 300) + '...' : assistantResponse
 
-  const reportContent = `[📋 자동 보고] 사용자가 ${config.name}에게 직접 지시:\n` +
+  const reportContent =
+    `[📋 자동 보고] 사용자가 ${config.name}에게 직접 지시:\n` +
     `▸ 지시: ${userSummary}\n` +
     `▸ 응답: ${responseSummary}`
 
@@ -213,7 +220,9 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
 
     // director/leader 에이전트이고 위임 블록이 있으면 위임 실행 (재귀 방지)
     const canDelegate = config.hierarchy?.role === 'director' || config.hierarchy?.role === 'leader'
-    console.log(`[delegation-check] role=${config.hierarchy?.role}, canDelegate=${canDelegate}, hasDelegation=${response ? hasDelegation(response) : false}, isDelegating=${delegatingAgents.has(agentId)}, responseLen=${response?.length ?? 0}`)
+    console.log(
+      `[delegation-check] role=${config.hierarchy?.role}, canDelegate=${canDelegate}, hasDelegation=${response ? hasDelegation(response) : false}, isDelegating=${delegatingAgents.has(agentId)}, responseLen=${response?.length ?? 0}`
+    )
     if (canDelegate && response && hasDelegation(response) && !delegatingAgents.has(agentId)) {
       // 위임자를 working 상태로 유지 (finishSession에서 idle로 바꿨으므로 다시 설정)
       agentManager.setAgentStatus(agentId, 'working')
@@ -242,7 +251,10 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
 
     const errMessage = (err as Error).message || String(err)
     // ENOENT = CLI 실행 파일을 찾을 수 없음
-    const isCliMissing = errMessage.includes('ENOENT') || errMessage.includes('not found') || errMessage.includes('not recognized')
+    const isCliMissing =
+      errMessage.includes('ENOENT') ||
+      errMessage.includes('not found') ||
+      errMessage.includes('not recognized')
     const displayMessage = isCliMissing
       ? `⚠️ Claude Code CLI를 실행할 수 없습니다.\n\n**설치 방법:**\n\`\`\`\nnpm install -g @anthropic-ai/claude-code\n\`\`\`\n\n설치 후 터미널을 다시 열고, \`claude --version\`으로 확인하세요.`
       : `Error: ${errMessage}`
@@ -382,7 +394,11 @@ async function runClaudeSession(
       broadcastProcessInfo(agentId, { processStatus: 'stopped' })
 
       if (proc && !proc.killed) {
-        try { proc.kill() } catch { /* already dead */ }
+        try {
+          proc.kill()
+        } catch {
+          /* already dead */
+        }
       }
 
       resolve(finalContent)
@@ -410,11 +426,17 @@ async function runClaudeSession(
         if (!line.trim()) continue
         try {
           const event = JSON.parse(line)
-          handleStreamEvent(event, agentId, streamingMsgId, (text) => {
-            fullResponse += text
-          }, (cost) => {
-            costTotal = cost
-          })
+          handleStreamEvent(
+            event,
+            agentId,
+            streamingMsgId,
+            (text) => {
+              fullResponse += text
+            },
+            (cost) => {
+              costTotal = cost
+            }
+          )
           // init 이벤트에서 CLI session_id 저장
           if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
             session.cliSessionId = event.session_id as string
@@ -440,11 +462,17 @@ async function runClaudeSession(
       if (lineBuffer.trim()) {
         try {
           const event = JSON.parse(lineBuffer)
-          handleStreamEvent(event, agentId, streamingMsgId, (text) => {
-            fullResponse += text
-          }, (cost) => {
-            costTotal = cost
-          })
+          handleStreamEvent(
+            event,
+            agentId,
+            streamingMsgId,
+            (text) => {
+              fullResponse += text
+            },
+            (cost) => {
+              costTotal = cost
+            }
+          )
           if (event.type === 'result') {
             if (event.result) resultText = event.result as string
           }
@@ -572,7 +600,11 @@ export async function sendMessageAndCapture(agentId: string, userMessage: string
     const oldProc = session.process
     session.process = null
     session.abortController.abort()
-    try { oldProc.kill() } catch { /* already dead */ }
+    try {
+      oldProc.kill()
+    } catch {
+      /* already dead */
+    }
   }
 
   session.abortController = new AbortController()
@@ -595,8 +627,14 @@ export async function sendMessageAndCapture(agentId: string, userMessage: string
     const response = await runClaudeSession(config, session, userMessage)
 
     // 중첩 위임: 이 에이전트가 leader이고 위임 블록이 있으면 실행
-    const canDelegateNested = config.hierarchy?.role === 'director' || config.hierarchy?.role === 'leader'
-    if (canDelegateNested && response && hasDelegation(response) && !delegatingAgents.has(agentId)) {
+    const canDelegateNested =
+      config.hierarchy?.role === 'director' || config.hierarchy?.role === 'leader'
+    if (
+      canDelegateNested &&
+      response &&
+      hasDelegation(response) &&
+      !delegatingAgents.has(agentId)
+    ) {
       delegatingAgents.add(agentId)
       try {
         await executeDelegation(agentId, response, userMessage)
@@ -672,7 +710,8 @@ export function sendMcpFailureReport(agentId: string, serverName: string, error:
 
   const session = getSession(superior.id)
 
-  const reportContent = `[⚠️ MCP 장애] ${config.name}의 MCP 서버 "${serverName}" 연결 실패\n` +
+  const reportContent =
+    `[⚠️ MCP 장애] ${config.name}의 MCP 서버 "${serverName}" 연결 실패\n` +
     `▸ 오류: ${error}\n` +
     `▸ 시각: ${new Date().toLocaleTimeString()}`
 

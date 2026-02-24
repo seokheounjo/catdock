@@ -292,7 +292,8 @@ const zh: LocaleMessages = {
     appTitle: 'Virtual Company',
     appDesc: '由 AI 智能体团队组成的虚拟公司模拟器',
     welcomeTitle: '欢迎！',
-    welcomeDesc: 'Virtual Company 是一个由各具专长的 AI 智能体组成团队协作的模拟器。每个智能体作为独立的 Claude Code CLI 进程运行，可以读取和修改实际代码。',
+    welcomeDesc:
+      'Virtual Company 是一个由各具专长的 AI 智能体组成团队协作的模拟器。每个智能体作为独立的 Claude Code CLI 进程运行，可以读取和修改实际代码。',
     step1Title: 'Claude Code CLI 集成',
     step1Desc: '检查智能体运行所需的 CLI 安装',
     step2Title: '工作目录设置',
@@ -326,7 +327,8 @@ const zh: LocaleMessages = {
     defaultDir: '使用默认值',
     agentTeam: '智能体团队：6 名成员已就绪',
     howToStart: '使用方法：',
-    howToStartDesc: '点击 Dock 底部的智能体头像即可打开聊天窗口。使用齿轮图标打开仪表盘，使用 + 图标添加智能体或创建群组聊天。',
+    howToStartDesc:
+      '点击 Dock 底部的智能体头像即可打开聊天窗口。使用齿轮图标打开仪表盘，使用 + 图标添加智能体或创建群组聊天。',
     letsStart: '开始使用',
     cliInstallingMsg: '正在安装 Claude Code CLI...'
   },

@@ -105,7 +105,7 @@ const en: LocaleMessages = {
     browse: 'Browse',
     companyRules: 'Company-wide Rules',
     companyRulesPlaceholder: 'Common rules that will be added to all agent system prompts...',
-    companyRulesDesc: 'These rules are prepended to every agent\'s system prompt.',
+    companyRulesDesc: "These rules are prepended to every agent's system prompt.",
     language: 'Language',
     uiLanguage: 'UI Language',
     agentLanguage: 'Agent Response Language',
@@ -176,7 +176,8 @@ const en: LocaleMessages = {
     importJson: 'Import Agent from JSON',
     pasteJson: 'Paste agent JSON config:',
     invalidJson: 'Invalid JSON',
-    templateAutoFillHint: 'Selecting a template auto-fills role, system prompt, model, permissions, and max turns.',
+    templateAutoFillHint:
+      'Selecting a template auto-fills role, system prompt, model, permissions, and max turns.',
     templateApplied: "'{name}' applied — Model: {model}, Perms: {perm}, Turns: {turns}",
     rolePlaceholder: 'Role name (e.g. Frontend Developer)'
   },
@@ -292,7 +293,8 @@ const en: LocaleMessages = {
     appTitle: 'Virtual Company',
     appDesc: 'A virtual company simulator powered by AI agent teams',
     welcomeTitle: 'Welcome!',
-    welcomeDesc: 'Virtual Company is a simulator where AI agents with specialized roles collaborate as a team. Each agent runs as an independent Claude Code CLI process and can read and modify real code.',
+    welcomeDesc:
+      'Virtual Company is a simulator where AI agents with specialized roles collaborate as a team. Each agent runs as an independent Claude Code CLI process and can read and modify real code.',
     step1Title: 'Claude Code CLI Integration',
     step1Desc: 'Check CLI installation required for agent execution',
     step2Title: 'Working Directory Setup',
@@ -313,7 +315,8 @@ const en: LocaleMessages = {
     next: 'Next',
     skipCli: 'Continue without CLI',
     workingDirTitle: 'Working Directory',
-    workingDirDesc: 'Select the default folder for agents to work in. You can configure individual agents later.',
+    workingDirDesc:
+      'Select the default folder for agents to work in. You can configure individual agents later.',
     clickToChange: 'Click to change',
     clickToSelect: 'Click to select folder',
     dirExample: 'e.g. C:\\Users\\{username}\\Projects',
@@ -326,7 +329,8 @@ const en: LocaleMessages = {
     defaultDir: 'Using default',
     agentTeam: 'Agent team: 6 members ready',
     howToStart: 'How to start:',
-    howToStartDesc: 'Click an agent avatar in the dock to open a chat window. Use the gear icon for the dashboard, and the + icon to add agents or create group chats.',
+    howToStartDesc:
+      'Click an agent avatar in the dock to open a chat window. Use the gear icon for the dashboard, and the + icon to add agents or create group chats.',
     letsStart: 'Get Started',
     cliInstallingMsg: 'Installing Claude Code CLI...'
   },

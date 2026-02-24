@@ -1,5 +1,11 @@
 import { v4 as uuid } from 'uuid'
-import { AgentConfig, AgentState, AgentStatus, AgentProcessInfo, AgentHierarchy } from '../../shared/types'
+import {
+  AgentConfig,
+  AgentState,
+  AgentStatus,
+  AgentProcessInfo,
+  AgentHierarchy
+} from '../../shared/types'
 import * as store from './store'
 
 // In-memory runtime state (status, cost, sessionId, processInfo 등)
@@ -128,7 +134,12 @@ export function getSubordinates(leaderId: string): AgentConfig[] {
   return agents.filter((a) => a.hierarchy?.reportsTo === leaderId)
 }
 
-export function getOrgChart(): { directors: AgentConfig[]; leaders: AgentConfig[]; members: AgentConfig[]; temporary: AgentConfig[] } {
+export function getOrgChart(): {
+  directors: AgentConfig[]
+  leaders: AgentConfig[]
+  members: AgentConfig[]
+  temporary: AgentConfig[]
+} {
   const agents = listAgents()
   const directors = agents.filter((a) => a.hierarchy?.role === 'director')
   const leaders = agents.filter((a) => a.hierarchy?.role === 'leader')

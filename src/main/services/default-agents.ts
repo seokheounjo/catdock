@@ -348,7 +348,9 @@ export function migrateHierarchyIfNeeded(): void {
     })
   }
 
-  console.log(`[default-agents] hierarchy 마이그레이션 완료 (총괄: ${director.name}, 하위: ${subordinateIds.length}명)`)
+  console.log(
+    `[default-agents] hierarchy 마이그레이션 완료 (총괄: ${director.name}, 하위: ${subordinateIds.length}명)`
+  )
 }
 
 // 총괄이 없을 때만 1명 시드

@@ -31,7 +31,9 @@ function processBuffer() {
       if (line) {
         try {
           handleMessage(JSON.parse(line))
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       continue
     }
@@ -45,7 +47,7 @@ function processBuffer() {
 
     try {
       handleMessage(JSON.parse(body))
-    } catch (err) {
+    } catch (_err) {
       sendError(null, -32700, 'Parse error')
     }
   }
@@ -62,18 +64,26 @@ function handleMessage(msg) {
     // 알림, 응답 불필요
   } else if (msg.method === 'tools/list') {
     sendResponse(msg.id, {
-      tools: [{
-        name: 'prompt',
-        description: 'Ask the user for permission to use a tool',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            tool_name: { type: 'string', description: 'The name of the tool requesting permission' },
-            tool_input: { type: 'object', description: 'The input that will be passed to the tool' }
-          },
-          required: ['tool_name']
+      tools: [
+        {
+          name: 'prompt',
+          description: 'Ask the user for permission to use a tool',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              tool_name: {
+                type: 'string',
+                description: 'The name of the tool requesting permission'
+              },
+              tool_input: {
+                type: 'object',
+                description: 'The input that will be passed to the tool'
+              }
+            },
+            required: ['tool_name']
+          }
         }
-      }]
+      ]
     })
   } else if (msg.method === 'tools/call') {
     const toolName = msg.params?.arguments?.tool_name || 'unknown'
@@ -82,18 +92,22 @@ function handleMessage(msg) {
     requestPermission(toolName, toolInput)
       .then((allowed) => {
         sendResponse(msg.id, {
-          content: [{
-            type: 'text',
-            text: allowed ? 'Permission granted by user.' : 'Permission denied by user.'
-          }]
+          content: [
+            {
+              type: 'text',
+              text: allowed ? 'Permission granted by user.' : 'Permission denied by user.'
+            }
+          ]
         })
       })
       .catch((err) => {
         sendResponse(msg.id, {
-          content: [{
-            type: 'text',
-            text: `Permission denied (error: ${err.message})`
-          }]
+          content: [
+            {
+              type: 'text',
+              text: `Permission denied (error: ${err.message})`
+            }
+          ]
         })
       })
   } else if (msg.id !== undefined) {
@@ -114,28 +128,33 @@ function requestPermission(toolName, toolInput) {
       toolInput
     })
 
-    const req = http.request({
-      hostname: '127.0.0.1',
-      port: PERMISSION_SERVER_PORT,
-      path: '/permission',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: PERMISSION_SERVER_PORT,
+        path: '/permission',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        },
+        timeout: 65000
       },
-      timeout: 65000
-    }, (res) => {
-      let data = ''
-      res.on('data', (chunk) => { data += chunk })
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(data)
-          resolve(result.allowed === true)
-        } catch {
-          resolve(false)
-        }
-      })
-    })
+      (res) => {
+        let data = ''
+        res.on('data', (chunk) => {
+          data += chunk
+        })
+        res.on('end', () => {
+          try {
+            const result = JSON.parse(data)
+            resolve(result.allowed === true)
+          } catch {
+            resolve(false)
+          }
+        })
+      }
+    )
 
     req.on('error', (err) => {
       reject(err)

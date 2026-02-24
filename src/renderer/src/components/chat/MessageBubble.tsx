@@ -44,8 +44,10 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   if (message.isAutoReport) {
     return (
       <div className="message-enter flex justify-start px-4 py-1" role="article">
-        <div className="max-w-[90%] rounded-xl px-4 py-2.5 text-xs leading-relaxed
-                        bg-blue-500/10 border border-blue-400/30 text-blue-200">
+        <div
+          className="max-w-[90%] rounded-xl px-4 py-2.5 text-xs leading-relaxed
+                        bg-blue-500/10 border border-blue-400/30 text-blue-200"
+        >
           <div className="flex items-center gap-1.5 mb-1">
             <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-300">
               📋 자동 보고
@@ -57,7 +59,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               {formatTime(message.timestamp)}
             </time>
           </div>
-          <p className="m-0 whitespace-pre-wrap break-words">{message.content.replace('[📋 자동 보고] ', '')}</p>
+          <p className="m-0 whitespace-pre-wrap break-words">
+            {message.content.replace('[📋 자동 보고] ', '')}
+          </p>
         </div>
       </div>
     )

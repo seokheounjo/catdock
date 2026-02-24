@@ -32,7 +32,10 @@ export function CommandCenterPage() {
     load()
 
     // MCP 헬스 로드
-    window.api.mcp.getHealth().then(setMcpHealth).catch(() => {})
+    window.api.mcp
+      .getHealth()
+      .then(setMcpHealth)
+      .catch(() => {})
 
     const unsubs = [
       window.api.on('agent:created', () => load()),
@@ -52,7 +55,10 @@ export function CommandCenterPage() {
   // 조직도 분류
   const director = useMemo(() => agents.find((a) => a.hierarchy?.role === 'director'), [agents])
   const leaders = useMemo(() => agents.filter((a) => a.hierarchy?.role === 'leader'), [agents])
-  const activeLeader = useMemo(() => leaders.find((l) => l.id === activeLeaderId), [leaders, activeLeaderId])
+  const activeLeader = useMemo(
+    () => leaders.find((l) => l.id === activeLeaderId),
+    [leaders, activeLeaderId]
+  )
 
   // 활성 팀장의 부하 찾기
   const subordinates = useMemo(() => {
@@ -61,8 +67,13 @@ export function CommandCenterPage() {
       // reportsTo가 명시적으로 이 팀장인 경우
       if (a.hierarchy?.reportsTo === activeLeaderId) return true
       // 같은 그룹의 멤버인 경우
-      if (activeLeader?.group && a.group === activeLeader.group &&
-          (!a.hierarchy || a.hierarchy.role === 'member') && a.id !== activeLeaderId) return true
+      if (
+        activeLeader?.group &&
+        a.group === activeLeader.group &&
+        (!a.hierarchy || a.hierarchy.role === 'member') &&
+        a.id !== activeLeaderId
+      )
+        return true
       return false
     })
   }, [agents, activeLeaderId, activeLeader])
@@ -113,15 +124,25 @@ export function CommandCenterPage() {
                        hover:bg-white/10 border-none cursor-pointer bg-transparent transition-colors"
             onClick={() => window.api.window.minimize()}
           >
-            <svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor"><rect width="10" height="1"/></svg>
+            <svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor">
+              <rect width="10" height="1" />
+            </svg>
           </button>
           <button
             className="w-7 h-7 rounded flex items-center justify-center text-text-muted
                        hover:bg-red-500/30 hover:text-red-400 border-none cursor-pointer bg-transparent transition-colors"
             onClick={() => window.api.window.close()}
           >
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
-              <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+            >
+              <line x1="1" y1="1" x2="9" y2="9" />
+              <line x1="9" y1="1" x2="1" y2="9" />
             </svg>
           </button>
         </div>
@@ -184,7 +205,13 @@ export function CommandCenterPage() {
         <div className="min-h-0 overflow-y-auto flex flex-col gap-2">
           {subordinates.length > 0 ? (
             subordinates.map((sub) => (
-              <div key={sub.id} className="min-h-[200px] shrink-0" style={{ height: subordinates.length <= 2 ? `${100 / subordinates.length}%` : '200px' }}>
+              <div
+                key={sub.id}
+                className="min-h-[200px] shrink-0"
+                style={{
+                  height: subordinates.length <= 2 ? `${100 / subordinates.length}%` : '200px'
+                }}
+              >
                 <MiniChatPane
                   agent={sub}
                   status={statuses.get(sub.id) || 'idle'}

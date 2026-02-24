@@ -16,10 +16,10 @@ interface WatchedProcess {
 const watchedProcesses = new Map<string, WatchedProcess>()
 
 // 타임아웃 설정
-const HEARTBEAT_TIMEOUT = 120_000     // 2분 무출력 → stuck 판정
-const MAX_PROCESS_RUNTIME = 300_000   // 5분 절대 타임아웃
-const DIRECTOR_FAILOVER_MS = 180_000  // 3분 → 장애조치
-const CHECK_INTERVAL = 15_000         // 15초마다 체크
+const HEARTBEAT_TIMEOUT = 120_000 // 2분 무출력 → stuck 판정
+const MAX_PROCESS_RUNTIME = 300_000 // 5분 절대 타임아웃
+const DIRECTOR_FAILOVER_MS = 180_000 // 3분 → 장애조치
+const CHECK_INTERVAL = 15_000 // 15초마다 체크
 
 let watchdogInterval: ReturnType<typeof setInterval> | null = null
 
@@ -52,11 +52,11 @@ export function updateHeartbeat(agentId: string): void {
 }
 
 // 백업 디렉터 찾기 — 장애 발생한 디렉터를 제외한 다른 디렉터
-export function findBackupDirector(failedDirectorId: string): import('../../shared/types').AgentConfig | null {
+export function findBackupDirector(
+  failedDirectorId: string
+): import('../../shared/types').AgentConfig | null {
   const agents = agentManager.listAgents()
-  return agents.find(
-    (a) => a.hierarchy?.role === 'director' && a.id !== failedDirectorId
-  ) ?? null
+  return agents.find((a) => a.hierarchy?.role === 'director' && a.id !== failedDirectorId) ?? null
 }
 
 function broadcast(channel: string, ...args: unknown[]): void {
@@ -76,8 +76,15 @@ function checkAllProcesses(): void {
 
     // 1. 하트비트 타임아웃 (2분 무출력)
     if (now - watched.lastOutputAt > HEARTBEAT_TIMEOUT) {
-      console.warn(`[watchdog] ${agentName} stuck 판정 (${Math.round((now - watched.lastOutputAt) / 1000)}초 무출력)`)
-      logActivity('error', agentId, agentName, `프로세스 무응답 (${Math.round((now - watched.lastOutputAt) / 1000)}초)`)
+      console.warn(
+        `[watchdog] ${agentName} stuck 판정 (${Math.round((now - watched.lastOutputAt) / 1000)}초 무출력)`
+      )
+      logActivity(
+        'error',
+        agentId,
+        agentName,
+        `프로세스 무응답 (${Math.round((now - watched.lastOutputAt) / 1000)}초)`
+      )
 
       killStuckProcess(agentId, watched, '하트비트 타임아웃')
 
@@ -90,7 +97,9 @@ function checkAllProcesses(): void {
 
     // 2. 절대 타임아웃 (5분)
     if (now - watched.startedAt > MAX_PROCESS_RUNTIME) {
-      console.warn(`[watchdog] ${agentName} 절대 타임아웃 (${Math.round((now - watched.startedAt) / 1000)}초)`)
+      console.warn(
+        `[watchdog] ${agentName} 절대 타임아웃 (${Math.round((now - watched.startedAt) / 1000)}초)`
+      )
       logActivity('error', agentId, agentName, `프로세스 절대 타임아웃 (5분 초과)`)
 
       killStuckProcess(agentId, watched, '절대 타임아웃')
@@ -103,7 +112,9 @@ function checkAllProcesses(): void {
 
     // 3. 디렉터 장기 실행 (3분) → 경고
     if (role === 'director' && now - watched.startedAt > DIRECTOR_FAILOVER_MS) {
-      console.warn(`[watchdog] Director ${agentName} 장시간 실행 중 (${Math.round((now - watched.startedAt) / 1000)}초)`)
+      console.warn(
+        `[watchdog] Director ${agentName} 장시간 실행 중 (${Math.round((now - watched.startedAt) / 1000)}초)`
+      )
     }
   }
 }
@@ -141,8 +152,12 @@ function triggerDirectorFailover(failedDirectorId: string, failedDirectorName: s
   if (backup) {
     // 백업 디렉터가 있으면 인수 요청
     console.log(`[watchdog] 디렉터 장애조치: ${failedDirectorName} → ${backup.name} 인수`)
-    logActivity('error', failedDirectorId, failedDirectorName,
-      `디렉터 장애 → ${backup.name}이 인수`)
+    logActivity(
+      'error',
+      failedDirectorId,
+      failedDirectorName,
+      `디렉터 장애 → ${backup.name}이 인수`
+    )
 
     broadcast('watchdog:director-failover', {
       failedDirectorId,
@@ -155,10 +170,11 @@ function triggerDirectorFailover(failedDirectorId: string, failedDirectorName: s
     setImmediate(async () => {
       try {
         const sessionManager = await import('./session-manager')
-        await sessionManager.sendMessage(backup.id,
+        await sessionManager.sendMessage(
+          backup.id,
           `[자동 장애조치] Director "${failedDirectorName}"이 응답 불능 상태입니다. ` +
-          `진행 중이던 작업을 인수하여 계속 진행해주세요. ` +
-          `현재 팀 상태를 확인하고 미완료 작업이 있으면 이어서 처리하세요.`
+            `진행 중이던 작업을 인수하여 계속 진행해주세요. ` +
+            `현재 팀 상태를 확인하고 미완료 작업이 있으면 이어서 처리하세요.`
         )
       } catch (err) {
         console.error(`[watchdog] 백업 디렉터 ${backup.name}에게 인수 요청 실패:`, err)
@@ -167,8 +183,7 @@ function triggerDirectorFailover(failedDirectorId: string, failedDirectorName: s
   } else {
     // ★ 백업 디렉터 없음 → 총괄 자가복구
     console.log(`[watchdog] 백업 디렉터 없음 → ${failedDirectorName} 자가복구 모드`)
-    logActivity('error', failedDirectorId, failedDirectorName,
-      `디렉터 장애 → 자가복구 모드`)
+    logActivity('error', failedDirectorId, failedDirectorName, `디렉터 장애 → 자가복구 모드`)
 
     // 1. 에이전트 상태를 idle로 리셋
     agentManager.setAgentStatus(failedDirectorId, 'idle')
@@ -176,7 +191,7 @@ function triggerDirectorFailover(failedDirectorId: string, failedDirectorName: s
 
     // 2. 총괄 에이전트가 아예 없어진 경우 → 재생성
     const agents = agentManager.listAgents()
-    const hasDirector = agents.some(a => a.hierarchy?.role === 'director' && !a.group)
+    const hasDirector = agents.some((a) => a.hierarchy?.role === 'director' && !a.group)
     if (!hasDirector) {
       console.log(`[watchdog] 총괄 에이전트 없음 → 새 총괄 재생성`)
       setImmediate(async () => {
@@ -188,8 +203,12 @@ function triggerDirectorFailover(failedDirectorId: string, failedDirectorName: s
             failedDirectorName,
             message: `총괄이 완전히 재생성되었습니다.`
           })
-          logActivity('agent-created', failedDirectorId, failedDirectorName,
-            `총괄 완전 재생성 (워치독)`)
+          logActivity(
+            'agent-created',
+            failedDirectorId,
+            failedDirectorName,
+            `총괄 완전 재생성 (워치독)`
+          )
         } catch (err) {
           console.error('[watchdog] 총괄 재생성 실패:', err)
         }
@@ -203,8 +222,12 @@ function triggerDirectorFailover(failedDirectorId: string, failedDirectorName: s
       })
     }
 
-    logActivity('status-change', failedDirectorId, failedDirectorName,
-      `총괄 자가복구 완료 (워치독)`)
+    logActivity(
+      'status-change',
+      failedDirectorId,
+      failedDirectorName,
+      `총괄 자가복구 완료 (워치독)`
+    )
   }
 }
 
@@ -230,7 +253,9 @@ export function getWatchedCount(): number {
 }
 
 // 특정 에이전트의 감시 정보 조회
-export function getWatchedInfo(agentId: string): { startedAt: number; lastOutputAt: number } | null {
+export function getWatchedInfo(
+  agentId: string
+): { startedAt: number; lastOutputAt: number } | null {
   const watched = watchedProcesses.get(agentId)
   if (!watched) return null
   return { startedAt: watched.startedAt, lastOutputAt: watched.lastOutputAt }

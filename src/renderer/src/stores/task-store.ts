@@ -18,7 +18,14 @@ interface TaskStore {
   updateTask: (task: TaskDelegation) => void
   removeTask: (id: string) => void
   createTask: (task: Omit<TaskDelegation, 'id' | 'createdAt'>) => Promise<TaskDelegation>
-  createManualTask: (task: { title: string; description: string; toAgentId: string; priority?: string; dueDate?: number; tags?: string[] }) => Promise<TaskDelegation>
+  createManualTask: (task: {
+    title: string
+    description: string
+    toAgentId: string
+    priority?: string
+    dueDate?: number
+    tags?: string[]
+  }) => Promise<TaskDelegation>
   changeTaskStatus: (id: string, status: TaskDelegation['status'], result?: string) => Promise<void>
   deleteTask: (id: string) => Promise<void>
 }
@@ -37,7 +44,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     return tasks.filter((t) => {
       if (filter.search) {
         const q = filter.search.toLowerCase()
-        if (!t.title.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q)) return false
+        if (!t.title.toLowerCase().includes(q) && !t.description.toLowerCase().includes(q))
+          return false
       }
       if (filter.agentId) {
         if (t.toAgentId !== filter.agentId && t.fromAgentId !== filter.agentId) return false

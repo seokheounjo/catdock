@@ -79,7 +79,7 @@ export function ThemeToggle({ variant = 'simple', className = '' }: ThemeToggleP
       <div className={`relative ${className}`}>
         <select
           value={theme}
-          onChange={(e) => setTheme(e.target.value as any)}
+          onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
           className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-8 py-2 pr-8 text-text hover:border-gray-400 dark:hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
         >
           <option value="light">{t('theme.light')}</option>
@@ -92,7 +92,12 @@ export function ThemeToggle({ variant = 'simple', className = '' }: ThemeToggleP
           {theme === 'system' && <ComputerIcon className="w-4 h-4 text-gray-500" />}
         </div>
         <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-4 h-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
@@ -115,7 +120,14 @@ export function ThemeToggle({ variant = 'simple', className = '' }: ThemeToggleP
         group
         ${className}
       `}
-      title={t('theme.currentTheme', { theme: theme === 'light' ? t('theme.light') : theme === 'dark' ? t('theme.dark') : t('theme.system') })}
+      title={t('theme.currentTheme', {
+        theme:
+          theme === 'light'
+            ? t('theme.light')
+            : theme === 'dark'
+              ? t('theme.dark')
+              : t('theme.system')
+      })}
     >
       <div className="relative w-5 h-5">
         <SunIcon

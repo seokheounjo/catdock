@@ -45,11 +45,15 @@ export function McpServerEditor() {
           <button
             onClick={addServer}
             className="px-3 py-1.5 rounded-lg bg-accent/20 text-accent text-xs hover:bg-accent/30 cursor-pointer border-none transition-colors"
-          >{t('mcp.addServer')}</button>
+          >
+            {t('mcp.addServer')}
+          </button>
           <button
             onClick={handleSave}
             className="px-3 py-1.5 rounded-lg bg-accent text-white text-xs hover:bg-accent-hover cursor-pointer border-none transition-colors"
-          >{t('mcp.save')}</button>
+          >
+            {t('mcp.save')}
+          </button>
         </div>
       </div>
 
@@ -95,21 +99,29 @@ function ServerEntry({
               server.enabled ? 'bg-green-500' : 'bg-gray-600'
             }`}
           >
-            <div className={`w-3 h-3 rounded-full bg-white transition-transform ${
-              server.enabled ? 'translate-x-4' : 'translate-x-0.5'
-            }`} />
+            <div
+              className={`w-3 h-3 rounded-full bg-white transition-transform ${
+                server.enabled ? 'translate-x-4' : 'translate-x-0.5'
+              }`}
+            />
           </button>
-          <span className="text-sm text-[var(--color-text-secondary)]">{server.name || t('mcp.newServer')}</span>
+          <span className="text-sm text-[var(--color-text-secondary)]">
+            {server.name || t('mcp.newServer')}
+          </span>
         </div>
         <button
           onClick={onRemove}
           className="text-xs text-red-400 hover:text-red-300 bg-transparent border-none cursor-pointer"
-        >{t('mcp.remove')}</button>
+        >
+          {t('mcp.remove')}
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">{t('mcp.name')}</span>
+          <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">
+            {t('mcp.name')}
+          </span>
           <input
             type="text"
             value={server.name}
@@ -119,7 +131,9 @@ function ServerEntry({
           />
         </label>
         <label className="block">
-          <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">{t('mcp.command')}</span>
+          <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">
+            {t('mcp.command')}
+          </span>
           <input
             type="text"
             value={server.command}
@@ -131,18 +145,29 @@ function ServerEntry({
       </div>
 
       <label className="block">
-        <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">{t('mcp.args')}</span>
+        <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">
+          {t('mcp.args')}
+        </span>
         <input
           type="text"
           value={(server.args ?? []).join(', ')}
-          onChange={(e) => onChange({ args: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
+          onChange={(e) =>
+            onChange({
+              args: e.target.value
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+            })
+          }
           placeholder="-y, @modelcontextprotocol/server-filesystem, /path/to/dir"
           className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-[var(--color-text)] text-xs outline-none focus:border-accent"
         />
       </label>
 
       <label className="block">
-        <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">{t('mcp.workingDir')}</span>
+        <span className="text-[10px] text-[var(--color-text-muted)] mb-0.5 block">
+          {t('mcp.workingDir')}
+        </span>
         <input
           type="text"
           value={server.cwd ?? ''}

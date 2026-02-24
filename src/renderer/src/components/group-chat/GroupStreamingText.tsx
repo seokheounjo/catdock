@@ -10,7 +10,12 @@ interface GroupStreamingTextProps {
   agents: Map<string, AgentConfig>
 }
 
-export function GroupStreamingText({ content, agentId, agentName, agents }: GroupStreamingTextProps) {
+export function GroupStreamingText({
+  content,
+  agentId,
+  agentName,
+  agents
+}: GroupStreamingTextProps) {
   const agent = agentId ? agents.get(agentId) : null
 
   if (!content) {

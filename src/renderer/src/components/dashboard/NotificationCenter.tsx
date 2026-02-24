@@ -22,14 +22,14 @@ export function NotificationCenter() {
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="text-sm font-medium text-text">{n.title}</div>
-              {n.message && (
-                <div className="text-xs text-text-muted mt-0.5">{n.message}</div>
-              )}
+              {n.message && <div className="text-xs text-text-muted mt-0.5">{n.message}</div>}
             </div>
             <button
               onClick={() => removeNotification(n.id)}
               className="text-text-muted hover:text-text-secondary bg-transparent border-none cursor-pointer text-xs shrink-0"
-            >✕</button>
+            >
+              ✕
+            </button>
           </div>
         </div>
       ))}

@@ -5,14 +5,30 @@ import * as conversationManager from '../services/conversation-manager'
 import * as settingsManager from '../services/settings-manager'
 import * as activityLogger from '../services/activity-logger'
 import * as dynamicAgentManager from '../services/dynamic-agent-manager'
-import { checkClaudeCli, installClaudeCli, checkNodeInstalled, checkForCliUpdate } from '../services/cli-builder'
+import {
+  checkClaudeCli,
+  installClaudeCli,
+  checkNodeInstalled,
+  checkForCliUpdate
+} from '../services/cli-builder'
 import * as errorRecovery from '../services/error-recovery'
 import { randomAvatar } from '../services/default-agents'
 import { respondToPermission } from '../services/permission-server'
 import * as taskManager from '../services/task-manager'
-import { AgentConfig, ConversationConfig, ConversationMode, DockSize, GlobalSettings, TaskDelegation, RoleTemplate } from '../../shared/types'
+import {
+  AgentConfig,
+  ConversationConfig,
+  ConversationMode,
+  DockSize,
+  GlobalSettings,
+  TaskDelegation,
+  RoleTemplate
+} from '../../shared/types'
 import { BUILTIN_ROLE_TEMPLATES } from '../../shared/constants'
 import * as store from '../services/store'
+import { v4 as uuid } from 'uuid'
+import { statSync, readFileSync as fsReadFileSync } from 'fs'
+import { basename } from 'path'
 import * as mcpHealth from '../services/mcp-health'
 
 // 윈도우 함수는 나중에 index.ts에서 주입
@@ -43,22 +59,26 @@ export function registerIpcHandlers(): void {
     return agentManager.listAgents()
   })
 
-  ipcMain.handle('agent:create', (_e, config: Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const agent = agentManager.createAgent(config)
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('agent:created', agent)
-    )
-    windowFns?.resizeDock(agentManager.listAgents().length)
-    activityLogger.logActivity('agent-created', agent.id, agent.name, `에이전트 ${agent.name} 생성됨`)
-    return agent
-  })
+  ipcMain.handle(
+    'agent:create',
+    (_e, config: Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>) => {
+      const agent = agentManager.createAgent(config)
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:created', agent))
+      windowFns?.resizeDock(agentManager.listAgents().length)
+      activityLogger.logActivity(
+        'agent-created',
+        agent.id,
+        agent.name,
+        `에이전트 ${agent.name} 생성됨`
+      )
+      return agent
+    }
+  )
 
   ipcMain.handle('agent:update', (_e, id: string, updates: Partial<AgentConfig>) => {
     const agent = agentManager.updateAgent(id, updates)
     if (agent) {
-      BrowserWindow.getAllWindows().forEach((w) =>
-        w.webContents.send('agent:updated', agent)
-      )
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:updated', agent))
     }
     return agent
   })
@@ -67,9 +87,7 @@ export function registerIpcHandlers(): void {
     const agent = store.getAgent(id)
     sessionManager.abortSession(id)
     agentManager.deleteAgent(id)
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('agent:deleted', id)
-    )
+    BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:deleted', id))
     windowFns?.resizeDock(agentManager.listAgents().length)
     if (agent) {
       activityLogger.logActivity('agent-deleted', id, agent.name, `에이전트 ${agent.name} 삭제됨`)
@@ -99,9 +117,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('agent:duplicate', (_e, id: string) => {
     const agent = agentManager.duplicateAgent(id)
     if (agent) {
-      BrowserWindow.getAllWindows().forEach((w) =>
-        w.webContents.send('agent:created', agent)
-      )
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:created', agent))
       windowFns?.resizeDock(agentManager.listAgents().length)
     }
     return agent
@@ -113,27 +129,40 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('agent:import', (_e, json: string) => {
     const agent = agentManager.importAgentConfig(json)
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('agent:created', agent)
-    )
+    BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:created', agent))
     windowFns?.resizeDock(agentManager.listAgents().length)
     return agent
   })
 
   // ── 임시 에이전트 ──
 
-  ipcMain.handle('agent:spawn-temporary', (_e, config: { requestedBy: string; name: string; role: string; model: string; systemPrompt: string; ttlMinutes?: number; [key: string]: unknown }) => {
-    const { requestedBy, ttlMinutes, ...rest } = config
-    const agentConfig = {
-      ...rest,
-      avatar: (rest.avatar as { style: string; seed: string }) || randomAvatar(),
-      workingDirectory: rest.workingDirectory as string || store.getSettings().defaultWorkingDirectory || '',
-      expiresAt: ttlMinutes ? Date.now() + ttlMinutes * 60 * 1000 : undefined
-    } as Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>
-    const agent = dynamicAgentManager.spawnTemporaryAgent(requestedBy, agentConfig)
-    if (agent) windowFns?.resizeDock(agentManager.listAgents().length)
-    return agent
-  })
+  ipcMain.handle(
+    'agent:spawn-temporary',
+    (
+      _e,
+      config: {
+        requestedBy: string
+        name: string
+        role: string
+        model: string
+        systemPrompt: string
+        ttlMinutes?: number
+        [key: string]: unknown
+      }
+    ) => {
+      const { requestedBy, ttlMinutes, ...rest } = config
+      const agentConfig = {
+        ...rest,
+        avatar: (rest.avatar as { style: string; seed: string }) || randomAvatar(),
+        workingDirectory:
+          (rest.workingDirectory as string) || store.getSettings().defaultWorkingDirectory || '',
+        expiresAt: ttlMinutes ? Date.now() + ttlMinutes * 60 * 1000 : undefined
+      } as Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>
+      const agent = dynamicAgentManager.spawnTemporaryAgent(requestedBy, agentConfig)
+      if (agent) windowFns?.resizeDock(agentManager.listAgents().length)
+      return agent
+    }
+  )
 
   ipcMain.handle('agent:remove-temporary', (_e, id: string) => {
     const removed = dynamicAgentManager.removeTemporaryAgent(id)
@@ -192,7 +221,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('window:close-editor', (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)
-    if (win) setTimeout(() => { if (!win.isDestroyed()) win.destroy() }, 50)
+    if (win)
+      setTimeout(() => {
+        if (!win.isDestroyed()) win.destroy()
+      }, 50)
   })
 
   ipcMain.handle('window:minimize', (e) => {
@@ -202,7 +234,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('window:close', (e) => {
     const win = BrowserWindow.fromWebContents(e.sender)
     if (win && !windowFns?.isDockWindow(win)) {
-      setTimeout(() => { if (!win.isDestroyed()) win.destroy() }, 50)
+      setTimeout(() => {
+        if (!win.isDestroyed()) win.destroy()
+      }, 50)
     }
   })
 
@@ -240,13 +274,14 @@ export function registerIpcHandlers(): void {
 
   // ── Conversation CRUD ──
 
-  ipcMain.handle('conversation:create', (_e, config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const conv = conversationManager.createConversation(config)
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('conversation:created', conv)
-    )
-    return conv
-  })
+  ipcMain.handle(
+    'conversation:create',
+    (_e, config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>) => {
+      const conv = conversationManager.createConversation(config)
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('conversation:created', conv))
+      return conv
+    }
+  )
 
   ipcMain.handle('conversation:list', () => {
     return conversationManager.listConversations()
@@ -262,9 +297,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('conversation:delete', (_e, id: string) => {
     conversationManager.deleteConversation(id)
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('conversation:deleted', id)
-    )
+    BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('conversation:deleted', id))
   })
 
   // ── Conversation messaging ──
@@ -328,7 +361,6 @@ export function registerIpcHandlers(): void {
   // ── Tasks ──
 
   ipcMain.handle('task:create', (_e, task: Omit<TaskDelegation, 'id' | 'createdAt'>) => {
-    const { v4: uuid } = require('uuid')
     const newTask: TaskDelegation = {
       ...task,
       status: task.status || 'pending',
@@ -336,9 +368,7 @@ export function registerIpcHandlers(): void {
       createdAt: Date.now()
     }
     store.addTask(newTask)
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('task:created', newTask)
-    )
+    BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('task:created', newTask))
     // 활동 로그
     const fromAgent = store.getAgent(task.fromAgentId)
     const toAgent = store.getAgent(task.toAgentId)
@@ -362,9 +392,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('task:update', (_e, id: string, updates: Partial<TaskDelegation>) => {
     const task = store.updateTask(id, updates)
     if (task) {
-      BrowserWindow.getAllWindows().forEach((w) =>
-        w.webContents.send('task:updated', task)
-      )
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('task:updated', task))
     }
     return task
   })
@@ -372,9 +400,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('task:delete', (_e, id: string) => {
     const deleted = store.deleteTask(id)
     if (deleted) {
-      BrowserWindow.getAllWindows().forEach((w) =>
-        w.webContents.send('task:deleted', id)
-      )
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('task:deleted', id))
     }
     return deleted
   })
@@ -415,9 +441,22 @@ export function registerIpcHandlers(): void {
 
   // ── Manual Task ──
 
-  ipcMain.handle('task:create-manual', (_e, task: { title: string; description: string; toAgentId: string; priority?: string; dueDate?: number; tags?: string[] }) => {
-    return taskManager.createManualTask(task)
-  })
+  ipcMain.handle(
+    'task:create-manual',
+    (
+      _e,
+      task: {
+        title: string
+        description: string
+        toAgentId: string
+        priority?: string
+        dueDate?: number
+        tags?: string[]
+      }
+    ) => {
+      return taskManager.createManualTask(task)
+    }
+  )
 
   // ── Permission ──
 
@@ -482,7 +521,34 @@ export function registerIpcHandlers(): void {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
       filters: [
-        { name: 'Text', extensions: ['txt', 'md', 'ts', 'tsx', 'js', 'jsx', 'json', 'py', 'css', 'html', 'yml', 'yaml', 'toml', 'cfg', 'ini', 'sh', 'bat', 'rs', 'go', 'java', 'c', 'cpp', 'h'] },
+        {
+          name: 'Text',
+          extensions: [
+            'txt',
+            'md',
+            'ts',
+            'tsx',
+            'js',
+            'jsx',
+            'json',
+            'py',
+            'css',
+            'html',
+            'yml',
+            'yaml',
+            'toml',
+            'cfg',
+            'ini',
+            'sh',
+            'bat',
+            'rs',
+            'go',
+            'java',
+            'c',
+            'cpp',
+            'h'
+          ]
+        },
         { name: 'All Files', extensions: ['*'] }
       ]
     })
@@ -491,19 +557,35 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('file:read-content', (_e, filePath: string) => {
     try {
-      const fs = require('fs')
-      const path = require('path')
-      const stat = fs.statSync(filePath)
+      const stat = statSync(filePath)
       const MAX_SIZE = 100 * 1024 // 100KB
 
       if (stat.size > MAX_SIZE) {
-        return { success: false, error: `파일이 너무 큽니다 (${Math.round(stat.size / 1024)}KB > 100KB 제한)`, content: null, fileName: path.basename(filePath), fileSize: stat.size }
+        return {
+          success: false,
+          error: `파일이 너무 큽니다 (${Math.round(stat.size / 1024)}KB > 100KB 제한)`,
+          content: null,
+          fileName: basename(filePath),
+          fileSize: stat.size
+        }
       }
 
-      const content = fs.readFileSync(filePath, 'utf-8')
-      return { success: true, error: null, content, fileName: path.basename(filePath), fileSize: stat.size }
+      const content = fsReadFileSync(filePath, 'utf-8')
+      return {
+        success: true,
+        error: null,
+        content,
+        fileName: basename(filePath),
+        fileSize: stat.size
+      }
     } catch (err) {
-      return { success: false, error: (err as Error).message, content: null, fileName: null, fileSize: 0 }
+      return {
+        success: false,
+        error: (err as Error).message,
+        content: null,
+        fileName: null,
+        fileSize: 0
+      }
     }
   })
 

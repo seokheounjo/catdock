@@ -95,9 +95,12 @@ async function checkAgentMcpServers(agentId: string): Promise<McpHealthResult[]>
       status,
       checkedAt: Date.now(),
       agentId,
-      error: status === 'disconnected' ? `${server.command} 응답 없음`
-        : status === 'not-found' ? `${server.command} 명령어를 찾을 수 없음`
-        : undefined
+      error:
+        status === 'disconnected'
+          ? `${server.command} 응답 없음`
+          : status === 'not-found'
+            ? `${server.command} 명령어를 찾을 수 없음`
+            : undefined
     }
     results.push(result)
 

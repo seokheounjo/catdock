@@ -60,32 +60,39 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
     setDragOver(false)
   }, [])
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragOver(false)
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      setDragOver(false)
 
-    const files = e.dataTransfer.files
-    if (files.length > 0) {
-      const file = files[0]
-      // Electron에서 file.path로 실제 경로 접근
-      const filePath = (file as File & { path?: string }).path
-      if (filePath) {
-        await attachFile(filePath)
+      const files = e.dataTransfer.files
+      if (files.length > 0) {
+        const file = files[0]
+        // Electron에서 file.path로 실제 경로 접근
+        const filePath = (file as File & { path?: string }).path
+        if (filePath) {
+          await attachFile(filePath)
+        }
       }
-    }
-  }, [attachFile])
+    },
+    [attachFile]
+  )
 
   // 경로 붙여넣기 감지
-  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
-    const text = e.clipboardData.getData('text/plain').trim()
-    // 파일 경로 패턴 감지 (Windows / Unix)
-    const isFilePath = /^([A-Za-z]:\\|\/|~\/)/.test(text) && !text.includes('\n') && text.length < 500
-    if (isFilePath) {
-      e.preventDefault()
-      await attachFile(text)
-    }
-  }, [attachFile])
+  const handlePaste = useCallback(
+    async (e: React.ClipboardEvent) => {
+      const text = e.clipboardData.getData('text/plain').trim()
+      // 파일 경로 패턴 감지 (Windows / Unix)
+      const isFilePath =
+        /^([A-Za-z]:\\|\/|~\/)/.test(text) && !text.includes('\n') && text.length < 500
+      if (isFilePath) {
+        e.preventDefault()
+        await attachFile(text)
+      }
+    },
+    [attachFile]
+  )
 
   const handleSubmit = () => {
     if (streaming) {
@@ -138,7 +145,17 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
       {/* 첨부 파일 프리뷰 */}
       {attachment && (
         <div className="mb-2 flex items-center gap-2 bg-white/5 rounded-lg px-3 py-1.5 text-xs text-text-secondary">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-accent">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="shrink-0 text-accent"
+          >
             <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
             <polyline points="14 2 14 8 20 8" />
           </svg>
@@ -165,7 +182,16 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
           aria-label={t('chat.attachFile')}
           title={t('chat.attachHint')}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
           </svg>
         </button>
@@ -180,7 +206,7 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
           rows={1}
           disabled={disabled}
           aria-label={t('chat.ariaInput')}
-          aria-describedby={streaming ? "chat-status" : undefined}
+          aria-describedby={streaming ? 'chat-status' : undefined}
           className="flex-1 bg-transparent text-text text-sm resize-none max-h-[150px] py-1
                      placeholder:text-text-muted focus:outline-2 focus:outline-accent
                      focus:outline-offset-2 transition-all duration-200"
@@ -196,18 +222,19 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
           aria-label={
             streaming
               ? t('chat.ariaAbort')
-              : (input.trim() || attachment)
+              : input.trim() || attachment
                 ? t('chat.ariaSend')
                 : t('chat.ariaEmptySend')
           }
           className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none
                       cursor-pointer transition-all duration-200
                       focus:outline-2 focus:outline-accent focus:outline-offset-2 focus:ring-2 focus:ring-accent/50
-                      ${streaming
-                        ? 'bg-danger hover:bg-danger/80 text-white focus:bg-danger/70'
-                        : (input.trim() || attachment)
-                          ? 'bg-accent hover:bg-accent-hover text-white focus:bg-accent-hover'
-                          : 'bg-white/10 text-text-muted cursor-not-allowed'
+                      ${
+                        streaming
+                          ? 'bg-danger hover:bg-danger/80 text-white focus:bg-danger/70'
+                          : input.trim() || attachment
+                            ? 'bg-accent hover:bg-accent-hover text-white focus:bg-accent-hover'
+                            : 'bg-white/10 text-text-muted cursor-not-allowed'
                       }`}
           title={streaming ? t('chat.stop') : t('chat.send')}
         >
@@ -216,7 +243,15 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
               <rect x="2" y="2" width="10" height="10" rx="1.5" />
             </svg>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
               <path d="M2 8h12M9 3l5 5-5 5" />
             </svg>
           )}

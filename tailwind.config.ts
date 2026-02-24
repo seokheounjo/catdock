@@ -1,10 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  content: [
-    './src/renderer/src/**/*.{js,ts,jsx,tsx}',
-    './src/renderer/index.html'
-  ],
+  content: ['./src/renderer/src/**/*.{js,ts,jsx,tsx}', './src/renderer/index.html'],
   darkMode: 'class', // 다크모드를 클래스 기반으로 활성화
   theme: {
     extend: {
@@ -38,10 +35,11 @@ const config: Config = {
       },
       // 부드러운 테마 전환을 위한 트랜지션
       transitionProperty: {
-        'theme': 'background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter',
+        theme:
+          'background-color, border-color, color, fill, stroke, opacity, box-shadow, transform, filter, backdrop-filter'
       },
       transitionDuration: {
-        'theme': '200ms',
+        theme: '200ms'
       }
     }
   },

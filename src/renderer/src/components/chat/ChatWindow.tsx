@@ -15,7 +15,16 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
   const { t } = useI18n()
   const [agent, setAgent] = useState<AgentConfig | null>(null)
   const [status, setStatus] = useState<AgentState['status']>('idle')
-  const { messages, streaming, streamingContent, sendMessage, abort, clear, permissionRequest, respondToPermission } = useChat(agentId)
+  const {
+    messages,
+    streaming,
+    streamingContent,
+    sendMessage,
+    abort,
+    clear,
+    permissionRequest,
+    respondToPermission
+  } = useChat(agentId)
 
   useEffect(() => {
     // Load agent config
@@ -54,22 +63,11 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
         onClose={() => window.api.window.close()}
         onClear={clear}
       />
-      <MessageList
-        messages={messages}
-        streaming={streaming}
-        streamingContent={streamingContent}
-      />
+      <MessageList messages={messages} streaming={streaming} streamingContent={streamingContent} />
       {permissionRequest && (
-        <PermissionDialog
-          request={permissionRequest}
-          onRespond={respondToPermission}
-        />
+        <PermissionDialog request={permissionRequest} onRespond={respondToPermission} />
       )}
-      <ChatInput
-        onSend={sendMessage}
-        onAbort={abort}
-        streaming={streaming}
-      />
+      <ChatInput onSend={sendMessage} onAbort={abort} streaming={streaming} />
     </div>
   )
 }

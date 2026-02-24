@@ -3,9 +3,14 @@ import { join } from 'path'
 import { createHash } from 'crypto'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'fs'
 import {
-  AgentConfig, ChatMessage, SessionInfo,
-  ConversationConfig, ConversationMessage,
-  GlobalSettings, ActivityEvent, TaskDelegation
+  AgentConfig,
+  ChatMessage,
+  SessionInfo,
+  ConversationConfig,
+  ConversationMessage,
+  GlobalSettings,
+  ActivityEvent,
+  TaskDelegation
 } from '../../shared/types'
 
 // ── 프로젝트 데이터 스키마 (projects/<hash>/config.json) ──
@@ -269,7 +274,10 @@ export function addConversationConfig(config: ConversationConfig): void {
   save()
 }
 
-export function updateConversationConfig(id: string, updates: Partial<ConversationConfig>): ConversationConfig | null {
+export function updateConversationConfig(
+  id: string,
+  updates: Partial<ConversationConfig>
+): ConversationConfig | null {
   const d = load()
   if (!d.conversations) return null
   const idx = d.conversations.findIndex((c) => c.id === id)
@@ -389,7 +397,9 @@ export function cleanStaleTasks(): number {
   if (!d.tasks || d.tasks.length === 0) return 0
   const agentIds = new Set((d.agents || []).map((a: { id: string }) => a.id))
   const before = d.tasks.length
-  d.tasks = d.tasks.filter((t: TaskDelegation) => agentIds.has(t.fromAgentId) || agentIds.has(t.toAgentId))
+  d.tasks = d.tasks.filter(
+    (t: TaskDelegation) => agentIds.has(t.fromAgentId) || agentIds.has(t.toAgentId)
+  )
   const removed = before - d.tasks.length
   if (removed > 0) save()
   return removed

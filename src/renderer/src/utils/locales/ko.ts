@@ -185,7 +185,8 @@ const ko = {
     importJson: 'JSON에서 에이전트 가져오기',
     pasteJson: '에이전트 JSON 설정을 붙여넣기:',
     invalidJson: '잘못된 JSON',
-    templateAutoFillHint: '템플릿을 선택하면 역할, 시스템 프롬프트, 모델, 권한, 최대 턴이 자동으로 설정됩니다.',
+    templateAutoFillHint:
+      '템플릿을 선택하면 역할, 시스템 프롬프트, 모델, 권한, 최대 턴이 자동으로 설정됩니다.',
     templateApplied: "'{name}' 적용됨 — 모델: {model}, 권한: {perm}, 턴: {turns}",
     rolePlaceholder: '역할명 (예: Frontend Developer)'
   },
@@ -309,7 +310,8 @@ const ko = {
     appTitle: 'Virtual Company',
     appDesc: 'AI 에이전트 팀으로 구성된 가상 회사 시뮬레이터',
     welcomeTitle: '환영합니다!',
-    welcomeDesc: 'Virtual Company는 각각 전문 분야를 가진 AI 에이전트들이 팀으로 협업하는 시뮬레이터입니다. 각 에이전트는 독립적인 Claude Code CLI 프로세스로 동작하며, 실제 코드를 읽고 수정할 수 있습니다.',
+    welcomeDesc:
+      'Virtual Company는 각각 전문 분야를 가진 AI 에이전트들이 팀으로 협업하는 시뮬레이터입니다. 각 에이전트는 독립적인 Claude Code CLI 프로세스로 동작하며, 실제 코드를 읽고 수정할 수 있습니다.',
     step1Title: 'Claude Code CLI 연동',
     step1Desc: '에이전트 실행에 필요한 CLI 설치 확인',
     step2Title: '작업 디렉토리 설정',
@@ -330,7 +332,8 @@ const ko = {
     next: '다음',
     skipCli: 'CLI 없이 계속',
     workingDirTitle: '작업 디렉토리',
-    workingDirDesc: '에이전트가 기본으로 작업할 폴더를 선택하세요. 에이전트별로 나중에 개별 설정할 수 있습니다.',
+    workingDirDesc:
+      '에이전트가 기본으로 작업할 폴더를 선택하세요. 에이전트별로 나중에 개별 설정할 수 있습니다.',
     clickToChange: '클릭하여 변경',
     clickToSelect: '클릭하여 폴더 선택',
     dirExample: '예: C:\\Users\\{username}\\Projects',
@@ -343,7 +346,8 @@ const ko = {
     defaultDir: '기본값 사용',
     agentTeam: '에이전트 팀: 6명 준비됨',
     howToStart: '시작 방법:',
-    howToStartDesc: '하단 독에서 에이전트 아바타를 클릭하면 대화창이 열립니다. 톱니바퀴 아이콘으로 대시보드를, + 아이콘으로 에이전트 추가/그룹 채팅을 만들 수 있습니다.',
+    howToStartDesc:
+      '하단 독에서 에이전트 아바타를 클릭하면 대화창이 열립니다. 톱니바퀴 아이콘으로 대시보드를, + 아이콘으로 에이전트 추가/그룹 채팅을 만들 수 있습니다.',
     letsStart: '시작하기',
     cliInstallingMsg: 'Claude Code CLI 설치 중...'
   },

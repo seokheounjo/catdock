@@ -35,7 +35,9 @@ export function startPermissionServer(): Promise<number> {
     server = http.createServer((req, res) => {
       if (req.method === 'POST' && req.url === '/permission') {
         let body = ''
-        req.on('data', (chunk) => { body += chunk.toString() })
+        req.on('data', (chunk) => {
+          body += chunk.toString()
+        })
         req.on('end', () => {
           try {
             const { agentId, toolName, toolInput } = JSON.parse(body)

@@ -17,7 +17,9 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
 
   const [status, setStatus] = useState(task.status)
   const [priority, setPriority] = useState<TaskPriority>(task.priority ?? 'medium')
-  const [dueDate, setDueDate] = useState(task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '')
+  const [dueDate, setDueDate] = useState(
+    task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
+  )
   const [tagsInput, setTagsInput] = useState((task.tags ?? []).join(', '))
   const [result, setResult] = useState(task.result ?? '')
 
@@ -26,7 +28,12 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
       status,
       priority,
       dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
-      tags: tagsInput ? tagsInput.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      tags: tagsInput
+        ? tagsInput
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : undefined,
       result: result || undefined
     }
     if ((status === 'completed' || status === 'failed') && status !== task.status) {
@@ -43,10 +50,15 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
     onClose()
   }
 
-  const isOverdue = task.dueDate && task.dueDate < Date.now() && task.status !== 'completed' && task.status !== 'cancelled'
+  const [now] = useState(() => Date.now())
+  const isOverdue =
+    task.dueDate && task.dueDate < now && task.status !== 'completed' && task.status !== 'cancelled'
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
       <div
         className="bg-chat-bg border border-white/10 rounded-xl w-[520px] max-h-[85vh] overflow-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -56,7 +68,9 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
           <button
             onClick={onClose}
             className="w-6 h-6 rounded flex items-center justify-center text-text-muted hover:text-text hover:bg-white/10 cursor-pointer bg-transparent border-none text-xs"
-          >&#x2715;</button>
+          >
+            &#x2715;
+          </button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
@@ -76,8 +90,19 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
               onChange={(e) => setStatus(e.target.value as TaskStatus)}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
             >
-              {(['pending', 'assigned', 'in-progress', 'completed', 'failed', 'cancelled'] as TaskStatus[]).map((s) => (
-                <option key={s} value={s} className="bg-[#1e1e30]">{t(`taskBoard.columns.${s}`)}</option>
+              {(
+                [
+                  'pending',
+                  'assigned',
+                  'in-progress',
+                  'completed',
+                  'failed',
+                  'cancelled'
+                ] as TaskStatus[]
+              ).map((s) => (
+                <option key={s} value={s} className="bg-[#1e1e30]">
+                  {t(`taskBoard.columns.${s}`)}
+                </option>
               ))}
             </select>
           </label>
@@ -91,7 +116,9 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
             >
               {(['urgent', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => (
-                <option key={p} value={p} className="bg-[#1e1e30]">{t(`taskBoard.priority.${p}`)}</option>
+                <option key={p} value={p} className="bg-[#1e1e30]">
+                  {t(`taskBoard.priority.${p}`)}
+                </option>
               ))}
             </select>
           </label>
@@ -111,11 +138,17 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
           {/* 날짜 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <span className="text-xs text-text-muted block mb-1">{t('taskDetail.createdAt')}</span>
+              <span className="text-xs text-text-muted block mb-1">
+                {t('taskDetail.createdAt')}
+              </span>
               <div className="text-sm text-text">{new Date(task.createdAt).toLocaleString()}</div>
             </div>
             <label className="block">
-              <span className={`text-xs mb-1 block ${isOverdue ? 'text-red-400' : 'text-text-muted'}`}>{t('taskDetail.dueDate')}</span>
+              <span
+                className={`text-xs mb-1 block ${isOverdue ? 'text-red-400' : 'text-text-muted'}`}
+              >
+                {t('taskDetail.dueDate')}
+              </span>
               <input
                 type="date"
                 value={dueDate}
@@ -127,7 +160,9 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
 
           {task.completedAt && (
             <div>
-              <span className="text-xs text-text-muted block mb-1">{t('taskDetail.completedAt')}</span>
+              <span className="text-xs text-text-muted block mb-1">
+                {t('taskDetail.completedAt')}
+              </span>
               <div className="text-sm text-text">{new Date(task.completedAt).toLocaleString()}</div>
             </div>
           )}
@@ -161,16 +196,22 @@ export function TaskDetailModal({ task, onClose, getAgentName }: TaskDetailModal
           <button
             onClick={handleDelete}
             className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 cursor-pointer border border-red-500/20 text-sm transition-colors"
-          >{t('taskDetail.delete')}</button>
+          >
+            {t('taskDetail.delete')}
+          </button>
           <div className="flex gap-2">
             <button
               onClick={onClose}
               className="px-4 py-2 rounded-lg bg-white/5 text-text-muted hover:bg-white/10 cursor-pointer border border-white/10 text-sm transition-colors"
-            >{t('taskDetail.close')}</button>
+            >
+              {t('taskDetail.close')}
+            </button>
             <button
               onClick={handleSave}
               className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white cursor-pointer border-none text-sm transition-colors"
-            >{t('taskDetail.save')}</button>
+            >
+              {t('taskDetail.save')}
+            </button>
           </div>
         </div>
       </div>

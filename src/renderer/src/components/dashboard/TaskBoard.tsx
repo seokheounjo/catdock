@@ -42,7 +42,9 @@ export function TaskBoard() {
         <button
           onClick={() => setShowCreateForm(true)}
           className="px-3 py-1.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-xs cursor-pointer border-none transition-colors"
-        >+ {t('taskBoard.newTask')}</button>
+        >
+          + {t('taskBoard.newTask')}
+        </button>
       </div>
 
       {/* 필터바 */}
@@ -59,9 +61,13 @@ export function TaskBoard() {
           onChange={(e) => setFilter({ agentId: e.target.value || null })}
           className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-text text-xs outline-none focus:border-accent appearance-none cursor-pointer"
         >
-          <option value="" className="bg-[#1e1e30]">{t('taskBoard.filter.allAgents')}</option>
+          <option value="" className="bg-[#1e1e30]">
+            {t('taskBoard.filter.allAgents')}
+          </option>
           {agents.map((a) => (
-            <option key={a.id} value={a.id} className="bg-[#1e1e30]">{a.name}</option>
+            <option key={a.id} value={a.id} className="bg-[#1e1e30]">
+              {a.name}
+            </option>
           ))}
         </select>
         <select
@@ -69,9 +75,13 @@ export function TaskBoard() {
           onChange={(e) => setFilter({ priority: (e.target.value as TaskPriority) || null })}
           className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-text text-xs outline-none focus:border-accent appearance-none cursor-pointer"
         >
-          <option value="" className="bg-[#1e1e30]">{t('taskBoard.filter.allPriorities')}</option>
+          <option value="" className="bg-[#1e1e30]">
+            {t('taskBoard.filter.allPriorities')}
+          </option>
           {(['urgent', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => (
-            <option key={p} value={p} className="bg-[#1e1e30]">{t(`taskBoard.priority.${p}`)}</option>
+            <option key={p} value={p} className="bg-[#1e1e30]">
+              {t(`taskBoard.priority.${p}`)}
+            </option>
           ))}
         </select>
       </div>
@@ -84,7 +94,9 @@ export function TaskBoard() {
             const colTasks = tasks.filter((task) => task.status === col.status)
             return (
               <div key={col.status} className="space-y-2 min-w-0">
-                <div className={`text-[10px] font-medium text-text-muted pb-2 border-b-2 ${col.colorClass}`}>
+                <div
+                  className={`text-[10px] font-medium text-text-muted pb-2 border-b-2 ${col.colorClass}`}
+                >
                   {t(`taskBoard.columns.${col.status}`)} ({colTasks.length})
                 </div>
                 <div className="space-y-2">
@@ -103,9 +115,7 @@ export function TaskBoard() {
         </div>
       )}
 
-      {showCreateForm && (
-        <TaskCreateForm onClose={() => setShowCreateForm(false)} />
-      )}
+      {showCreateForm && <TaskCreateForm onClose={() => setShowCreateForm(false)} />}
 
       {selectedTask && (
         <TaskDetailModal
@@ -129,7 +139,9 @@ function TaskCard({
 }) {
   const { t } = useI18n()
   const { changeTaskStatus, deleteTask } = useTaskStore()
-  const isOverdue = task.dueDate && task.dueDate < Date.now() && task.status !== 'completed' && task.status !== 'cancelled'
+  const [now] = useState(() => Date.now())
+  const isOverdue =
+    task.dueDate && task.dueDate < now && task.status !== 'completed' && task.status !== 'cancelled'
 
   // 상태 전환 규칙
   const getActions = (): { label: string; status: TaskStatus; color: string }[] => {
@@ -153,9 +165,7 @@ function TaskCard({
         ]
       case 'failed':
       case 'cancelled':
-        return [
-          { label: t('taskBoard.actions.reopen'), status: 'pending', color: 'text-blue-400' }
-        ]
+        return [{ label: t('taskBoard.actions.reopen'), status: 'pending', color: 'text-blue-400' }]
       default:
         return []
     }
@@ -170,17 +180,24 @@ function TaskCard({
     >
       {/* 삭제 버튼 */}
       <button
-        onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }}
+        onClick={(e) => {
+          e.stopPropagation()
+          deleteTask(task.id)
+        }}
         className="absolute top-1.5 right-1.5 w-5 h-5 rounded text-text-muted hover:text-red-400 hover:bg-red-500/10
                    opacity-0 group-hover:opacity-100 transition-opacity bg-transparent border-none cursor-pointer
                    flex items-center justify-center text-xs"
         title={t('taskBoard.actions.delete')}
-      >&#x2715;</button>
+      >
+        &#x2715;
+      </button>
 
       {/* 우선순위 뱃지 + 제목 */}
       <div className="flex items-start gap-1.5 pr-5">
         {task.priority && (
-          <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium border shrink-0 ${priorityColors[task.priority]}`}>
+          <span
+            className={`px-1.5 py-0.5 rounded text-[9px] font-medium border shrink-0 ${priorityColors[task.priority]}`}
+          >
             {t(`taskBoard.priority.${task.priority}`)}
           </span>
         )}
@@ -199,14 +216,21 @@ function TaskCard({
       {task.tags && task.tags.length > 0 && (
         <div className="flex gap-1 flex-wrap">
           {task.tags.map((tag) => (
-            <span key={tag} className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] text-text-muted">{tag}</span>
+            <span
+              key={tag}
+              className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] text-text-muted"
+            >
+              {tag}
+            </span>
           ))}
         </div>
       )}
 
       {/* 에이전트 + 날짜 */}
       <div className="flex items-center justify-between text-[9px] text-text-muted">
-        <span className="truncate">{getAgentName(task.fromAgentId)} → {getAgentName(task.toAgentId)}</span>
+        <span className="truncate">
+          {getAgentName(task.fromAgentId)} → {getAgentName(task.toAgentId)}
+        </span>
         <span className="shrink-0">{new Date(task.createdAt).toLocaleDateString()}</span>
       </div>
 
@@ -216,9 +240,14 @@ function TaskCard({
           {actions.map((action) => (
             <button
               key={action.status}
-              onClick={(e) => { e.stopPropagation(); changeTaskStatus(task.id, action.status) }}
+              onClick={(e) => {
+                e.stopPropagation()
+                changeTaskStatus(task.id, action.status)
+              }}
               className={`text-[10px] ${action.color} hover:opacity-80 bg-transparent border-none cursor-pointer`}
-            >{action.label}</button>
+            >
+              {action.label}
+            </button>
           ))}
         </div>
       )}

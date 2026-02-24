@@ -7,7 +7,7 @@ import { logActivity } from './activity-logger'
 import { checkAllMcpServers } from './mcp-health'
 
 const MONITORING_INTERVAL = 30_000 // 30초마다
-const TASK_TIMEOUT_MS = 600_000    // 10분 초과 태스크 알림
+const TASK_TIMEOUT_MS = 600_000 // 10분 초과 태스크 알림
 
 let monitoringInterval: ReturnType<typeof setInterval> | null = null
 
@@ -28,9 +28,11 @@ function checkAgentStates(): void {
     // error 상태 에이전트 → 자동 에러 복구 트리거
     if (state.status === 'error') {
       console.log(`[monitoring] ${agent.name} error 상태 감지 → 자동 복구 시도`)
-      handleAgentError(agent.id, `에이전트 ${agent.name} error 상태 감지 (모니터링 루프)`).catch((err) => {
-        console.error(`[monitoring] ${agent.name} 자동 복구 실패:`, err)
-      })
+      handleAgentError(agent.id, `에이전트 ${agent.name} error 상태 감지 (모니터링 루프)`).catch(
+        (err) => {
+          console.error(`[monitoring] ${agent.name} 자동 복구 실패:`, err)
+        }
+      )
     }
   }
 }
@@ -51,8 +53,12 @@ function checkLongRunningTasks(): void {
       // 위임자에게 알림
       const delegator = store.getAgent(task.fromAgentId)
       if (delegator) {
-        logActivity('error', task.toAgentId, delegator.name,
-          `위임 태스크 ${minutes}분 경과: ${task.title.slice(0, 50)}`)
+        logActivity(
+          'error',
+          task.toAgentId,
+          delegator.name,
+          `위임 태스크 ${minutes}분 경과: ${task.title.slice(0, 50)}`
+        )
 
         broadcast('monitoring:task-timeout', {
           taskId: task.id,

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { ThemeMode, ThemeSettings } from '../../../shared/types'
 
@@ -80,7 +81,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     const handleChange = (e: MediaQueryListEvent) => {
       const newSystemPreference = e.matches ? 'dark' : 'light'
-      setSettings(prev => ({
+      setSettings((prev) => ({
         ...prev,
         systemPreference: newSystemPreference
       }))
@@ -97,7 +98,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       const s = newSettings as { theme?: ThemeSettings }
       if (s?.theme?.mode) {
         isFromIpc.current = true
-        setSettings(prev => ({
+        setSettings((prev) => ({
           ...prev,
           mode: s.theme!.mode
         }))
@@ -124,14 +125,14 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }, [settings])
 
   const setTheme = useCallback((theme: ThemeMode) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       mode: theme
     }))
   }, [])
 
   const toggleTheme = useCallback(() => {
-    setSettings(prev => {
+    setSettings((prev) => {
       const currentEffective = getEffectiveTheme(prev.mode, prev.systemPreference || 'light')
       const newMode: ThemeMode = currentEffective === 'dark' ? 'light' : 'dark'
       return {
@@ -149,11 +150,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     isDark
   }
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme(): ThemeContextValue {

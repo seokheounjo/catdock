@@ -27,7 +27,11 @@ export function DashboardPage() {
     { key: 'settings', label: t('dashboard.settings') },
     { key: 'mcp', label: t('dashboard.mcpServers') }
   ]
-  const [cliStatus, setCliStatus] = useState<{ installed: boolean; version: string | null; error: string | null } | null>(null)
+  const [cliStatus, setCliStatus] = useState<{
+    installed: boolean
+    version: string | null
+    error: string | null
+  } | null>(null)
   const { agents, states, fetchAgents, fetchStates } = useAgentStore()
   const { fetchActivities } = useActivityStore()
   const { fetchTasks } = useTaskStore()
@@ -44,7 +48,7 @@ export function DashboardPage() {
     fetchActivities()
     fetchTasks()
     fetchSettings()
-    checkCli()
+    checkCli() // eslint-disable-line react-hooks/set-state-in-effect
 
     const unsubs = [
       window.api.on('agent:created', () => fetchAgents()),
@@ -81,16 +85,23 @@ export function DashboardPage() {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         <span className="text-xs text-text-muted font-medium">{t('dashboard.title')}</span>
-        <div className="ml-auto flex gap-2 items-center" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div
+          className="ml-auto flex gap-2 items-center"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
           <ThemeToggle className="scale-75" />
           <button
             onClick={() => window.api.window.minimize()}
             className="w-6 h-6 rounded hover:bg-white/10 text-text-muted hover:text-text-secondary flex items-center justify-center cursor-pointer bg-transparent border-none text-xs"
-          >─</button>
+          >
+            ─
+          </button>
           <button
             onClick={() => window.api.window.close()}
             className="w-6 h-6 rounded hover:bg-red-500/50 text-text-muted hover:text-white flex items-center justify-center cursor-pointer bg-transparent border-none text-xs"
-          >✕</button>
+          >
+            ✕
+          </button>
         </div>
       </div>
 
@@ -119,11 +130,13 @@ export function DashboardPage() {
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-semibold text-text">{t('dashboard.teamOverview')}</h2>
                 {cliStatus && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    cliStatus.installed
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-red-500/20 text-red-400'
-                  }`}>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      cliStatus.installed
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-red-500/20 text-red-400'
+                    }`}
+                  >
                     {cliStatus.installed
                       ? t('dashboard.cliInstalled', { version: cliStatus.version ?? '' })
                       : t('dashboard.cliNotInstalled')}
@@ -132,21 +145,18 @@ export function DashboardPage() {
               </div>
               {cliStatus && !cliStatus.installed && (
                 <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
-                  <p className="text-sm text-red-300 font-medium">{t('dashboard.cliNotInstalled')}</p>
+                  <p className="text-sm text-red-300 font-medium">
+                    {t('dashboard.cliNotInstalled')}
+                  </p>
                   <p className="text-xs text-red-300/70 mt-1">
-                    {t('dashboard.cliNotInstalledDesc')}{' '}
-                    {t('dashboard.cliInstallHint')}
+                    {t('dashboard.cliNotInstalledDesc')} {t('dashboard.cliInstallHint')}
                   </p>
                 </div>
               )}
               <OrgChart agents={agents} states={states} />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {agents.map((agent) => (
-                  <AgentCard
-                    key={agent.id}
-                    agent={agent}
-                    state={states.get(agent.id) ?? null}
-                  />
+                  <AgentCard key={agent.id} agent={agent} state={states.get(agent.id) ?? null} />
                 ))}
               </div>
             </div>

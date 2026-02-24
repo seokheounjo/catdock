@@ -176,7 +176,8 @@ const ja: LocaleMessages = {
     importJson: 'JSONからエージェントをインポート',
     pasteJson: 'エージェントJSON設定を貼り付け:',
     invalidJson: '無効なJSON',
-    templateAutoFillHint: 'テンプレートを選択すると、役割・システムプロンプト・モデル・権限・最大ターンが自動設定されます。',
+    templateAutoFillHint:
+      'テンプレートを選択すると、役割・システムプロンプト・モデル・権限・最大ターンが自動設定されます。',
     templateApplied: "'{name}' 適用 — モデル: {model}, 権限: {perm}, ターン: {turns}",
     rolePlaceholder: '役割名（例: Frontend Developer）'
   },
@@ -292,7 +293,8 @@ const ja: LocaleMessages = {
     appTitle: 'Virtual Company',
     appDesc: 'AIエージェントチームで構成された仮想会社シミュレーター',
     welcomeTitle: 'ようこそ！',
-    welcomeDesc: 'Virtual Companyは、それぞれ専門分野を持つAIエージェントがチームとして協業するシミュレーターです。各エージェントは独立したClaude Code CLIプロセスとして動作し、実際のコードを読み取り修正できます。',
+    welcomeDesc:
+      'Virtual Companyは、それぞれ専門分野を持つAIエージェントがチームとして協業するシミュレーターです。各エージェントは独立したClaude Code CLIプロセスとして動作し、実際のコードを読み取り修正できます。',
     step1Title: 'Claude Code CLI連携',
     step1Desc: 'エージェント実行に必要なCLIインストール確認',
     step2Title: '作業ディレクトリ設定',
@@ -308,12 +310,14 @@ const ja: LocaleMessages = {
     nodeDetected: 'Node.js {version} 検出',
     installing: 'インストール中...',
     autoInstall: '自動でインストール',
-    nodeNotInstalled: 'Node.jsがインストールされていません。先にNode.jsをインストールしてください。',
+    nodeNotInstalled:
+      'Node.jsがインストールされていません。先にNode.jsをインストールしてください。',
     prev: '前へ',
     next: '次へ',
     skipCli: 'CLIなしで続行',
     workingDirTitle: '作業ディレクトリ',
-    workingDirDesc: 'エージェントがデフォルトで作業するフォルダを選択してください。エージェントごとに後で個別設定できます。',
+    workingDirDesc:
+      'エージェントがデフォルトで作業するフォルダを選択してください。エージェントごとに後で個別設定できます。',
     clickToChange: 'クリックして変更',
     clickToSelect: 'クリックしてフォルダを選択',
     dirExample: '例: C:\\Users\\{username}\\Projects',
@@ -326,7 +330,8 @@ const ja: LocaleMessages = {
     defaultDir: 'デフォルト使用',
     agentTeam: 'エージェントチーム: 6名準備完了',
     howToStart: '使い方:',
-    howToStartDesc: 'ドック下部のエージェントアバターをクリックするとチャットウィンドウが開きます。歯車アイコンでダッシュボード、+アイコンでエージェント追加やグループチャットを作成できます。',
+    howToStartDesc:
+      'ドック下部のエージェントアバターをクリックするとチャットウィンドウが開きます。歯車アイコンでダッシュボード、+アイコンでエージェント追加やグループチャットを作成できます。',
     letsStart: '開始する',
     cliInstallingMsg: 'Claude Code CLIをインストール中...'
   },

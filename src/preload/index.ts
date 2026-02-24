@@ -1,8 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import {
-  AgentConfig, ConversationConfig, ConversationMode, DockSize,
-  GlobalSettings, TaskDelegation, McpServerConfig, McpHealthResult, RoleTemplate
+  AgentConfig,
+  ConversationConfig,
+  ConversationMode,
+  DockSize,
+  GlobalSettings,
+  TaskDelegation,
+  McpServerConfig,
+  McpHealthResult,
+  RoleTemplate
 } from '../shared/types'
 
 const api = {
@@ -18,9 +25,11 @@ const api = {
     getAllStates: () => ipcRenderer.invoke('agent:get-all-states'),
     getOrgChart: () => ipcRenderer.invoke('agent:get-org-chart'),
     getProcessInfo: (id: string) => ipcRenderer.invoke('agent:get-process-info', id),
-    spawnTemporary: (config: Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<AgentConfig> =>
-      ipcRenderer.invoke('agent:spawn-temporary', config),
-    removeTemporary: (id: string): Promise<void> => ipcRenderer.invoke('agent:remove-temporary', id),
+    spawnTemporary: (
+      config: Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>
+    ): Promise<AgentConfig> => ipcRenderer.invoke('agent:spawn-temporary', config),
+    removeTemporary: (id: string): Promise<void> =>
+      ipcRenderer.invoke('agent:remove-temporary', id),
     duplicate: (id: string): Promise<AgentConfig> => ipcRenderer.invoke('agent:duplicate', id),
     exportConfig: (id: string): Promise<string> => ipcRenderer.invoke('agent:export', id),
     importConfig: (json: string): Promise<AgentConfig> => ipcRenderer.invoke('agent:import', json)
@@ -33,13 +42,15 @@ const api = {
     abort: (agentId: string): Promise<void> => ipcRenderer.invoke('session:abort', agentId),
     clear: (agentId: string): Promise<void> => ipcRenderer.invoke('session:clear', agentId),
     getHistory: (agentId: string) => ipcRenderer.invoke('session:get-history', agentId),
-    getErrorLog: (agentId: string): Promise<string[]> => ipcRenderer.invoke('session:get-error-log', agentId)
+    getErrorLog: (agentId: string): Promise<string[]> =>
+      ipcRenderer.invoke('session:get-error-log', agentId)
   },
 
   // Conversation (그룹 채팅)
   conversation: {
-    create: (config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<ConversationConfig> =>
-      ipcRenderer.invoke('conversation:create', config),
+    create: (
+      config: Omit<ConversationConfig, 'id' | 'createdAt' | 'updatedAt'>
+    ): Promise<ConversationConfig> => ipcRenderer.invoke('conversation:create', config),
     list: (): Promise<ConversationConfig[]> => ipcRenderer.invoke('conversation:list'),
     get: (id: string) => ipcRenderer.invoke('conversation:get', id),
     update: (id: string, updates: Partial<ConversationConfig>) =>
@@ -67,12 +78,10 @@ const api = {
 
   // Windows
   window: {
-    openChat: (agentId: string): Promise<void> =>
-      ipcRenderer.invoke('window:open-chat', agentId),
+    openChat: (agentId: string): Promise<void> => ipcRenderer.invoke('window:open-chat', agentId),
     openGroupChat: (conversationId: string): Promise<void> =>
       ipcRenderer.invoke('window:open-group-chat', conversationId),
-    openNewConversation: (): Promise<void> =>
-      ipcRenderer.invoke('window:open-new-conversation'),
+    openNewConversation: (): Promise<void> => ipcRenderer.invoke('window:open-new-conversation'),
     openEditor: (agentId?: string): Promise<void> =>
       ipcRenderer.invoke('window:open-editor', agentId),
     closeEditor: (): Promise<void> => ipcRenderer.invoke('window:close-editor'),
@@ -81,16 +90,20 @@ const api = {
     openSettings: (): Promise<void> => ipcRenderer.invoke('window:open-settings'),
     minimize: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
     close: (): Promise<void> => ipcRenderer.invoke('window:close'),
-    selectDirectory: (): Promise<string | null> =>
-      ipcRenderer.invoke('window:select-directory'),
-    selectFile: (): Promise<string | null> =>
-      ipcRenderer.invoke('window:select-file')
+    selectDirectory: (): Promise<string | null> => ipcRenderer.invoke('window:select-directory'),
+    selectFile: (): Promise<string | null> => ipcRenderer.invoke('window:select-file')
   },
 
   // File
   file: {
-    readContent: (filePath: string): Promise<{
-      success: boolean; error: string | null; content: string | null; fileName: string | null; fileSize: number
+    readContent: (
+      filePath: string
+    ): Promise<{
+      success: boolean
+      error: string | null
+      content: string | null
+      fileName: string | null
+      fileSize: number
     }> => ipcRenderer.invoke('file:read-content', filePath)
   },
 
@@ -117,8 +130,14 @@ const api = {
   task: {
     create: (task: Omit<TaskDelegation, 'id' | 'createdAt'>) =>
       ipcRenderer.invoke('task:create', task),
-    createManual: (task: { title: string; description: string; toAgentId: string; priority?: string; dueDate?: number; tags?: string[] }): Promise<TaskDelegation> =>
-      ipcRenderer.invoke('task:create-manual', task),
+    createManual: (task: {
+      title: string
+      description: string
+      toAgentId: string
+      priority?: string
+      dueDate?: number
+      tags?: string[]
+    }): Promise<TaskDelegation> => ipcRenderer.invoke('task:create-manual', task),
     list: () => ipcRenderer.invoke('task:list'),
     getForAgent: (agentId: string) => ipcRenderer.invoke('task:get-for-agent', agentId),
     update: (id: string, updates: Partial<TaskDelegation>) =>
@@ -134,54 +153,69 @@ const api = {
 
   // Delegation
   delegation: {
-    getActive: () => ipcRenderer.invoke('delegation:get-active') as Promise<import('../shared/types').TaskDelegation[]>
+    getActive: () =>
+      ipcRenderer.invoke('delegation:get-active') as Promise<
+        import('../shared/types').TaskDelegation[]
+      >
   },
 
   // Error Recovery
   errorRecovery: {
-    getActive: () => ipcRenderer.invoke('error-recovery:get-active') as Promise<import('../shared/types').ErrorRecoveryEvent[]>,
-    isRecovering: (agentId: string) => ipcRenderer.invoke('error-recovery:is-recovering', agentId) as Promise<boolean>
+    getActive: () =>
+      ipcRenderer.invoke('error-recovery:get-active') as Promise<
+        import('../shared/types').ErrorRecoveryEvent[]
+      >,
+    isRecovering: (agentId: string) =>
+      ipcRenderer.invoke('error-recovery:is-recovering', agentId) as Promise<boolean>
   },
 
   // CLI
   cli: {
-    check: () => ipcRenderer.invoke('cli:check') as Promise<{
-      installed: boolean
-      version: string | null
-      path: string | null
-      error: string | null
-    }>,
-    install: () => ipcRenderer.invoke('cli:install') as Promise<{
-      success: boolean
-      message: string
-    }>,
-    checkNode: () => ipcRenderer.invoke('cli:check-node') as Promise<{
-      installed: boolean
-      version: string | null
-    }>,
-    checkUpdate: () => ipcRenderer.invoke('cli:check-update') as Promise<{
-      currentVersion: string | null
-      latestVersion: string | null
-      updateAvailable: boolean
-      error: string | null
-    }>
+    check: () =>
+      ipcRenderer.invoke('cli:check') as Promise<{
+        installed: boolean
+        version: string | null
+        path: string | null
+        error: string | null
+      }>,
+    install: () =>
+      ipcRenderer.invoke('cli:install') as Promise<{
+        success: boolean
+        message: string
+      }>,
+    checkNode: () =>
+      ipcRenderer.invoke('cli:check-node') as Promise<{
+        installed: boolean
+        version: string | null
+      }>,
+    checkUpdate: () =>
+      ipcRenderer.invoke('cli:check-update') as Promise<{
+        currentVersion: string | null
+        latestVersion: string | null
+        updateAvailable: boolean
+        error: string | null
+      }>
   },
 
   // MCP
   mcp: {
     getGlobal: (): Promise<McpServerConfig[]> => ipcRenderer.invoke('mcp:get-global'),
-    setGlobal: (servers: McpServerConfig[]): Promise<void> => ipcRenderer.invoke('mcp:set-global', servers),
-    getAgent: (agentId: string): Promise<McpServerConfig[]> => ipcRenderer.invoke('mcp:get-agent', agentId),
+    setGlobal: (servers: McpServerConfig[]): Promise<void> =>
+      ipcRenderer.invoke('mcp:set-global', servers),
+    getAgent: (agentId: string): Promise<McpServerConfig[]> =>
+      ipcRenderer.invoke('mcp:get-agent', agentId),
     setAgent: (agentId: string, servers: McpServerConfig[]): Promise<void> =>
       ipcRenderer.invoke('mcp:set-agent', agentId, servers),
-    getHealth: (): Promise<Record<string, McpHealthResult[]>> => ipcRenderer.invoke('mcp:get-health'),
+    getHealth: (): Promise<Record<string, McpHealthResult[]>> =>
+      ipcRenderer.invoke('mcp:get-health'),
     checkNow: (): Promise<Record<string, McpHealthResult[]>> => ipcRenderer.invoke('mcp:check-now')
   },
 
   // App
   app: {
     quit: (): Promise<void> => ipcRenderer.invoke('app:quit'),
-    setDockExpanded: (expanded: boolean): Promise<void> => ipcRenderer.invoke('app:set-dock-expanded', expanded),
+    setDockExpanded: (expanded: boolean): Promise<void> =>
+      ipcRenderer.invoke('app:set-dock-expanded', expanded),
     setDockSize: (size: DockSize): Promise<void> => ipcRenderer.invoke('app:set-dock-size', size)
   },
 
@@ -202,8 +236,8 @@ if (process.contextIsolated) {
     console.error(error)
   }
 } else {
-  // @ts-ignore
+  // @ts-ignore -- contextBridge 미사용 시 window 직접 할당 필요
   window.electron = electronAPI
-  // @ts-ignore
+  // @ts-ignore -- contextBridge 미사용 시 window 직접 할당 필요
   window.api = api
 }

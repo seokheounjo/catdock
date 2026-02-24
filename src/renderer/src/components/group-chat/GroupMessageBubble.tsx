@@ -29,7 +29,10 @@ export function GroupMessageBubble({ message, agents }: GroupMessageBubbleProps)
         <div className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-bubble-user text-white rounded-br-md">
           <p className="m-0 whitespace-pre-wrap break-words">{message.content}</p>
           <div className="text-[10px] mt-1 text-white/30">
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
           </div>
         </div>
       </div>
@@ -66,7 +69,10 @@ export function GroupMessageBubble({ message, agents }: GroupMessageBubbleProps)
             <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
           </div>
           <div className="text-[10px] mt-1 text-text-muted">
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(message.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
             {message.costDelta ? ` · $${message.costDelta.toFixed(4)}` : ''}
           </div>
         </div>

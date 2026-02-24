@@ -29,13 +29,21 @@ export function TaskCreateForm({ onClose }: TaskCreateFormProps) {
       toAgentId,
       priority,
       dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
-      tags: tagsInput ? tagsInput.split(',').map((s) => s.trim()).filter(Boolean) : undefined
+      tags: tagsInput
+        ? tagsInput
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : undefined
     })
     onClose()
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
       <div
         className="bg-chat-bg border border-white/10 rounded-xl w-[480px] max-h-[80vh] overflow-auto shadow-2xl"
         onClick={(e) => e.stopPropagation()}
@@ -58,7 +66,9 @@ export function TaskCreateForm({ onClose }: TaskCreateFormProps) {
           </label>
 
           <label className="block">
-            <span className="text-xs text-text-muted mb-1 block">{t('taskCreate.description')}</span>
+            <span className="text-xs text-text-muted mb-1 block">
+              {t('taskCreate.description')}
+            </span>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -75,9 +85,13 @@ export function TaskCreateForm({ onClose }: TaskCreateFormProps) {
               onChange={(e) => setToAgentId(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
             >
-              <option value="" className="bg-[#1e1e30]">{t('taskCreate.selectAgent')}</option>
+              <option value="" className="bg-[#1e1e30]">
+                {t('taskCreate.selectAgent')}
+              </option>
               {agents.map((a) => (
-                <option key={a.id} value={a.id} className="bg-[#1e1e30]">{a.name} ({a.role})</option>
+                <option key={a.id} value={a.id} className="bg-[#1e1e30]">
+                  {a.name} ({a.role})
+                </option>
               ))}
             </select>
           </label>
@@ -90,7 +104,9 @@ export function TaskCreateForm({ onClose }: TaskCreateFormProps) {
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
             >
               {(['urgent', 'high', 'medium', 'low'] as TaskPriority[]).map((p) => (
-                <option key={p} value={p} className="bg-[#1e1e30]">{t(`taskBoard.priority.${p}`)}</option>
+                <option key={p} value={p} className="bg-[#1e1e30]">
+                  {t(`taskBoard.priority.${p}`)}
+                </option>
               ))}
             </select>
           </label>
@@ -121,12 +137,16 @@ export function TaskCreateForm({ onClose }: TaskCreateFormProps) {
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg bg-white/5 text-text-muted hover:bg-white/10 cursor-pointer border border-white/10 text-sm transition-colors"
-          >{t('taskCreate.cancel')}</button>
+          >
+            {t('taskCreate.cancel')}
+          </button>
           <button
             onClick={handleSubmit}
             disabled={!title.trim() || !toAgentId}
             className="px-5 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white cursor-pointer border-none text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >{t('taskCreate.create')}</button>
+          >
+            {t('taskCreate.create')}
+          </button>
         </div>
       </div>
     </div>

@@ -28,18 +28,26 @@ export function GroupChatHeader({
   const { t } = useI18n()
 
   const statusLabel =
-    status === 'chaining' ? t('groupChat.statusChaining') :
-    status === 'paused' ? t('groupChat.statusPaused') :
-    status === 'waiting-agent' ? t('groupChat.statusWaitingAgent') :
-    t('groupChat.statusIdle')
+    status === 'chaining'
+      ? t('groupChat.statusChaining')
+      : status === 'paused'
+        ? t('groupChat.statusPaused')
+        : status === 'waiting-agent'
+          ? t('groupChat.statusWaitingAgent')
+          : t('groupChat.statusIdle')
 
   const statusColor =
-    status === 'chaining' || status === 'waiting-agent' ? 'text-accent' :
-    status === 'paused' ? 'text-yellow-400' :
-    'text-success'
+    status === 'chaining' || status === 'waiting-agent'
+      ? 'text-accent'
+      : status === 'paused'
+        ? 'text-yellow-400'
+        : 'text-success'
 
   return (
-    <div className="flex flex-col bg-chat-sidebar border-b border-white/5" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+    <div
+      className="flex flex-col bg-chat-sidebar border-b border-white/5"
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    >
       {/* 상단: 제목 + 컨트롤 */}
       <div className="flex items-center gap-3 px-4 py-2.5">
         <div className="flex-1 min-w-0">
@@ -47,7 +55,10 @@ export function GroupChatHeader({
           <div className={`text-xs ${statusColor}`}>{statusLabel}</div>
         </div>
 
-        <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <div
+          className="flex items-center gap-1"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
           {/* 모드 토글 */}
           <button
             onClick={onToggleMode}
@@ -65,29 +76,40 @@ export function GroupChatHeader({
             onClick={onClear}
             className="w-7 h-7 rounded-md hover:bg-white/10 text-text-muted hover:text-text-secondary flex items-center justify-center cursor-pointer bg-transparent border-none text-xs"
             title={t('groupChat.clearChat')}
-          >&#x1f5d1;</button>
+          >
+            &#x1f5d1;
+          </button>
           {onDelete && (
             <button
               onClick={onDelete}
               className="w-7 h-7 rounded-md hover:bg-red-500/20 text-text-muted hover:text-red-400 flex items-center justify-center cursor-pointer bg-transparent border-none text-[10px]"
               title={t('groupChat.deleteConversation')}
-            >DEL</button>
+            >
+              DEL
+            </button>
           )}
           <button
             onClick={onMinimize}
             className="w-7 h-7 rounded-md hover:bg-white/10 text-text-muted hover:text-text-secondary flex items-center justify-center cursor-pointer bg-transparent border-none"
             title={t('groupChat.minimize')}
-          >&#x2500;</button>
+          >
+            &#x2500;
+          </button>
           <button
             onClick={onClose}
             className="w-7 h-7 rounded-md hover:bg-danger/20 text-text-muted hover:text-danger flex items-center justify-center cursor-pointer bg-transparent border-none"
             title={t('groupChat.close')}
-          >&#x2715;</button>
+          >
+            &#x2715;
+          </button>
         </div>
       </div>
 
       {/* 하단: 참여자 아바타 */}
-      <div className="flex items-center gap-1.5 px-4 pb-2 overflow-x-auto" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      <div
+        className="flex items-center gap-1.5 px-4 pb-2 overflow-x-auto"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
         {participants.map((agent) => (
           <div key={agent.id} className="flex items-center gap-1 shrink-0">
             <img

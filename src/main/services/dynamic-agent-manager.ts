@@ -24,9 +24,7 @@ export function spawnTemporaryAgent(
     hierarchy: { role: 'temporary' }
   })
 
-  BrowserWindow.getAllWindows().forEach((w) =>
-    w.webContents.send('agent:created', agent)
-  )
+  BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:created', agent))
 
   const requester = agentManager.listAgents().find((a) => a.id === requestedBy)
   logActivity(
@@ -50,9 +48,7 @@ export function cleanupExpiredAgents(): number {
     if (agent.isTemporary && agent.expiresAt && agent.expiresAt <= now) {
       sessionManager.abortSession(agent.id)
       agentManager.deleteAgent(agent.id)
-      BrowserWindow.getAllWindows().forEach((w) =>
-        w.webContents.send('agent:deleted', agent.id)
-      )
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:deleted', agent.id))
       logActivity(
         'agent-deleted',
         agent.id,
@@ -73,14 +69,7 @@ export function removeTemporaryAgent(id: string): boolean {
 
   sessionManager.abortSession(id)
   agentManager.deleteAgent(id)
-  BrowserWindow.getAllWindows().forEach((w) =>
-    w.webContents.send('agent:deleted', id)
-  )
-  logActivity(
-    'agent-deleted',
-    id,
-    agent.name,
-    `임시 에이전트 ${agent.name} 수동 제거됨`
-  )
+  BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:deleted', id))
+  logActivity('agent-deleted', id, agent.name, `임시 에이전트 ${agent.name} 수동 제거됨`)
   return true
 }

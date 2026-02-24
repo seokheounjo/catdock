@@ -23,43 +23,67 @@ interface BreedVisual {
 
 const BREED_VISUALS: Record<string, BreedVisual> = {
   'maine-coon': {
-    body: '#c4956a', bodyDark: '#a07850', belly: '#e8c8a0',
-    earInner: '#e8b090', eyeColor: '#5a9e5a', nose: '#d4877a',
+    body: '#c4956a',
+    bodyDark: '#a07850',
+    belly: '#e8c8a0',
+    earInner: '#e8b090',
+    eyeColor: '#5a9e5a',
+    nose: '#d4877a',
     tail: '#a07850',
     pattern: `<path d="M32,48 Q40,44 48,48" stroke="#8c6840" stroke-width="1.5" fill="none" opacity="0.5"/>
               <path d="M30,52 Q40,47 50,52" stroke="#8c6840" stroke-width="1.2" fill="none" opacity="0.4"/>
               <path d="M40,40 L40,44" stroke="#8c6840" stroke-width="1.5" opacity="0.4"/>`
   },
   'scottish-fold': {
-    body: '#f0c88a', bodyDark: '#d4a860', belly: '#f8e0b8',
-    earInner: '#f5d8a8', eyeColor: '#d4a030', nose: '#e8a090',
+    body: '#f0c88a',
+    bodyDark: '#d4a860',
+    belly: '#f8e0b8',
+    earInner: '#f5d8a8',
+    eyeColor: '#d4a030',
+    nose: '#e8a090',
     tail: '#d4a860',
     pattern: ''
   },
   'russian-blue': {
-    body: '#8090a8', bodyDark: '#607080', belly: '#a8b8c8',
-    earInner: '#a8b8c8', eyeColor: '#40b870', nose: '#90a0b0',
+    body: '#8090a8',
+    bodyDark: '#607080',
+    belly: '#a8b8c8',
+    earInner: '#a8b8c8',
+    eyeColor: '#40b870',
+    nose: '#90a0b0',
     tail: '#607080',
     pattern: ''
   },
-  'bengal': {
-    body: '#d4a050', bodyDark: '#b08030', belly: '#e8c070',
-    earInner: '#e8c070', eyeColor: '#50a050', nose: '#c48060',
+  bengal: {
+    body: '#d4a050',
+    bodyDark: '#b08030',
+    belly: '#e8c070',
+    earInner: '#e8c070',
+    eyeColor: '#50a050',
+    nose: '#c48060',
     tail: '#b08030',
     pattern: `<circle cx="35" cy="50" r="2" fill="#6a4020" opacity="0.4"/>
               <circle cx="45" cy="46" r="1.8" fill="#6a4020" opacity="0.35"/>
               <circle cx="30" cy="55" r="1.5" fill="#6a4020" opacity="0.3"/>
               <circle cx="42" cy="55" r="2" fill="#6a4020" opacity="0.35"/>`
   },
-  'siamese': {
-    body: '#f0e0d0', bodyDark: '#d8c8b8', belly: '#f8f0e8',
-    earInner: '#604030', eyeColor: '#4090d0', nose: '#604030',
+  siamese: {
+    body: '#f0e0d0',
+    bodyDark: '#d8c8b8',
+    belly: '#f8f0e8',
+    earInner: '#604030',
+    eyeColor: '#4090d0',
+    nose: '#604030',
     tail: '#604030',
     pattern: `<ellipse cx="40" cy="70" rx="8" ry="4" fill="#604030" opacity="0.2"/>`
   },
   'british-shorthair': {
-    body: '#9098a8', bodyDark: '#707888', belly: '#b0b8c8',
-    earInner: '#b0b8c8', eyeColor: '#d08820', nose: '#a0889c',
+    body: '#9098a8',
+    bodyDark: '#707888',
+    belly: '#b0b8c8',
+    earInner: '#b0b8c8',
+    eyeColor: '#d08820',
+    nose: '#a0889c',
     tail: '#707888',
     pattern: ''
   }
@@ -295,16 +319,18 @@ export const CatCharacter = memo(function CatCharacter({ breed, status, size = '
     }
   } catch (e) {
     console.error('[CatCharacter] SVG render error:', e)
-    svgContent = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" fill="#999"/></svg>'
+    svgContent =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><circle cx="40" cy="40" r="30" fill="#999"/></svg>'
   }
 
   const dataUri = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`
 
-  const altText = {
-    working: t('dock.catWorking'),
-    idle: t('dock.catIdle'),
-    error: t('dock.catError')
-  }[status] || t('dock.catDefault')
+  const altText =
+    {
+      working: t('dock.catWorking'),
+      idle: t('dock.catIdle'),
+      error: t('dock.catError')
+    }[status] || t('dock.catDefault')
 
   return (
     <img

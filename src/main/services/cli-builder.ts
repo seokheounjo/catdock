@@ -35,7 +35,9 @@ export function checkClaudeCli(): CliCheckResult {
         timeout: 5000,
         stdio: ['ignore', 'pipe', 'pipe'],
         shell: process.platform === 'win32'
-      }).trim().split('\n')[0]
+      })
+        .trim()
+        .split('\n')[0]
     } catch {
       // where/which 실패해도 버전은 나왔으므로 설치됨
     }
@@ -45,7 +47,11 @@ export function checkClaudeCli(): CliCheckResult {
     const message = (err as Error).message || String(err)
 
     // ENOENT = 명령어를 찾을 수 없음
-    if (message.includes('ENOENT') || message.includes('not found') || message.includes('not recognized')) {
+    if (
+      message.includes('ENOENT') ||
+      message.includes('not found') ||
+      message.includes('not recognized')
+    ) {
       return {
         installed: false,
         version: null,
@@ -74,7 +80,12 @@ export interface CliUpdateCheckResult {
 export function checkForCliUpdate(): CliUpdateCheckResult {
   const current = checkClaudeCli()
   if (!current.installed || !current.version) {
-    return { currentVersion: null, latestVersion: null, updateAvailable: false, error: 'CLI 미설치' }
+    return {
+      currentVersion: null,
+      latestVersion: null,
+      updateAvailable: false,
+      error: 'CLI 미설치'
+    }
   }
 
   try {
@@ -94,13 +105,21 @@ export function checkForCliUpdate(): CliUpdateCheckResult {
     const latestParts = latestVersion.split('.').map(Number)
     let updateAvailable = false
     for (let i = 0; i < 3; i++) {
-      if ((latestParts[i] ?? 0) > (currentParts[i] ?? 0)) { updateAvailable = true; break }
+      if ((latestParts[i] ?? 0) > (currentParts[i] ?? 0)) {
+        updateAvailable = true
+        break
+      }
       if ((latestParts[i] ?? 0) < (currentParts[i] ?? 0)) break
     }
 
     return { currentVersion: current.version, latestVersion, updateAvailable, error: null }
   } catch (err) {
-    return { currentVersion: current.version, latestVersion: null, updateAvailable: false, error: (err as Error).message }
+    return {
+      currentVersion: current.version,
+      latestVersion: null,
+      updateAvailable: false,
+      error: (err as Error).message
+    }
   }
 }
 
@@ -112,7 +131,10 @@ export function installClaudeCli(): Promise<{ success: boolean; message: string 
 
     // 설치 시작 브로드캐스트
     BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('cli:install-progress', { status: 'installing', message: 'Claude Code CLI 설치 중...' })
+      w.webContents.send('cli:install-progress', {
+        status: 'installing',
+        message: 'Claude Code CLI 설치 중...'
+      })
     )
 
     const proc = spawn(npmCmd, ['install', '-g', '@anthropic-ai/claude-code'], {
@@ -120,11 +142,15 @@ export function installClaudeCli(): Promise<{ success: boolean; message: string 
       stdio: ['ignore', 'pipe', 'pipe']
     })
 
-    let stdout = ''
+    let _stdout = ''
     let stderr = ''
 
-    proc.stdout?.on('data', (data: Buffer) => { stdout += data.toString() })
-    proc.stderr?.on('data', (data: Buffer) => { stderr += data.toString() })
+    proc.stdout?.on('data', (data: Buffer) => {
+      _stdout += data.toString()
+    })
+    proc.stderr?.on('data', (data: Buffer) => {
+      stderr += data.toString()
+    })
 
     proc.on('close', (code) => {
       if (code === 0) {
@@ -132,19 +158,31 @@ export function installClaudeCli(): Promise<{ success: boolean; message: string 
         const check = checkClaudeCli()
         if (check.installed) {
           BrowserWindow.getAllWindows().forEach((w) =>
-            w.webContents.send('cli:install-progress', { status: 'success', message: `Claude Code CLI v${check.version} 설치 완료!` })
+            w.webContents.send('cli:install-progress', {
+              status: 'success',
+              message: `Claude Code CLI v${check.version} 설치 완료!`
+            })
           )
           resolve({ success: true, message: `Claude Code CLI v${check.version} 설치 완료` })
         } else {
           BrowserWindow.getAllWindows().forEach((w) =>
-            w.webContents.send('cli:install-progress', { status: 'error', message: '설치는 완료했지만 CLI를 찾을 수 없습니다. 터미널을 새로 열어보세요.' })
+            w.webContents.send('cli:install-progress', {
+              status: 'error',
+              message: '설치는 완료했지만 CLI를 찾을 수 없습니다. 터미널을 새로 열어보세요.'
+            })
           )
-          resolve({ success: false, message: '설치는 완료했지만 CLI를 찾을 수 없습니다. 터미널을 새로 열어보세요.' })
+          resolve({
+            success: false,
+            message: '설치는 완료했지만 CLI를 찾을 수 없습니다. 터미널을 새로 열어보세요.'
+          })
         }
       } else {
         const errorMsg = stderr.trim() || `Exit code ${code}`
         BrowserWindow.getAllWindows().forEach((w) =>
-          w.webContents.send('cli:install-progress', { status: 'error', message: `설치 실패: ${errorMsg}` })
+          w.webContents.send('cli:install-progress', {
+            status: 'error',
+            message: `설치 실패: ${errorMsg}`
+          })
         )
         resolve({ success: false, message: `설치 실패: ${errorMsg}` })
       }
@@ -193,11 +231,15 @@ export function buildCliArgs(
 
   const args = [
     '-p',
-    '--output-format', 'stream-json',
-    '--model', config.model,
-    '--max-turns', String(config.maxTurns ?? 25),
+    '--output-format',
+    'stream-json',
+    '--model',
+    config.model,
+    '--max-turns',
+    String(config.maxTurns ?? 25),
     // 'default'(Interactive) 모드에서는 acceptEdits + permission-prompt-tool 사용
-    '--permission-mode', isInteractive ? 'acceptEdits' : permissionMode
+    '--permission-mode',
+    isInteractive ? 'acceptEdits' : permissionMode
   ]
 
   // Interactive 모드: MCP 서버를 통한 퍼미션 프롬프트

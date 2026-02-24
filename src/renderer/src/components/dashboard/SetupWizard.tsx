@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSettingsStore } from '../../stores/settings-store'
 import { useI18n } from '../../hooks/useI18n'
 
@@ -15,11 +15,19 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const { t } = useI18n()
   const [step, setStep] = useState<SetupStep>('welcome')
   const [cliStatus, setCliStatus] = useState<CliStatus | null>(null)
-  const [nodeStatus, setNodeStatus] = useState<{ installed: boolean; version: string | null } | null>(null)
+  const [nodeStatus, setNodeStatus] = useState<{
+    installed: boolean
+    version: string | null
+  } | null>(null)
   const [installing, setInstalling] = useState(false)
   const [installMessage, setInstallMessage] = useState('')
   const [workingDir, setWorkingDir] = useState('')
   const { updateSettings } = useSettingsStore()
+
+  const checkCli = useCallback(async () => {
+    const result = await window.api.cli.check()
+    setCliStatus(result)
+  }, [])
 
   useEffect(() => {
     // CLI 설치 진행 이벤트 수신
@@ -34,12 +42,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
       }
     })
     return () => unsub()
-  }, [])
-
-  const checkCli = async () => {
-    const result = await window.api.cli.check()
-    setCliStatus(result)
-  }
+  }, [checkCli])
 
   const checkNode = async () => {
     const result = await window.api.cli.checkNode()
@@ -84,10 +87,15 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
         <div className="flex items-center justify-center gap-2 py-4 border-b border-white/10">
           {(['welcome', 'cli-check', 'working-dir', 'complete'] as SetupStep[]).map((s, i) => (
             <div key={s} className="flex items-center gap-2">
-              <div className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                s === step ? 'bg-accent' :
-                (['welcome', 'cli-check', 'working-dir', 'complete'].indexOf(step) > i) ? 'bg-accent/50' : 'bg-white/20'
-              }`} />
+              <div
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                  s === step
+                    ? 'bg-accent'
+                    : ['welcome', 'cli-check', 'working-dir', 'complete'].indexOf(step) > i
+                      ? 'bg-accent/50'
+                      : 'bg-white/20'
+                }`}
+              />
               {i < 3 && <div className="w-8 h-px bg-white/10" />}
             </div>
           ))}
@@ -127,7 +135,11 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 </div>
               </div>
               <button
-                onClick={() => { setStep('cli-check'); checkCli(); checkNode() }}
+                onClick={() => {
+                  setStep('cli-check')
+                  checkCli()
+                  checkNode()
+                }}
                 className="w-full py-2.5 rounded-lg bg-accent hover:bg-accent/80 text-white text-sm font-medium cursor-pointer border-none transition-colors"
               >
                 {t('setup.startSetup')}
@@ -139,9 +151,7 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
             <div className="space-y-6">
               <div>
                 <h2 className="text-lg font-semibold text-text mb-3">{t('setup.cliTitle')}</h2>
-                <p className="text-sm text-text-secondary">
-                  {t('setup.cliDesc')}
-                </p>
+                <p className="text-sm text-text-secondary">{t('setup.cliDesc')}</p>
               </div>
 
               {cliStatus === null ? (
@@ -150,7 +160,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                 </div>
               ) : cliStatus.installed ? (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-                  <p className="text-sm text-green-400 font-medium">{t('setup.cliInstalled', { version: cliStatus.version ?? '' })}</p>
+                  <p className="text-sm text-green-400 font-medium">
+                    {t('setup.cliInstalled', { version: cliStatus.version ?? '' })}
+                  </p>
                   {cliStatus.path && (
                     <p className="text-xs text-green-400/60 mt-1 font-mono">{cliStatus.path}</p>
                   )}
@@ -158,13 +170,17 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               ) : (
                 <div className="space-y-4">
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                    <p className="text-sm text-yellow-400 font-medium">{t('setup.cliNotInstalled')}</p>
+                    <p className="text-sm text-yellow-400 font-medium">
+                      {t('setup.cliNotInstalled')}
+                    </p>
                     <p className="text-xs text-yellow-400/60 mt-1">{cliStatus.error}</p>
                   </div>
 
                   {nodeStatus?.installed ? (
                     <div className="space-y-3">
-                      <p className="text-xs text-text-muted">{t('setup.nodeDetected', { version: nodeStatus.version ?? '' })}</p>
+                      <p className="text-xs text-text-muted">
+                        {t('setup.nodeDetected', { version: nodeStatus.version ?? '' })}
+                      </p>
                       <button
                         onClick={handleInstallCli}
                         disabled={installing}
@@ -173,7 +189,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                         {installing ? t('setup.installing') : t('setup.autoInstall')}
                       </button>
                       {installMessage && (
-                        <p className={`text-xs ${installMessage.includes('실패') || installMessage.includes('fail') ? 'text-red-400' : 'text-text-muted'}`}>
+                        <p
+                          className={`text-xs ${installMessage.includes('실패') || installMessage.includes('fail') ? 'text-red-400' : 'text-text-muted'}`}
+                        >
                           {installMessage}
                         </p>
                       )}
@@ -182,7 +200,9 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                     <div className="space-y-3">
                       <p className="text-xs text-text-muted">{t('setup.nodeNotInstalled')}</p>
                       <div className="bg-white/5 rounded-lg p-3">
-                        <p className="text-xs text-text-secondary font-mono">npm install -g @anthropic-ai/claude-code</p>
+                        <p className="text-xs text-text-secondary font-mono">
+                          npm install -g @anthropic-ai/claude-code
+                        </p>
                       </div>
                     </div>
                   )}
@@ -209,10 +229,10 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
           {step === 'working-dir' && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold text-text mb-3">{t('setup.workingDirTitle')}</h2>
-                <p className="text-sm text-text-secondary">
-                  {t('setup.workingDirDesc')}
-                </p>
+                <h2 className="text-lg font-semibold text-text mb-3">
+                  {t('setup.workingDirTitle')}
+                </h2>
+                <p className="text-sm text-text-secondary">{t('setup.workingDirDesc')}</p>
               </div>
 
               <div className="space-y-3">
@@ -228,13 +248,13 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
                   ) : (
                     <div>
                       <p className="text-sm text-text-muted">{t('setup.clickToSelect')}</p>
-                      <p className="text-xs text-text-muted mt-1">{t('setup.dirExample', { username: '{username}' })}</p>
+                      <p className="text-xs text-text-muted mt-1">
+                        {t('setup.dirExample', { username: '{username}' })}
+                      </p>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-text-muted">
-                  {t('setup.defaultDirNote')}
-                </p>
+                <p className="text-xs text-text-muted">{t('setup.defaultDirNote')}</p>
               </div>
 
               <div className="flex gap-3">
@@ -259,20 +279,23 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
               <div className="text-center">
                 <div className="text-4xl mb-4">&#10003;</div>
                 <h2 className="text-lg font-semibold text-text mb-3">{t('setup.completeTitle')}</h2>
-                <p className="text-sm text-text-secondary">
-                  {t('setup.completeDesc')}
-                </p>
+                <p className="text-sm text-text-secondary">{t('setup.completeDesc')}</p>
               </div>
 
               <div className="bg-white/5 rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className={`w-2 h-2 rounded-full ${cliStatus?.installed ? 'bg-green-400' : 'bg-yellow-400'}`} />
+                  <span
+                    className={`w-2 h-2 rounded-full ${cliStatus?.installed ? 'bg-green-400' : 'bg-yellow-400'}`}
+                  />
                   <span className="text-sm text-text-secondary">
-                    {t('setup.cliSummary')}: {cliStatus?.installed ? `v${cliStatus.version}` : t('setup.notInstalledNote')}
+                    {t('setup.cliSummary')}:{' '}
+                    {cliStatus?.installed ? `v${cliStatus.version}` : t('setup.notInstalledNote')}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`w-2 h-2 rounded-full ${workingDir ? 'bg-green-400' : 'bg-white/30'}`} />
+                  <span
+                    className={`w-2 h-2 rounded-full ${workingDir ? 'bg-green-400' : 'bg-white/30'}`}
+                  />
                   <span className="text-sm text-text-secondary">
                     {t('setup.workingDirSummary')}: {workingDir || t('setup.defaultDir')}
                   </span>
@@ -285,7 +308,8 @@ export function SetupWizard({ onComplete }: { onComplete: () => void }) {
 
               <div className="bg-white/5 rounded-lg p-4">
                 <p className="text-xs text-text-muted leading-relaxed">
-                  <strong className="text-text-secondary">{t('setup.howToStart')}</strong> {t('setup.howToStartDesc')}
+                  <strong className="text-text-secondary">{t('setup.howToStart')}</strong>{' '}
+                  {t('setup.howToStartDesc')}
                 </p>
               </div>
 

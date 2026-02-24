@@ -43,7 +43,10 @@ export async function handleAgentError(agentId: string, error: string): Promise<
 
   // 이미 해당 에이전트에 대한 복구가 진행 중이면 스킵
   for (const [, recovery] of activeRecoveries) {
-    if (recovery.agentId === agentId && (recovery.status === 'recovering' || recovery.status === 'leader-notified')) {
+    if (
+      recovery.agentId === agentId &&
+      (recovery.status === 'recovering' || recovery.status === 'leader-notified')
+    ) {
       console.log(`[error-recovery] ${agentId} 이미 복구 진행 중`)
       return
     }
@@ -93,16 +96,27 @@ ${errorLog}
 \`\`\`
 이 문제를 분석하고, 필요하면 해당 팀원에게 수정 작업을 지시해주세요.`
 
-  logActivity('error', agentId, agentState.config.name, `에러 복구 시도 — ${superiorRole} ${superior.name}에게 보고`, {
-    recoveryId: recoveryEvent.id,
-    leaderId: superior.id
-  })
+  logActivity(
+    'error',
+    agentId,
+    agentState.config.name,
+    `에러 복구 시도 — ${superiorRole} ${superior.name}에게 보고`,
+    {
+      recoveryId: recoveryEvent.id,
+      leaderId: superior.id
+    }
+  )
 
   try {
     updateRecoveryStatus(recoveryEvent.id, 'recovering')
     await sessionManager.sendMessage(superior.id, message)
     updateRecoveryStatus(recoveryEvent.id, 'resolved')
-    logActivity('status-change', agentId, agentState.config.name, `에러 복구 완료 — ${superiorRole} ${superior.name} 개입`)
+    logActivity(
+      'status-change',
+      agentId,
+      agentState.config.name,
+      `에러 복구 완료 — ${superiorRole} ${superior.name} 개입`
+    )
   } catch (err) {
     console.error(`[error-recovery] ${superiorRole} ${superior.name}에게 보고 실패:`, err)
     updateRecoveryStatus(recoveryEvent.id, 'failed')
@@ -110,7 +124,10 @@ ${errorLog}
     // 상위자에게 보고 실패 시 한 단계 더 에스컬레이션
     if (superior.hierarchy?.role === 'leader') {
       console.log(`[error-recovery] 리더 ${superior.name} 보고 실패 → 디렉터로 에스컬레이션`)
-      await handleAgentError(superior.id, `리더 ${superior.name} 응답 불능: ${(err as Error).message}`)
+      await handleAgentError(
+        superior.id,
+        `리더 ${superior.name} 응답 불능: ${(err as Error).message}`
+      )
     } else if (superior.hierarchy?.role === 'director') {
       console.log(`[error-recovery] 디렉터 ${superior.name} 보고 실패 → 자가복구 시도`)
       await escalateDirectorError(superior.id, superior.name, `디렉터 ${superior.name} 응답 불능`)
@@ -119,7 +136,11 @@ ${errorLog}
 }
 
 // 총괄 에러 에스컬레이션 — 백업 디렉터 또는 자가복구
-async function escalateDirectorError(failedDirectorId: string, failedDirectorName: string, error: string): Promise<void> {
+async function escalateDirectorError(
+  failedDirectorId: string,
+  failedDirectorName: string,
+  error: string
+): Promise<void> {
   // 1. 백업 디렉터가 있으면 인수 (기존 로직)
   const backup = findBackupDirector(failedDirectorId)
   if (backup) {
@@ -159,15 +180,23 @@ async function escalateToBackupDirector(
 에러: ${error}
 해당 디렉터의 작업을 인수하여 계속 진행해주세요. 현재 팀 상태를 확인하고 미완료 작업을 이어서 처리하세요.`
 
-  logActivity('error', failedDirectorId, failedDirectorName,
-    `디렉터 에러 → 백업 ${backup.name}에게 인수 요청`)
+  logActivity(
+    'error',
+    failedDirectorId,
+    failedDirectorName,
+    `디렉터 에러 → 백업 ${backup.name}에게 인수 요청`
+  )
 
   try {
     updateRecoveryStatus(recoveryEvent.id, 'recovering')
     await sessionManager.sendMessage(backup.id, message)
     updateRecoveryStatus(recoveryEvent.id, 'resolved')
-    logActivity('status-change', failedDirectorId, failedDirectorName,
-      `디렉터 에러 복구 완료 — ${backup.name} 인수`)
+    logActivity(
+      'status-change',
+      failedDirectorId,
+      failedDirectorName,
+      `디렉터 에러 복구 완료 — ${backup.name} 인수`
+    )
   } catch (err) {
     console.error(`[error-recovery] 백업 디렉터 ${backup.name}에게 인수 요청 실패:`, err)
     updateRecoveryStatus(recoveryEvent.id, 'failed')
@@ -175,12 +204,18 @@ async function escalateToBackupDirector(
 }
 
 // ★ 총괄 자가복구 — 백업 디렉터가 없을 때
-async function selfRecoverDirector(failedDirectorId: string, failedDirectorName: string, error: string): Promise<void> {
+async function selfRecoverDirector(
+  failedDirectorId: string,
+  failedDirectorName: string,
+  error: string
+): Promise<void> {
   const attempts = (selfRecoveryAttempts.get(failedDirectorId) || 0) + 1
   selfRecoveryAttempts.set(failedDirectorId, attempts)
 
   if (attempts > MAX_SELF_RECOVERY_ATTEMPTS) {
-    console.error(`[error-recovery] 총괄 ${failedDirectorName} 자가복구 한도 초과 (${MAX_SELF_RECOVERY_ATTEMPTS}회) — 총괄 재생성`)
+    console.error(
+      `[error-recovery] 총괄 ${failedDirectorName} 자가복구 한도 초과 (${MAX_SELF_RECOVERY_ATTEMPTS}회) — 총괄 재생성`
+    )
 
     // ★ 총괄 완전 재생성 — 기존 총괄 삭제 후 새로 시드
     try {
@@ -194,8 +229,12 @@ async function selfRecoverDirector(failedDirectorId: string, failedDirectorName:
         attempts,
         newAgentCount: count
       })
-      logActivity('agent-created', failedDirectorId, failedDirectorName,
-        `총괄 자가복구 한도 초과 → 새 총괄 재생성`)
+      logActivity(
+        'agent-created',
+        failedDirectorId,
+        failedDirectorName,
+        `총괄 자가복구 한도 초과 → 새 총괄 재생성`
+      )
       selfRecoveryAttempts.delete(failedDirectorId)
       return
     } catch (respawnErr) {
@@ -206,20 +245,26 @@ async function selfRecoverDirector(failedDirectorId: string, failedDirectorName:
         error,
         attempts
       })
-      logActivity('error', failedDirectorId, failedDirectorName,
-        `총괄 재생성 실패 — 사용자 개입 필요`)
+      logActivity(
+        'error',
+        failedDirectorId,
+        failedDirectorName,
+        `총괄 재생성 실패 — 사용자 개입 필요`
+      )
       return
     }
   }
 
-  console.log(`[error-recovery] 총괄 ${failedDirectorName} 자가복구 시도 ${attempts}/${MAX_SELF_RECOVERY_ATTEMPTS}`)
+  console.log(
+    `[error-recovery] 총괄 ${failedDirectorName} 자가복구 시도 ${attempts}/${MAX_SELF_RECOVERY_ATTEMPTS}`
+  )
   lastRecoveryTime.set(failedDirectorId, Date.now())
 
   const recoveryEvent: ErrorRecoveryEvent = {
     id: uuid(),
     agentId: failedDirectorId,
     agentName: failedDirectorName,
-    leaderId: failedDirectorId,  // 자기 자신
+    leaderId: failedDirectorId, // 자기 자신
     leaderName: failedDirectorName,
     error,
     status: 'detected',
@@ -252,17 +297,24 @@ async function selfRecoverDirector(failedDirectorId: string, failedDirectorName:
     })
 
     updateRecoveryStatus(recoveryEvent.id, 'resolved')
-    logActivity('status-change', failedDirectorId, failedDirectorName,
-      `총괄 자가복구 완료 (시도 ${attempts}회)`)
+    logActivity(
+      'status-change',
+      failedDirectorId,
+      failedDirectorName,
+      `총괄 자가복구 완료 (시도 ${attempts}회)`
+    )
 
     // 자가복구 성공 시 카운터 리셋
     selfRecoveryAttempts.set(failedDirectorId, 0)
-
   } catch (err) {
     console.error(`[error-recovery] 총괄 자가복구 실패:`, err)
     updateRecoveryStatus(recoveryEvent.id, 'failed')
-    logActivity('error', failedDirectorId, failedDirectorName,
-      `총괄 자가복구 실패 (시도 ${attempts}회): ${(err as Error).message}`)
+    logActivity(
+      'error',
+      failedDirectorId,
+      failedDirectorName,
+      `총괄 자가복구 실패 (시도 ${attempts}회): ${(err as Error).message}`
+    )
   }
 }
 
@@ -290,7 +342,10 @@ export function getActiveRecoveries(): ErrorRecoveryEvent[] {
  */
 export function isRecovering(agentId: string): boolean {
   for (const [, event] of activeRecoveries) {
-    if (event.agentId === agentId && (event.status === 'leader-notified' || event.status === 'recovering')) {
+    if (
+      event.agentId === agentId &&
+      (event.status === 'leader-notified' || event.status === 'recovering')
+    ) {
       return true
     }
   }

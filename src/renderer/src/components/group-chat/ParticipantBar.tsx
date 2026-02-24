@@ -9,7 +9,12 @@ interface ParticipantBarProps {
   onTriggerAgent: (agentId: string) => void
 }
 
-export function ParticipantBar({ participants, currentAgentId, status, onTriggerAgent }: ParticipantBarProps) {
+export function ParticipantBar({
+  participants,
+  currentAgentId,
+  status,
+  onTriggerAgent
+}: ParticipantBarProps) {
   const { t } = useI18n()
   const isActive = status === 'chaining' || status === 'waiting-agent'
 
@@ -39,7 +44,13 @@ export function ParticipantBar({ participants, currentAgentId, status, onTrigger
               />
               {agent.name}
               {!isActive && (
-                <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor" className="opacity-60">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 14 14"
+                  fill="currentColor"
+                  className="opacity-60"
+                >
                   <path d="M3 1.5v11l9-5.5z" />
                 </svg>
               )}

@@ -4,12 +4,23 @@ import { join } from 'path'
 import { registerIpcHandlers, setWindowFunctions } from './ipc/handlers'
 import { cleanup as cleanupSessions } from './services/session-manager'
 import { cleanup as cleanupConversations } from './services/conversation-manager'
-import { seedDirectorIfEmpty, migrateHierarchyIfNeeded, migrateSystemPrompts, detectProjectRoot } from './services/default-agents'
+import {
+  seedDirectorIfEmpty,
+  migrateHierarchyIfNeeded,
+  migrateSystemPrompts,
+  detectProjectRoot
+} from './services/default-agents'
 import { cleanupExpiredAgents } from './services/dynamic-agent-manager'
 import * as agentManager from './services/agent-manager'
 import * as store from './services/store'
 import { cleanStaleTasks } from './services/store'
-import { checkClaudeCli, installClaudeCli, checkNodeInstalled, checkForCliUpdate, CliCheckResult } from './services/cli-builder'
+import {
+  checkClaudeCli,
+  installClaudeCli,
+  checkNodeInstalled,
+  checkForCliUpdate,
+  CliCheckResult
+} from './services/cli-builder'
 import { startPermissionServer, stopPermissionServer } from './services/permission-server'
 import { startWatchdog, stopWatchdog } from './services/process-watchdog'
 import { startMonitoring, stopMonitoring } from './services/monitoring-loop'
@@ -65,10 +76,13 @@ export function createSetupWindow(): BrowserWindow {
 
   const { workArea } = screen.getPrimaryDisplay()
   setupWindow = new BrowserWindow({
-    width: 600, height: 650,
+    width: 600,
+    height: 650,
     x: Math.round(workArea.x + (workArea.width - 600) / 2),
     y: Math.round(workArea.y + (workArea.height - 650) / 2),
-    frame: false, backgroundColor: getWindowBgColor(), resizable: false,
+    frame: false,
+    backgroundColor: getWindowBgColor(),
+    resizable: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -133,7 +147,9 @@ export function createDockWindow(): BrowserWindow {
     e.preventDefault()
   })
 
-  dockWindow.on('closed', () => { dockWindow = null })
+  dockWindow.on('closed', () => {
+    dockWindow = null
+  })
 
   // 렌더러 크래시 시 자동 재생성
   dockWindow.webContents.on('render-process-gone', () => {
@@ -147,9 +163,9 @@ export function createDockWindow(): BrowserWindow {
 // ── Dock 크기 프리셋 ──
 // ★ height는 호버 애니메이션 headroom(25px) 포함 — translateY(-14px) + scale(1.12)
 const DOCK_SIZES = {
-  small:  { height: 115, slotSize: 40, agentGap: 80 },
+  small: { height: 115, slotSize: 40, agentGap: 80 },
   medium: { height: 155, slotSize: 48, agentGap: 110 },
-  large:  { height: 195, slotSize: 64, agentGap: 140 }
+  large: { height: 195, slotSize: 64, agentGap: 140 }
 } as const
 
 let currentDockSize: import('../shared/types').DockSize = 'medium'
@@ -191,7 +207,8 @@ export function resizeDock(agentCount: number): void {
   dockWindow.setBounds({
     x: Math.round(workArea.x + (workArea.width - newW) / 2),
     y: workArea.y + workArea.height - h,
-    width: newW, height: h
+    width: newW,
+    height: h
   })
 
   // 렌더러에 밀집 모드 알림 (gap 정보 전달)
@@ -208,9 +225,7 @@ export function setDockSize(size: import('../shared/types').DockSize): void {
   const count = agentManager.listAgents().length
   resizeDock(count)
   // 렌더러에 알림
-  BrowserWindow.getAllWindows().forEach((w) =>
-    w.webContents.send('dock:size-changed', size)
-  )
+  BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('dock:size-changed', size))
 }
 
 export function setDockExpanded(expanded: boolean): void {
@@ -230,11 +245,19 @@ export function setDockExpanded(expanded: boolean): void {
 // ── Chat ──
 export function createChatWindow(agentId: string, agentName: string): BrowserWindow {
   const existing = chatWindows.get(agentId)
-  if (existing && !existing.isDestroyed()) { existing.show(); existing.focus(); return existing }
+  if (existing && !existing.isDestroyed()) {
+    existing.show()
+    existing.focus()
+    return existing
+  }
 
   const win = new BrowserWindow({
-    width: 520, height: 700, minWidth: 400, minHeight: 500,
-    frame: false, backgroundColor: getWindowBgColor(),
+    width: 520,
+    height: 700,
+    minWidth: 400,
+    minHeight: 500,
+    frame: false,
+    backgroundColor: getWindowBgColor(),
     title: `Chat - ${agentName}`,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -255,20 +278,30 @@ export function createChatWindow(agentId: string, agentName: string): BrowserWin
 }
 
 export function closeAllChatWindows(): void {
-  for (const [, w] of chatWindows) { if (!w.isDestroyed()) w.destroy() }
+  for (const [, w] of chatWindows) {
+    if (!w.isDestroyed()) w.destroy()
+  }
   chatWindows.clear()
 }
 
 // ── Editor ──
 export function createEditorWindow(agentId?: string): BrowserWindow {
-  if (editorWindow && !editorWindow.isDestroyed()) { editorWindow.show(); editorWindow.focus(); return editorWindow }
+  if (editorWindow && !editorWindow.isDestroyed()) {
+    editorWindow.show()
+    editorWindow.focus()
+    return editorWindow
+  }
 
   const { workArea } = screen.getPrimaryDisplay()
   editorWindow = new BrowserWindow({
-    width: 520, height: 700,
+    width: 520,
+    height: 700,
     x: Math.round(workArea.x + (workArea.width - 520) / 2),
     y: Math.round(workArea.y + (workArea.height - 700) / 2),
-    frame: false, backgroundColor: getWindowBgColor(), resizable: false, alwaysOnTop: true,
+    frame: false,
+    backgroundColor: getWindowBgColor(),
+    resizable: false,
+    alwaysOnTop: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -293,11 +326,19 @@ export function closeEditorWindow(): void {
 // ── Group Chat ──
 export function createGroupChatWindow(conversationId: string, name: string): BrowserWindow {
   const existing = groupChatWindows.get(conversationId)
-  if (existing && !existing.isDestroyed()) { existing.show(); existing.focus(); return existing }
+  if (existing && !existing.isDestroyed()) {
+    existing.show()
+    existing.focus()
+    return existing
+  }
 
   const win = new BrowserWindow({
-    width: 650, height: 750, minWidth: 450, minHeight: 550,
-    frame: false, backgroundColor: getWindowBgColor(),
+    width: 650,
+    height: 750,
+    minWidth: 450,
+    minHeight: 550,
+    frame: false,
+    backgroundColor: getWindowBgColor(),
     title: `Group - ${name}`,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -326,10 +367,14 @@ export function createConversationCreatorWindow(): BrowserWindow {
 
   const { workArea } = screen.getPrimaryDisplay()
   conversationCreatorWindow = new BrowserWindow({
-    width: 460, height: 520,
+    width: 460,
+    height: 520,
     x: Math.round(workArea.x + (workArea.width - 460) / 2),
     y: Math.round(workArea.y + (workArea.height - 520) / 2),
-    frame: false, backgroundColor: getWindowBgColor(), resizable: false, alwaysOnTop: true,
+    frame: false,
+    backgroundColor: getWindowBgColor(),
+    resizable: false,
+    alwaysOnTop: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -347,7 +392,9 @@ export function createConversationCreatorWindow(): BrowserWindow {
 }
 
 export function closeAllGroupChatWindows(): void {
-  for (const [, w] of groupChatWindows) { if (!w.isDestroyed()) w.destroy() }
+  for (const [, w] of groupChatWindows) {
+    if (!w.isDestroyed()) w.destroy()
+  }
   groupChatWindows.clear()
 }
 
@@ -363,10 +410,14 @@ export function createSettingsWindow(): BrowserWindow {
 
   const { workArea } = screen.getPrimaryDisplay()
   settingsWindow = new BrowserWindow({
-    width: 300, height: 420,
+    width: 300,
+    height: 420,
     x: Math.round(workArea.x + (workArea.width - 300) / 2),
     y: Math.round(workArea.y + (workArea.height - 420) / 2),
-    frame: false, backgroundColor: getWindowBgColor(), resizable: false, alwaysOnTop: true,
+    frame: false,
+    backgroundColor: getWindowBgColor(),
+    resizable: false,
+    alwaysOnTop: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -393,10 +444,14 @@ export function createDashboardWindow(): BrowserWindow {
 
   const { workArea } = screen.getPrimaryDisplay()
   dashboardWindow = new BrowserWindow({
-    width: 1200, height: 800, minWidth: 900, minHeight: 600,
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
     x: Math.round(workArea.x + (workArea.width - 1200) / 2),
     y: Math.round(workArea.y + (workArea.height - 800) / 2),
-    frame: false, backgroundColor: getWindowBgColor(),
+    frame: false,
+    backgroundColor: getWindowBgColor(),
     title: 'Virtual Company Dashboard',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -424,10 +479,14 @@ export function createCommandCenterWindow(): BrowserWindow {
 
   const { workArea } = screen.getPrimaryDisplay()
   commandCenterWindow = new BrowserWindow({
-    width: 1400, height: 850, minWidth: 1000, minHeight: 600,
+    width: 1400,
+    height: 850,
+    minWidth: 1000,
+    minHeight: 600,
     x: Math.round(workArea.x + (workArea.width - 1400) / 2),
     y: Math.round(workArea.y + (workArea.height - 850) / 2),
-    frame: false, backgroundColor: getWindowBgColor(),
+    frame: false,
+    backgroundColor: getWindowBgColor(),
     title: 'Command Center',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -483,7 +542,8 @@ function forceQuit(): void {
   closeAllGroupChatWindows()
   if (editorWindow && !editorWindow.isDestroyed()) editorWindow.destroy()
   editorWindow = null
-  if (conversationCreatorWindow && !conversationCreatorWindow.isDestroyed()) conversationCreatorWindow.destroy()
+  if (conversationCreatorWindow && !conversationCreatorWindow.isDestroyed())
+    conversationCreatorWindow.destroy()
   conversationCreatorWindow = null
   if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.destroy()
   dashboardWindow = null
@@ -513,17 +573,26 @@ function createTray(): void {
     const iconPath = join(__dirname, '../../resources/icon.png')
     let img = nativeImage.createFromPath(iconPath)
     if (img.isEmpty()) {
-      img = nativeImage.createFromBuffer(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==', 'base64'))
+      img = nativeImage.createFromBuffer(
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg==',
+          'base64'
+        )
+      )
     }
     tray = new Tray(img.resize({ width: 16, height: 16 }))
     tray.setToolTip('Virtual Company')
-    tray.setContextMenu(Menu.buildFromTemplate([
-      { label: 'Show Dock', click: () => ensureDockVisible() },
-      { type: 'separator' },
-      { label: 'Quit', click: () => forceQuit() }
-    ]))
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        { label: 'Show Dock', click: () => ensureDockVisible() },
+        { type: 'separator' },
+        { label: 'Quit', click: () => forceQuit() }
+      ])
+    )
     tray.on('double-click', () => ensureDockVisible())
-  } catch (e) { console.error('Tray:', e) }
+  } catch (e) {
+    console.error('Tray:', e)
+  }
 }
 
 // ── CLI 체크 + 안내 ──
@@ -575,7 +644,8 @@ async function checkCliAndNotify(): Promise<void> {
       type: 'info',
       title: 'Claude Code CLI 설치',
       message: '설치를 시작합니다...',
-      detail: 'npm install -g @anthropic-ai/claude-code 실행 중...\n\n이 작업은 1~2분 정도 걸릴 수 있습니다.',
+      detail:
+        'npm install -g @anthropic-ai/claude-code 실행 중...\n\n이 작업은 1~2분 정도 걸릴 수 있습니다.',
       buttons: ['확인'],
       noLink: true
     })
@@ -606,186 +676,214 @@ async function checkCliAndNotify(): Promise<void> {
 }
 
 if (gotLock) {
+  // ── Second Instance Handler ──
+  app.on('second-instance', () => {
+    // 첫 번째 인스턴스에서 다이얼로그 표시
+    dialog
+      .showMessageBox({
+        type: 'question',
+        title: 'Virtual Company',
+        message: '이미 실행 중인 인스턴스가 있습니다.',
+        detail: '기존 창을 사용하거나, 새로 시작할 수 있습니다.',
+        buttons: ['기존 창 사용', '새로 시작', '취소'],
+        defaultId: 0,
+        cancelId: 2,
+        noLink: true
+      })
+      .then(({ response }) => {
+        if (response === 0) {
+          // "기존 창 사용" → 독 표시 + 포커스
+          ensureDockVisible()
+          if (dockWindow && !dockWindow.isDestroyed()) {
+            dockWindow.focus()
+          }
+        } else if (response === 1) {
+          // "새로 시작"
+          if (is.dev) {
+            // dev 모드: electron-vite가 프로세스를 관리하므로 소프트 리스타트
+            // 모든 서브윈도우 닫고 독 재생성
+            closeAllChatWindows()
+            closeAllGroupChatWindows()
+            if (editorWindow && !editorWindow.isDestroyed()) editorWindow.destroy()
+            editorWindow = null
+            if (conversationCreatorWindow && !conversationCreatorWindow.isDestroyed())
+              conversationCreatorWindow.destroy()
+            conversationCreatorWindow = null
+            if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.destroy()
+            dashboardWindow = null
+            if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.destroy()
+            settingsWindow = null
+            if (setupWindow && !setupWindow.isDestroyed()) setupWindow.destroy()
+            setupWindow = null
+            // 커맨드 센터도 정리
+            if (commandCenterWindow && !commandCenterWindow.isDestroyed())
+              commandCenterWindow.destroy()
+            commandCenterWindow = null
+            // 독 재생성
+            if (dockWindow && !dockWindow.isDestroyed()) dockWindow.destroy()
+            dockWindow = null
+            createDockWindow()
+            // 독 크기 재조정
+            setTimeout(() => {
+              const agentCount = agentManager.listAgents().length
+              if (agentCount > 0) resizeDock(agentCount)
+            }, 500)
+          } else {
+            // 프로덕션: 앱 재실행
+            app.relaunch()
+            forceQuit()
+          }
+        }
+        // response === 2 "취소" → 아무것도 안 함
+      })
+  })
 
-// ── Second Instance Handler ──
-app.on('second-instance', () => {
-  // 첫 번째 인스턴스에서 다이얼로그 표시
-  dialog.showMessageBox({
-    type: 'question',
-    title: 'Virtual Company',
-    message: '이미 실행 중인 인스턴스가 있습니다.',
-    detail: '기존 창을 사용하거나, 새로 시작할 수 있습니다.',
-    buttons: ['기존 창 사용', '새로 시작', '취소'],
-    defaultId: 0,
-    cancelId: 2,
-    noLink: true
-  }).then(({ response }) => {
-    if (response === 0) {
-      // "기존 창 사용" → 독 표시 + 포커스
-      ensureDockVisible()
-      if (dockWindow && !dockWindow.isDestroyed()) {
-        dockWindow.focus()
+  // ── App ──
+  app.whenReady().then(async () => {
+    electronApp.setAppUserModelId('com.virtual-company')
+
+    // ★ 프로젝트 루트 설정 — 프로젝트별 독립 저장소의 핵심
+    store.setProjectRoot(detectProjectRoot())
+
+    // ★ dock 생성 중이면 optimizer 제외 (race condition 방지)
+    app.on('browser-window-created', (_, w) => {
+      if (!creatingDock) {
+        optimizer.watchWindowShortcuts(w)
       }
-    } else if (response === 1) {
-      // "새로 시작"
-      if (is.dev) {
-        // dev 모드: electron-vite가 프로세스를 관리하므로 소프트 리스타트
-        // 모든 서브윈도우 닫고 독 재생성
-        closeAllChatWindows()
-        closeAllGroupChatWindows()
-        if (editorWindow && !editorWindow.isDestroyed()) editorWindow.destroy()
-        editorWindow = null
-        if (conversationCreatorWindow && !conversationCreatorWindow.isDestroyed()) conversationCreatorWindow.destroy()
-        conversationCreatorWindow = null
-        if (dashboardWindow && !dashboardWindow.isDestroyed()) dashboardWindow.destroy()
-        dashboardWindow = null
-        if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.destroy()
-        settingsWindow = null
-        if (setupWindow && !setupWindow.isDestroyed()) setupWindow.destroy()
-        setupWindow = null
-        // 커맨드 센터도 정리
-        if (commandCenterWindow && !commandCenterWindow.isDestroyed()) commandCenterWindow.destroy()
-        commandCenterWindow = null
-        // 독 재생성
-        if (dockWindow && !dockWindow.isDestroyed()) dockWindow.destroy()
-        dockWindow = null
+    })
+
+    registerIpcHandlers()
+    setWindowFunctions({
+      createChatWindow,
+      createEditorWindow,
+      closeEditorWindow,
+      createGroupChatWindow,
+      createConversationCreatorWindow,
+      createDashboardWindow,
+      createCommandCenterWindow,
+      createSettingsWindow,
+      resizeDock,
+      isDockWindow,
+      forceQuit,
+      setDockExpanded,
+      setDockSize
+    })
+
+    // 위임 시 에이전트 동적 생성 후 독 크기 자동 조정
+    setDockResizeCallback(resizeDock)
+
+    // 퍼미션 서버 시작
+    startPermissionServer().catch((err) => {
+      console.error('[permission-server] 시작 실패:', err)
+    })
+
+    // 저장된 독 크기 복원
+    const savedSettings = store.getSettings()
+    if (savedSettings.dockSize && DOCK_SIZES[savedSettings.dockSize]) {
+      currentDockSize = savedSettings.dockSize
+    }
+
+    // 총괄 1명 체제 — 기존 총괄 유지 또는 없으면 시드
+    seedDirectorIfEmpty()
+    migrateHierarchyIfNeeded()
+    migrateSystemPrompts()
+    const staleRemoved = cleanStaleTasks()
+    if (staleRemoved > 0) console.log(`[startup] 오래된 태스크 ${staleRemoved}건 정리`)
+
+    // 프로세스 워치독 + 모니터링 루프 시작
+    startWatchdog()
+    startMonitoring()
+
+    createDockWindow()
+
+    // ★ 첫 실행이면 셋업 위자드 표시, 아니면 CLI 확인
+    const settings = store.getSettings()
+    if (!settings.setupCompleted) {
+      createSetupWindow()
+    } else {
+      await checkCliAndNotify()
+    }
+
+    // 시딩 후 독 크기 조정
+    setTimeout(() => {
+      const count = agentManager.listAgents().length
+      if (count > 0) resizeDock(count)
+    }, 500)
+    setTimeout(createTray, 1000)
+
+    // ★ 2초마다 독 생존 확인 (안전장치)
+    setInterval(() => {
+      if (!isQuitting && (!dockWindow || dockWindow.isDestroyed())) {
         createDockWindow()
-        // 독 크기 재조정
-        setTimeout(() => {
-          const agentCount = agentManager.listAgents().length
-          if (agentCount > 0) resizeDock(agentCount)
-        }, 500)
-      } else {
-        // 프로덕션: 앱 재실행
-        app.relaunch()
-        forceQuit()
       }
-    }
-    // response === 2 "취소" → 아무것도 안 함
-  })
-})
+    }, 2000)
 
-// ── App ──
-app.whenReady().then(async () => {
-  electronApp.setAppUserModelId('com.virtual-company')
+    // ★ 60초마다 만료된 임시 에이전트 정리
+    setInterval(() => {
+      if (!isQuitting) cleanupExpiredAgents()
+    }, 60000)
 
-  // ★ 프로젝트 루트 설정 — 프로젝트별 독립 저장소의 핵심
-  store.setProjectRoot(detectProjectRoot())
-
-  // ★ dock 생성 중이면 optimizer 제외 (race condition 방지)
-  app.on('browser-window-created', (_, w) => {
-    if (!creatingDock) {
-      optimizer.watchWindowShortcuts(w)
-    }
-  })
-
-  registerIpcHandlers()
-  setWindowFunctions({ createChatWindow, createEditorWindow, closeEditorWindow, createGroupChatWindow, createConversationCreatorWindow, createDashboardWindow, createCommandCenterWindow, createSettingsWindow, resizeDock, isDockWindow, forceQuit, setDockExpanded, setDockSize })
-
-  // 위임 시 에이전트 동적 생성 후 독 크기 자동 조정
-  setDockResizeCallback(resizeDock)
-
-  // 퍼미션 서버 시작
-  startPermissionServer().catch((err) => {
-    console.error('[permission-server] 시작 실패:', err)
-  })
-
-  // 저장된 독 크기 복원
-  const savedSettings = store.getSettings()
-  if (savedSettings.dockSize && DOCK_SIZES[savedSettings.dockSize]) {
-    currentDockSize = savedSettings.dockSize
-  }
-
-  // 총괄 1명 체제 — 기존 총괄 유지 또는 없으면 시드
-  seedDirectorIfEmpty()
-  migrateHierarchyIfNeeded()
-  migrateSystemPrompts()
-  const staleRemoved = cleanStaleTasks()
-  if (staleRemoved > 0) console.log(`[startup] 오래된 태스크 ${staleRemoved}건 정리`)
-
-  // 프로세스 워치독 + 모니터링 루프 시작
-  startWatchdog()
-  startMonitoring()
-
-  createDockWindow()
-
-  // ★ 첫 실행이면 셋업 위자드 표시, 아니면 CLI 확인
-  const settings = store.getSettings()
-  if (!settings.setupCompleted) {
-    createSetupWindow()
-  } else {
-    await checkCliAndNotify()
-  }
-
-  // 시딩 후 독 크기 조정
-  setTimeout(() => {
-    const count = agentManager.listAgents().length
-    if (count > 0) resizeDock(count)
-  }, 500)
-  setTimeout(createTray, 1000)
-
-  // ★ 2초마다 독 생존 확인 (안전장치)
-  setInterval(() => {
-    if (!isQuitting && (!dockWindow || dockWindow.isDestroyed())) {
-      createDockWindow()
-    }
-  }, 2000)
-
-  // ★ 60초마다 만료된 임시 에이전트 정리
-  setInterval(() => {
-    if (!isQuitting) cleanupExpiredAgents()
-  }, 60000)
-
-  // ★ CLI 업데이트 체크 — 시작 10초 후 1회, 이후 24시간마다
-  setTimeout(() => {
-    if (isQuitting) return
-    try {
-      const result = checkForCliUpdate()
-      if (result.updateAvailable && result.latestVersion) {
-        console.log(`[cli-update] 업데이트 가능: ${result.currentVersion} → ${result.latestVersion}`)
-        BrowserWindow.getAllWindows().forEach((w) =>
-          w.webContents.send('cli:update-available', { currentVersion: result.currentVersion, latestVersion: result.latestVersion })
-        )
+    // ★ CLI 업데이트 체크 — 시작 10초 후 1회, 이후 24시간마다
+    setTimeout(() => {
+      if (isQuitting) return
+      try {
+        const result = checkForCliUpdate()
+        if (result.updateAvailable && result.latestVersion) {
+          console.log(
+            `[cli-update] 업데이트 가능: ${result.currentVersion} → ${result.latestVersion}`
+          )
+          BrowserWindow.getAllWindows().forEach((w) =>
+            w.webContents.send('cli:update-available', {
+              currentVersion: result.currentVersion,
+              latestVersion: result.latestVersion
+            })
+          )
+        }
+      } catch (err) {
+        console.warn('[cli-update] 체크 실패:', err)
       }
-    } catch (err) {
-      console.warn('[cli-update] 체크 실패:', err)
-    }
-  }, 10000)
-  setInterval(() => {
-    if (isQuitting) return
-    try {
-      const result = checkForCliUpdate()
-      if (result.updateAvailable && result.latestVersion) {
-        BrowserWindow.getAllWindows().forEach((w) =>
-          w.webContents.send('cli:update-available', { currentVersion: result.currentVersion, latestVersion: result.latestVersion })
-        )
-      }
-    } catch {}
-  }, 24 * 60 * 60 * 1000)
+    }, 10000)
+    setInterval(
+      () => {
+        if (isQuitting) return
+        try {
+          const result = checkForCliUpdate()
+          if (result.updateAvailable && result.latestVersion) {
+            BrowserWindow.getAllWindows().forEach((w) =>
+              w.webContents.send('cli:update-available', {
+                currentVersion: result.currentVersion,
+                latestVersion: result.latestVersion
+              })
+            )
+          }
+        } catch {
+          /* CLI 업데이트 확인 실패 무시 */
+        }
+      },
+      24 * 60 * 60 * 1000
+    )
 
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createDockWindow()
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createDockWindow()
+    })
   })
-})
 
-// ★ 앱 종료 완전 차단 — forceQuit()으로만 종료 가능
-app.on('window-all-closed', () => {
-  if (!isQuitting) ensureDockVisible()
-})
+  // ★ 앱 종료 완전 차단 — forceQuit()으로만 종료 가능
+  app.on('window-all-closed', () => {
+    if (!isQuitting) ensureDockVisible()
+  })
 
-app.on('will-quit', (e) => {
-  if (!isQuitting) {
-    e.preventDefault()
-    ensureDockVisible()
-  }
-})
+  app.on('will-quit', (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+      ensureDockVisible()
+    }
+  })
 
-app.on('before-quit', (e) => {
-  if (!isQuitting) {
-    e.preventDefault()
-    ensureDockVisible()
-  }
-})
-
+  app.on('before-quit', (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+      ensureDockVisible()
+    }
+  })
 } // else (gotLock)

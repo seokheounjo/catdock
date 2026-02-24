@@ -10,7 +10,13 @@ interface GroupChatInputProps {
   status: ConversationStatus
 }
 
-export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: GroupChatInputProps) {
+export function GroupChatInput({
+  onSend,
+  onPause,
+  onResume,
+  onAbort,
+  status
+}: GroupChatInputProps) {
   const { t } = useI18n()
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -110,7 +116,15 @@ export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: G
               }`}
               title={t('groupChat.sendMessage')}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
                 <path d="M2 8h12M9 3l5 5-5 5" />
               </svg>
             </button>

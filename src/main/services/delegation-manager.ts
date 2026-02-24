@@ -5,12 +5,18 @@ import * as agentManager from './agent-manager'
 import * as sessionManager from './session-manager'
 import * as store from './store'
 import { logActivity } from './activity-logger'
-import { findMemberDef, randomAvatar, getProjectRoot, generateDynamicLeaderPrompt, generateDynamicMemberPrompt } from './default-agents'
+import {
+  findMemberDef,
+  randomAvatar,
+  getProjectRoot,
+  generateDynamicLeaderPrompt,
+  generateDynamicMemberPrompt
+} from './default-agents'
 import { TaskDelegation } from '../../shared/types'
 
 export interface DelegationBlock {
   agentName: string
-  agentRole?: string  // 역할 지정 (없으면 자동 결정)
+  agentRole?: string // 역할 지정 (없으면 자동 결정)
   task: string
 }
 
@@ -53,7 +59,11 @@ export function hasDelegation(text: string): boolean {
 }
 
 // 에이전트 이름으로 매칭 — 같은 그룹 우선, 없으면 자동 생성 (동적 포함)
-function findOrCreateAgent(name: string, delegatorId: string, role?: string): { id: string; name: string } | null {
+function findOrCreateAgent(
+  name: string,
+  delegatorId: string,
+  role?: string
+): { id: string; name: string } | null {
   const agents = agentManager.listAgents()
   const lowerName = name.toLowerCase()
 
@@ -62,9 +72,13 @@ function findOrCreateAgent(name: string, delegatorId: string, role?: string): { 
   const delegatorGroup = delegator?.group
 
   if (delegatorGroup) {
-    const groupExact = agents.find((a) => a.group === delegatorGroup && a.name.toLowerCase() === lowerName)
+    const groupExact = agents.find(
+      (a) => a.group === delegatorGroup && a.name.toLowerCase() === lowerName
+    )
     if (groupExact) return { id: groupExact.id, name: groupExact.name }
-    const groupPartial = agents.find((a) => a.group === delegatorGroup && a.name.toLowerCase().startsWith(lowerName))
+    const groupPartial = agents.find(
+      (a) => a.group === delegatorGroup && a.name.toLowerCase().startsWith(lowerName)
+    )
     if (groupPartial) return { id: groupPartial.id, name: groupPartial.name }
   }
 
@@ -103,7 +117,12 @@ function findOrCreateAgent(name: string, delegatorId: string, role?: string): { 
     updateDelegatorSubordinates(delegatorId, agent.id)
     broadcast('agent:created', agent)
     requestDockResize()
-    logActivity('agent-created', agent.id, agent.name, `${agent.name} 자동 생성 (사전 정의, role: ${newRole})`)
+    logActivity(
+      'agent-created',
+      agent.id,
+      agent.name,
+      `${agent.name} 자동 생성 (사전 정의, role: ${newRole})`
+    )
     return { id: agent.id, name: agent.name }
   }
 
@@ -128,9 +147,13 @@ function findOrCreateAgent(name: string, delegatorId: string, role?: string): { 
     updateDelegatorSubordinates(delegatorId, agent.id)
     broadcast('agent:created', agent)
     requestDockResize()
-    logActivity('agent-created', agent.id, agent.name, `${agent.name} 동적 리더 생성 (역할: ${leaderRole})`)
+    logActivity(
+      'agent-created',
+      agent.id,
+      agent.name,
+      `${agent.name} 동적 리더 생성 (역할: ${leaderRole})`
+    )
     return { id: agent.id, name: agent.name }
-
   } else if (delegatorRole === 'leader') {
     // 리더 → 팀원 동적 생성
     const memberRole = role || 'Developer'
@@ -151,9 +174,13 @@ function findOrCreateAgent(name: string, delegatorId: string, role?: string): { 
     updateDelegatorSubordinates(delegatorId, agent.id)
     broadcast('agent:created', agent)
     requestDockResize()
-    logActivity('agent-created', agent.id, agent.name, `${agent.name} 동적 팀원 생성 (역할: ${memberRole})`)
+    logActivity(
+      'agent-created',
+      agent.id,
+      agent.name,
+      `${agent.name} 동적 팀원 생성 (역할: ${memberRole})`
+    )
     return { id: agent.id, name: agent.name }
-
   } else {
     // member나 기타 역할은 동적 생성 불가
     console.warn(`[delegation] '${name}' 정의가 없고 위임자(${delegatorRole})가 동적 생성 불가`)
@@ -228,7 +255,9 @@ async function executeOneRound(
     totalCount: delegations.length
   })
 
-  console.log(`[delegation] ${delegatorConfig.name}(${roleLabel}) → ${delegatedNames} (${delegations.length}건)`)
+  console.log(
+    `[delegation] ${delegatorConfig.name}(${roleLabel}) → ${delegatedNames} (${delegations.length}건)`
+  )
 
   // 태스크 생성 + 병렬 실행
   const tasks: TaskDelegation[] = []
@@ -245,8 +274,12 @@ async function executeOneRound(
     store.addTask(task)
     tasks.push(task)
     broadcast('task:created', task)
-    logActivity('task-delegated', delegatorAgentId, delegatorConfig.name,
-      `${delegatorConfig.name}이 ${d.agentName}에게 작업 위임`)
+    logActivity(
+      'task-delegated',
+      delegatorAgentId,
+      delegatorConfig.name,
+      `${delegatorConfig.name}이 ${d.agentName}에게 작업 위임`
+    )
   }
 
   // 병렬 실행
@@ -262,7 +295,11 @@ async function executeOneRound(
         const agentResponse = await sessionManager.sendMessageAndCapture(d.agentId, context)
 
         completedCount++
-        store.updateTask(tasks[idx].id, { status: 'completed', completedAt: Date.now(), result: agentResponse.slice(0, 2000) })
+        store.updateTask(tasks[idx].id, {
+          status: 'completed',
+          completedAt: Date.now(),
+          result: agentResponse.slice(0, 2000)
+        })
         broadcast('task:updated', { ...tasks[idx], status: 'completed' })
         broadcast('delegation:agent-completed', {
           leaderAgentId: delegatorAgentId,
@@ -281,7 +318,11 @@ async function executeOneRound(
       } catch (err) {
         completedCount++
         const errMsg = (err as Error).message || String(err)
-        store.updateTask(tasks[idx].id, { status: 'failed', completedAt: Date.now(), result: `오류: ${errMsg}` })
+        store.updateTask(tasks[idx].id, {
+          status: 'failed',
+          completedAt: Date.now(),
+          result: `오류: ${errMsg}`
+        })
         broadcast('task:updated', { ...tasks[idx], status: 'failed' })
 
         agentManager.setAgentStatus(d.agentId, 'error')
@@ -305,7 +346,10 @@ async function executeOneRound(
   }
 
   // 위임자에게 종합 요청 (sendMessageAndCapture로 응답 캡처)
-  broadcast('delegation:synthesizing', { leaderAgentId: delegatorAgentId, leaderName: delegatorConfig.name })
+  broadcast('delegation:synthesizing', {
+    leaderAgentId: delegatorAgentId,
+    leaderName: delegatorConfig.name
+  })
 
   const synthesisPrompt = [
     `[작업 위임 결과 종합]`,
@@ -317,7 +361,10 @@ async function executeOneRound(
     ...summaryParts
   ].join('\n')
 
-  const synthesisResponse = await sessionManager.sendMessageAndCapture(delegatorAgentId, synthesisPrompt)
+  const synthesisResponse = await sessionManager.sendMessageAndCapture(
+    delegatorAgentId,
+    synthesisPrompt
+  )
 
   return { summaryParts, synthesisResponse }
 }
@@ -337,7 +384,9 @@ export async function executeDelegation(
     const blocks = parseDelegationBlocks(currentResponse)
     if (blocks.length === 0) break
 
-    console.log(`[delegation] 라운드 ${round + 1}/${MAX_DELEGATION_ROUNDS} 시작 (${blocks.length}건 위임)`)
+    console.log(
+      `[delegation] 라운드 ${round + 1}/${MAX_DELEGATION_ROUNDS} 시작 (${blocks.length}건 위임)`
+    )
 
     const { synthesisResponse } = await executeOneRound(
       delegatorAgentId,
@@ -357,6 +406,9 @@ export async function executeDelegation(
     break
   }
 
-  broadcast('delegation:completed', { leaderAgentId: delegatorAgentId, leaderName: delegatorConfig.name })
+  broadcast('delegation:completed', {
+    leaderAgentId: delegatorAgentId,
+    leaderName: delegatorConfig.name
+  })
   console.log(`[delegation] 위임 완료: ${delegatorConfig.name}`)
 }

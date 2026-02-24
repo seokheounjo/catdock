@@ -15,7 +15,7 @@ export const CAT_BREED_LABELS: Record<CatBreed, string> = {
   'maine-coon': 'Maine Coon',
   'scottish-fold': 'Scottish Fold',
   'russian-blue': 'Russian Blue',
-  'bengal': 'Bengal',
-  'siamese': 'Siamese',
+  bengal: 'Bengal',
+  siamese: 'Siamese',
   'british-shorthair': 'British Shorthair'
 }

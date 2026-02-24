@@ -16,7 +16,7 @@ interface AgentHeaderProps {
 const catImgMap: Record<string, string> = {
   working: fishingImg,
   idle: caughtImg,
-  error: biteImg,
+  error: biteImg
 }
 
 export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: AgentHeaderProps) {
@@ -24,24 +24,37 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
   const catSrc = catImgMap[status] || caughtImg
 
   const statusLabel =
-    status === 'working' ? t('chat.statusWorking') : status === 'error' ? t('chat.statusError') : t('chat.statusOnline')
-  const statusColor =
     status === 'working'
-      ? 'text-accent'
+      ? t('chat.statusWorking')
       : status === 'error'
-        ? 'text-danger'
-        : 'text-success'
+        ? t('chat.statusError')
+        : t('chat.statusOnline')
+  const statusColor =
+    status === 'working' ? 'text-accent' : status === 'error' ? 'text-danger' : 'text-success'
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-chat-sidebar border-b border-white/5" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+    <div
+      className="flex items-center gap-3 px-4 py-3 bg-chat-sidebar border-b border-white/5"
+      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+    >
       <div className="w-9 h-9 rounded-lg overflow-hidden bg-white/10 shrink-0">
-        <img src={catSrc} alt={agent.name} className="w-full h-full object-contain" draggable={false} />
+        <img
+          src={catSrc}
+          alt={agent.name}
+          className="w-full h-full object-contain"
+          draggable={false}
+        />
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-medium text-text truncate">{agent.name}</div>
-        <div className={`text-xs ${statusColor}`}>{agent.role} · {statusLabel}</div>
+        <div className={`text-xs ${statusColor}`}>
+          {agent.role} · {statusLabel}
+        </div>
       </div>
-      <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      <div
+        className="flex items-center gap-1"
+        style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+      >
         <ThemeToggle className="w-7 h-7" />
         <button
           onClick={onClear}
@@ -52,7 +65,7 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
           aria-label={t('chat.clearHistory')}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
         <button
@@ -63,8 +76,16 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
           title={t('chat.minimize')}
           aria-label={t('chat.minimize')}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M6 12h12"/>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path d="M6 12h12" />
           </svg>
         </button>
         <button
@@ -75,8 +96,16 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
           title={t('chat.closeWindow')}
           aria-label={t('chat.closeWindow')}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M18 6L6 18M6 6l12 12"/>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         </button>
       </div>

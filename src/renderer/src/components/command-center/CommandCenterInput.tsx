@@ -7,7 +7,12 @@ interface CommandCenterInputProps {
   onAbort: () => void
 }
 
-export function CommandCenterInput({ targetAgentName, streaming, onSend, onAbort }: CommandCenterInputProps) {
+export function CommandCenterInput({
+  targetAgentName,
+  streaming,
+  onSend,
+  onAbort
+}: CommandCenterInputProps) {
   const [text, setText] = useState('')
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -33,9 +38,11 @@ export function CommandCenterInput({ targetAgentName, streaming, onSend, onAbort
       {/* 대상 에이전트 표시 */}
       <div className="flex items-center gap-1.5 shrink-0">
         <span className="text-[10px] text-text-muted">To:</span>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-          targetAgentName ? 'bg-accent/20 text-accent' : 'bg-white/10 text-text-muted'
-        }`}>
+        <span
+          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+            targetAgentName ? 'bg-accent/20 text-accent' : 'bg-white/10 text-text-muted'
+          }`}
+        >
           {targetAgentName || '패널 클릭'}
         </span>
       </div>
@@ -47,7 +54,9 @@ export function CommandCenterInput({ targetAgentName, streaming, onSend, onAbort
                    placeholder:text-text-muted resize-none outline-none
                    focus:border-accent/50 transition-colors duration-200"
         rows={1}
-        placeholder={targetAgentName ? `${targetAgentName}에게 메시지...` : '패널을 클릭하여 대상을 선택하세요'}
+        placeholder={
+          targetAgentName ? `${targetAgentName}에게 메시지...` : '패널을 클릭하여 대상을 선택하세요'
+        }
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}

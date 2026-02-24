@@ -4,9 +4,9 @@ import { ActivityEvent, ActivityType } from '../../../../shared/types'
 import { useI18n } from '../../hooks/useI18n'
 
 const typeColors: Record<ActivityType, string> = {
-  'message': 'text-blue-400',
+  message: 'text-blue-400',
   'tool-use': 'text-purple-400',
-  'error': 'text-red-400',
+  error: 'text-red-400',
   'status-change': 'text-gray-400',
   'agent-created': 'text-green-400',
   'agent-deleted': 'text-orange-400',
@@ -14,9 +14,9 @@ const typeColors: Record<ActivityType, string> = {
 }
 
 const typeIcons: Record<ActivityType, string> = {
-  'message': '\u{1F4AC}',
+  message: '\u{1F4AC}',
   'tool-use': '\u{1F527}',
-  'error': '\u{274C}',
+  error: '\u{274C}',
   'status-change': '\u{1F504}',
   'agent-created': '\u{2795}',
   'agent-deleted': '\u{2796}',

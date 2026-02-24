@@ -114,10 +114,7 @@ export function generateMcpDocumentation(agentId: string): string {
   const allServers = getEffectiveMcpServers(agentId)
   if (allServers.length === 0) return ''
 
-  const lines: string[] = [
-    '## 사용 가능한 MCP 도구',
-    ''
-  ]
+  const lines: string[] = ['## 사용 가능한 MCP 도구', '']
 
   for (const server of allServers) {
     const args = server.args?.join(' ') ?? ''

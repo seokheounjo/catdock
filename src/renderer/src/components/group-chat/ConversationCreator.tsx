@@ -16,9 +16,7 @@ export function ConversationCreator() {
   }, [])
 
   const toggleAgent = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
   const handleCreate = async () => {
@@ -72,7 +70,8 @@ export function ConversationCreator() {
         {/* 참여자 선택 */}
         <div>
           <label className="text-xs text-text-muted block mb-1">
-            {t('groupChat.participants')} ({t('groupChat.participantsCount', { count: String(selectedIds.length) })})
+            {t('groupChat.participants')} (
+            {t('groupChat.participantsCount', { count: String(selectedIds.length) })})
           </label>
           <div className="space-y-1">
             {agents.map((agent) => {
@@ -96,12 +95,21 @@ export function ConversationCreator() {
                     <div className="text-sm text-text truncate">{agent.name}</div>
                     <div className="text-xs text-text-muted">{agent.role}</div>
                   </div>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    selected ? 'border-accent bg-accent' : 'border-white/20'
-                  }`}>
+                  <div
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                      selected ? 'border-accent bg-accent' : 'border-white/20'
+                    }`}
+                  >
                     {selected && (
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="white">
-                        <path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M1.5 5L4 7.5L8.5 2.5"
+                          stroke="white"
+                          strokeWidth="1.5"
+                          fill="none"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     )}
                   </div>

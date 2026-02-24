@@ -65,7 +65,7 @@ export interface AgentConfig {
   permissionMode?: PermissionMode
   maxTurns?: number
   mcpConfig?: McpServerConfig[]
-  teamMcpConfig?: McpServerConfig[]  // 리더가 설정, 팀 전체에 적용
+  teamMcpConfig?: McpServerConfig[] // 리더가 설정, 팀 전체에 적용
   cliFlags?: {
     verbose?: boolean
     debug?: boolean
@@ -149,7 +149,13 @@ export interface ActivityEvent {
 
 // ── 작업 위임 ──
 
-export type TaskStatus = 'pending' | 'assigned' | 'in-progress' | 'completed' | 'failed' | 'cancelled'
+export type TaskStatus =
+  | 'pending'
+  | 'assigned'
+  | 'in-progress'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low'
 
 export interface TaskDelegation {
@@ -231,7 +237,12 @@ export interface ConversationMessage {
 
 // ── 에러 복구 ──
 
-export type ErrorRecoveryStatus = 'detected' | 'leader-notified' | 'recovering' | 'resolved' | 'failed'
+export type ErrorRecoveryStatus =
+  | 'detected'
+  | 'leader-notified'
+  | 'recovering'
+  | 'resolved'
+  | 'failed'
 
 export interface ErrorRecoveryEvent {
   id: string

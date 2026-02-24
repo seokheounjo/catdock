@@ -1,8 +1,18 @@
 import { BrowserWindow } from 'electron'
-import { ConversationConfig, ConversationMessage, ConversationMode, ConversationStatus } from '../../shared/types'
+import {
+  ConversationConfig,
+  ConversationMessage,
+  ConversationMode,
+  ConversationStatus
+} from '../../shared/types'
 import * as agentManager from './agent-manager'
 import * as store from './store'
-import { buildCleanEnv, validateWorkingDirectory, checkClaudeCli, buildCliArgs } from './cli-builder'
+import {
+  buildCleanEnv,
+  validateWorkingDirectory,
+  checkClaudeCli,
+  buildCliArgs
+} from './cli-builder'
 import { buildMcpConfigFile } from './mcp-manager'
 import { v4 as uuid } from 'uuid'
 import { spawn, ChildProcess } from 'child_process'
@@ -107,7 +117,10 @@ export function getConversationConfig(id: string): ConversationConfig | null {
   return store.getConversationConfig(id) ?? null
 }
 
-export function updateConversation(id: string, updates: Partial<ConversationConfig>): ConversationConfig | null {
+export function updateConversation(
+  id: string,
+  updates: Partial<ConversationConfig>
+): ConversationConfig | null {
   const result = store.updateConversationConfig(id, updates)
   const conv = activeConversations.get(id)
   if (conv && result) conv.config = result
@@ -126,7 +139,9 @@ export function getHistory(conversationId: string): ConversationMessage[] {
   return store.getConversationHistory(conversationId)
 }
 
-export function getState(conversationId: string): { status: ConversationStatus; currentAgentId: string | null } | null {
+export function getState(
+  conversationId: string
+): { status: ConversationStatus; currentAgentId: string | null } | null {
   const conv = getConversation(conversationId)
   if (!conv) return null
   return { status: conv.status, currentAgentId: conv.currentAgentId }
@@ -176,7 +191,10 @@ export async function triggerAgent(conversationId: string, agentId: string): Pro
   if (conv.status === 'chaining' || conv.status === 'waiting-agent') return
 
   conv.status = 'waiting-agent'
-  broadcast('conversation:status-changed', conversationId, { status: conv.status, currentAgentId: agentId })
+  broadcast('conversation:status-changed', conversationId, {
+    status: conv.status,
+    currentAgentId: agentId
+  })
 
   try {
     await runSingleAgent(conv, agentId)
@@ -184,7 +202,10 @@ export async function triggerAgent(conversationId: string, agentId: string): Pro
     if (conv.status === 'waiting-agent') {
       conv.status = 'idle'
       conv.currentAgentId = null
-      broadcast('conversation:status-changed', conversationId, { status: 'idle', currentAgentId: null })
+      broadcast('conversation:status-changed', conversationId, {
+        status: 'idle',
+        currentAgentId: null
+      })
     }
   }
 }
@@ -195,7 +216,10 @@ export function pauseConversation(conversationId: string): void {
   const conv = activeConversations.get(conversationId)
   if (!conv || conv.status !== 'chaining') return
   conv.status = 'paused'
-  broadcast('conversation:status-changed', conversationId, { status: 'paused', currentAgentId: conv.currentAgentId })
+  broadcast('conversation:status-changed', conversationId, {
+    status: 'paused',
+    currentAgentId: conv.currentAgentId
+  })
 }
 
 export async function resumeConversation(conversationId: string): Promise<void> {
@@ -212,7 +236,11 @@ export function abortConversation(conversationId: string): void {
   if (!conv) return
   conv.abortController.abort()
   if (conv.currentProcess) {
-    try { conv.currentProcess.kill() } catch { /* already dead */ }
+    try {
+      conv.currentProcess.kill()
+    } catch {
+      /* already dead */
+    }
     conv.currentProcess = null
   }
   conv.status = 'idle'
@@ -314,7 +342,10 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
   }
 
   conv.currentAgentId = agentId
-  broadcast('conversation:status-changed', conv.config.id, { status: conv.status, currentAgentId: agentId })
+  broadcast('conversation:status-changed', conv.config.id, {
+    status: conv.status,
+    currentAgentId: agentId
+  })
 
   const agentSession = getAgentSession(conv, agentId)
   const contextPrompt = buildContextForAgent(conv, agentConfig.name, agentConfig.role)
@@ -325,7 +356,10 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
     if ((err as Error).name === 'AbortError') return
 
     const errMessage = (err as Error).message || String(err)
-    const isCliMissing = errMessage.includes('ENOENT') || errMessage.includes('not found') || errMessage.includes('not recognized')
+    const isCliMissing =
+      errMessage.includes('ENOENT') ||
+      errMessage.includes('not found') ||
+      errMessage.includes('not recognized')
     const displayMessage = isCliMissing
       ? `⚠️ Claude Code CLI를 실행할 수 없습니다. \`npm install -g @anthropic-ai/claude-code\` 로 설치하세요.`
       : `[${agentConfig.name}] 오류: ${errMessage}`
@@ -349,7 +383,11 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
 
 const MAX_PROMPT_LENGTH = 24000
 
-function buildContextForAgent(conv: ActiveConversation, agentName: string, agentRole: string): string {
+function buildContextForAgent(
+  conv: ActiveConversation,
+  agentName: string,
+  agentRole: string
+): string {
   const participants = conv.config.participantIds
     .map((id) => {
       const a = store.getAgent(id)
@@ -385,7 +423,17 @@ function buildContextForAgent(conv: ActiveConversation, agentName: string, agent
 
 function spawnClaude(
   conv: ActiveConversation,
-  agentConfig: { id: string; name: string; model: string; systemPrompt: string; workingDirectory: string; permissionMode?: string; maxTurns?: number; mcpConfig?: unknown[]; cliFlags?: unknown },
+  agentConfig: {
+    id: string
+    name: string
+    model: string
+    systemPrompt: string
+    workingDirectory: string
+    permissionMode?: string
+    maxTurns?: number
+    mcpConfig?: unknown[]
+    cliFlags?: unknown
+  },
   agentSession: AgentCliSession,
   prompt: string
 ): Promise<void> {
@@ -461,7 +509,12 @@ function spawnClaude(
 
       const finalContent = fullResponse.trim() || resultText.trim()
       if (!finalContent) {
-        broadcast('conversation:stream-end', convId, { id: streamingMsgId, agentId, agentName, skipped: true })
+        broadcast('conversation:stream-end', convId, {
+          id: streamingMsgId,
+          agentId,
+          agentName,
+          skipped: true
+        })
         resolve()
         return
       }
@@ -484,7 +537,11 @@ function spawnClaude(
       agentManager.addAgentCost(agentId, costTotal)
 
       if (proc && !proc.killed) {
-        try { proc.kill() } catch { /* already dead */ }
+        try {
+          proc.kill()
+        } catch {
+          /* already dead */
+        }
       }
 
       resolve()
@@ -499,11 +556,19 @@ function spawnClaude(
         if (!line.trim()) continue
         try {
           const event = JSON.parse(line)
-          handleStreamEvent(event, convId, agentId, agentName, streamingMsgId, (text) => {
-            fullResponse += text
-          }, (cost) => {
-            costTotal = cost
-          })
+          handleStreamEvent(
+            event,
+            convId,
+            agentId,
+            agentName,
+            streamingMsgId,
+            (text) => {
+              fullResponse += text
+            },
+            (cost) => {
+              costTotal = cost
+            }
+          )
           if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
             agentSession.cliSessionId = event.session_id as string
           }
@@ -525,15 +590,25 @@ function spawnClaude(
       if (lineBuffer.trim()) {
         try {
           const event = JSON.parse(lineBuffer)
-          handleStreamEvent(event, convId, agentId, agentName, streamingMsgId, (text) => {
-            fullResponse += text
-          }, (cost) => {
-            costTotal = cost
-          })
+          handleStreamEvent(
+            event,
+            convId,
+            agentId,
+            agentName,
+            streamingMsgId,
+            (text) => {
+              fullResponse += text
+            },
+            (cost) => {
+              costTotal = cost
+            }
+          )
           if (event.type === 'result' && event.result) {
             resultText = event.result as string
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       if (finished) return
       if (code !== 0 && !fullResponse.trim() && !resultText.trim()) {
@@ -619,7 +694,8 @@ function formatToolInput(toolName: string, input: Record<string, unknown>): stri
     return (input.file_path as string) || JSON.stringify(input)
   }
   if (toolName === 'Bash') return (input.command as string) || JSON.stringify(input)
-  if (toolName === 'Grep' || toolName === 'Glob') return (input.pattern as string) || JSON.stringify(input)
+  if (toolName === 'Grep' || toolName === 'Glob')
+    return (input.pattern as string) || JSON.stringify(input)
   return JSON.stringify(input)
 }
 
@@ -628,7 +704,11 @@ function formatToolInput(toolName: string, input: Record<string, unknown>): stri
 export function cleanup(): void {
   for (const [, conv] of activeConversations) {
     if (conv.currentProcess) {
-      try { conv.currentProcess.kill() } catch { /* ignore */ }
+      try {
+        conv.currentProcess.kill()
+      } catch {
+        /* ignore */
+      }
     }
   }
   activeConversations.clear()
