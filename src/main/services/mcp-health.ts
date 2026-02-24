@@ -4,7 +4,6 @@ import { execFile } from 'child_process'
 import { McpServerConfig, McpHealthStatus, McpHealthResult } from '../../shared/types'
 import { getEffectiveMcpServers } from './mcp-manager'
 import * as agentManager from './agent-manager'
-import * as store from './store'
 
 const CHECK_TIMEOUT_MS = 5_000
 const MAX_RETRIES = 2

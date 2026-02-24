@@ -1,3 +1,32 @@
 node_modules/
 dist/
 out/
+
+# 임시 테스트 파일
+_*.js
+_*.sh
+test-*.js
+test-*.mjs
+test-output/
+test-output.log
+test-b64.txt
+test-mcp-workspace/
+
+# 임시 스크립트/보고서
+*-report.md
+*-monitor.js
+hello.js
+write-test.js
+gen-test.js
+generate-cats-v2.mjs
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+
+# Claude CLI 로컬 설정
+.claude/

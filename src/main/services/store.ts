@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { createHash } from 'crypto'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync, copyFileSync } from 'fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from 'fs'
 import {
   AgentConfig, ChatMessage, SessionInfo,
   ConversationConfig, ConversationMessage,
