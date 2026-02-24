@@ -24,6 +24,7 @@ interface ConversationStore {
   finalizeStream: (msg: ConversationMessage) => void
   clearMessages: () => void
   removeConversation: (id: string) => void
+  deleteConversation: (id: string) => Promise<void>
 }
 
 export const useConversationStore = create<ConversationStore>((set, get) => ({
@@ -89,7 +90,7 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
 
   finalizeStream: (msg: ConversationMessage) => {
     // 빈 응답 건너뛰기
-    if ((msg as Record<string, unknown>).skipped) {
+    if ((msg as unknown as Record<string, unknown>).skipped) {
       set({ streaming: false, streamingContent: '', streamingMsgId: null, streamingAgentId: null, streamingAgentName: null })
       return
     }
@@ -117,6 +118,11 @@ export const useConversationStore = create<ConversationStore>((set, get) => ({
   },
 
   removeConversation: (id: string) => {
+    set({ conversations: get().conversations.filter((c) => c.id !== id) })
+  },
+
+  deleteConversation: async (id: string) => {
+    await window.api.conversation.delete(id)
     set({ conversations: get().conversations.filter((c) => c.id !== id) })
   }
 }))

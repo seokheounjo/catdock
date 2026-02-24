@@ -16,7 +16,7 @@ export function GroupMessageBubble({ message, agents }: GroupMessageBubbleProps)
   if (isSystem) {
     return (
       <div className="message-enter flex justify-center px-4 py-1">
-        <div className="text-xs text-white/30 bg-white/5 px-3 py-1 rounded-full max-w-[80%] text-center">
+        <div className="text-xs text-text-muted bg-white/5 px-3 py-1 rounded-full max-w-[80%] text-center">
           {message.content}
         </div>
       </div>
@@ -48,7 +48,7 @@ export function GroupMessageBubble({ message, agents }: GroupMessageBubbleProps)
             className="w-7 h-7 rounded-full"
           />
         ) : (
-          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white/40">
+          <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-text-muted">
             ?
           </div>
         )}
@@ -56,16 +56,16 @@ export function GroupMessageBubble({ message, agents }: GroupMessageBubbleProps)
 
       <div className="max-w-[80%]">
         {/* 이름 */}
-        <div className="text-[11px] text-white/50 mb-0.5 ml-1">
+        <div className="text-[11px] text-text-muted mb-0.5 ml-1">
           {message.agentName || 'Unknown'}
-          {agent && <span className="text-white/30 ml-1">({agent.role})</span>}
+          {agent && <span className="text-text-muted ml-1">({agent.role})</span>}
         </div>
 
-        <div className="bg-bubble-assistant rounded-2xl rounded-tl-md px-4 py-2.5 text-sm leading-relaxed text-white/90 border border-white/5">
+        <div className="bg-bubble-assistant rounded-2xl rounded-tl-md px-4 py-2.5 text-sm leading-relaxed text-text border border-white/5">
           <div className="prose prose-invert prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:bg-black/30 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-accent [&_code]:text-xs [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5">
             <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
           </div>
-          <div className="text-[10px] mt-1 text-white/20">
+          <div className="text-[10px] mt-1 text-text-muted">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             {message.costDelta ? ` · $${message.costDelta.toFixed(4)}` : ''}
           </div>

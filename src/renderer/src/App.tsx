@@ -4,6 +4,11 @@ import { ChatPage } from './pages/ChatPage'
 import { EditorPage } from './pages/EditorPage'
 import { GroupChatPage } from './pages/GroupChatPage'
 import { NewConversationPage } from './pages/NewConversationPage'
+import { DashboardPage } from './pages/DashboardPage'
+import { CommandCenterPage } from './pages/CommandCenterPage'
+import { SetupPage } from './pages/SetupPage'
+import { SettingsPage } from './pages/SettingsPage'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 function getRoute(): { page: string; id?: string } {
   const hash = window.location.hash.replace('#', '')
@@ -22,6 +27,18 @@ function getRoute(): { page: string; id?: string } {
   if (hash === '/new-conversation') {
     return { page: 'new-conversation' }
   }
+  if (hash === '/dashboard') {
+    return { page: 'dashboard' }
+  }
+  if (hash === '/command-center') {
+    return { page: 'command-center' }
+  }
+  if (hash === '/setup') {
+    return { page: 'setup' }
+  }
+  if (hash === '/settings') {
+    return { page: 'settings' }
+  }
   if (hash === '/dock') {
     return { page: 'dock' }
   }
@@ -29,6 +46,14 @@ function getRoute(): { page: string; id?: string } {
 }
 
 function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  )
+}
+
+function AppContent() {
   const [route, setRoute] = useState(getRoute)
 
   useEffect(() => {
@@ -51,6 +76,22 @@ function App() {
 
   if (route.page === 'new-conversation') {
     return <NewConversationPage />
+  }
+
+  if (route.page === 'dashboard') {
+    return <DashboardPage />
+  }
+
+  if (route.page === 'command-center') {
+    return <CommandCenterPage />
+  }
+
+  if (route.page === 'setup') {
+    return <SetupPage />
+  }
+
+  if (route.page === 'settings') {
+    return <SettingsPage />
   }
 
   return <DockPage />

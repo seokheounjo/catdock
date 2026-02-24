@@ -28,9 +28,9 @@ export function GroupStreamingText({ content, agentId, agentName, agents }: Grou
           )}
         </div>
         <div>
-          <div className="text-[11px] text-white/50 mb-0.5 ml-1">
+          <div className="text-[11px] text-text-muted mb-0.5 ml-1">
             {agentName || 'Agent'}
-            {agent && <span className="text-white/30 ml-1">({agent.role})</span>}
+            {agent && <span className="text-text-muted ml-1">({agent.role})</span>}
           </div>
           <div className="bg-bubble-assistant rounded-2xl rounded-tl-md px-4 py-3 border border-white/5">
             <div className="flex gap-1.5 items-center h-4">
@@ -58,11 +58,11 @@ export function GroupStreamingText({ content, agentId, agentName, agents }: Grou
         )}
       </div>
       <div className="max-w-[80%]">
-        <div className="text-[11px] text-white/50 mb-0.5 ml-1">
+        <div className="text-[11px] text-text-muted mb-0.5 ml-1">
           {agentName || 'Agent'}
-          {agent && <span className="text-white/30 ml-1">({agent.role})</span>}
+          {agent && <span className="text-text-muted ml-1">({agent.role})</span>}
         </div>
-        <div className="bg-bubble-assistant rounded-2xl rounded-tl-md px-4 py-2.5 text-sm leading-relaxed text-white/90 border border-white/5">
+        <div className="bg-bubble-assistant rounded-2xl rounded-tl-md px-4 py-2.5 text-sm leading-relaxed text-text border border-white/5">
           <div className="prose prose-invert prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:bg-black/30 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-accent [&_code]:text-xs [&_p]:my-1.5">
             <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
           </div>

@@ -3,16 +3,19 @@ import { AgentConfig, AgentState } from '../../../../shared/types'
 import { AgentHeader } from './AgentHeader'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
+import { PermissionDialog } from './PermissionDialog'
 import { useChat } from '../../hooks/useChat'
+import { useI18n } from '../../hooks/useI18n'
 
 interface ChatWindowProps {
   agentId: string
 }
 
 export function ChatWindow({ agentId }: ChatWindowProps) {
+  const { t } = useI18n()
   const [agent, setAgent] = useState<AgentConfig | null>(null)
   const [status, setStatus] = useState<AgentState['status']>('idle')
-  const { messages, streaming, streamingContent, sendMessage, abort, clear } = useChat(agentId)
+  const { messages, streaming, streamingContent, sendMessage, abort, clear, permissionRequest, respondToPermission } = useChat(agentId)
 
   useEffect(() => {
     // Load agent config
@@ -36,8 +39,8 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
 
   if (!agent) {
     return (
-      <div className="h-screen bg-chat-bg flex items-center justify-center text-white/30">
-        Loading...
+      <div className="h-screen bg-chat-bg flex items-center justify-center text-text-muted">
+        {t('chat.loading')}
       </div>
     )
   }
@@ -56,6 +59,12 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
         streaming={streaming}
         streamingContent={streamingContent}
       />
+      {permissionRequest && (
+        <PermissionDialog
+          request={permissionRequest}
+          onRespond={respondToPermission}
+        />
+      )}
       <ChatInput
         onSend={sendMessage}
         onAbort={abort}

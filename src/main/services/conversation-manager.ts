@@ -2,6 +2,8 @@ import { BrowserWindow } from 'electron'
 import { ConversationConfig, ConversationMessage, ConversationMode, ConversationStatus } from '../../shared/types'
 import * as agentManager from './agent-manager'
 import * as store from './store'
+import { buildCleanEnv, validateWorkingDirectory, checkClaudeCli, buildCliArgs } from './cli-builder'
+import { buildMcpConfigFile } from './mcp-manager'
 import { v4 as uuid } from 'uuid'
 import { spawn, ChildProcess } from 'child_process'
 import path from 'path'
@@ -22,9 +24,7 @@ interface ActiveConversation {
   currentAgentId: string | null
   currentProcess: ChildProcess | null
   abortController: AbortController
-  // 연쇄 위치 저장 (일시정지 후 재개용)
   chainPosition: { round: number; participantIdx: number } | null
-  // 에이전트별 CLI 세션
   agentSessions: Map<string, AgentCliSession>
 }
 
@@ -33,13 +33,8 @@ const activeConversations = new Map<string, ActiveConversation>()
 // ── 헬퍼 ──
 
 function getConfigDir(conversationId: string, agentId: string): string {
-  const dir = path.join(
-    process.env.APPDATA || path.join(process.env.HOME || '', '.config'),
-    'virtual-company',
-    'conversations',
-    conversationId,
-    agentId
-  )
+  // 프로젝트별 대화 세션 디렉토리 사용
+  const dir = path.join(store.getProjectStoreDir(), 'conversations', conversationId, agentId)
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true })
   }
@@ -151,7 +146,6 @@ export async function sendMessage(conversationId: string, userMessage: string): 
   const conv = getConversation(conversationId)
   if (!conv) throw new Error(`Conversation ${conversationId} not found`)
 
-  // 연쇄 중에 사용자 메시지 → 추가만 (다음 에이전트가 컨텍스트에서 참조)
   const msg: ConversationMessage = {
     id: uuid(),
     conversationId,
@@ -166,14 +160,12 @@ export async function sendMessage(conversationId: string, userMessage: string): 
   broadcast('conversation:message', conversationId, msg)
 
   if (conv.status === 'chaining') {
-    // 연쇄 중이면 메시지만 추가, 진행 중인 연쇄가 알아서 참조
     return
   }
 
   if (conv.config.mode === 'auto-chain') {
     await runChain(conv, null)
   }
-  // manual 모드에서는 사용자가 triggerAgent로 직접 트리거
 }
 
 // ── 수동 트리거 ──
@@ -181,7 +173,7 @@ export async function sendMessage(conversationId: string, userMessage: string): 
 export async function triggerAgent(conversationId: string, agentId: string): Promise<void> {
   const conv = getConversation(conversationId)
   if (!conv) throw new Error(`Conversation ${conversationId} not found`)
-  if (conv.status === 'chaining' || conv.status === 'waiting-agent') return // 이미 진행 중
+  if (conv.status === 'chaining' || conv.status === 'waiting-agent') return
 
   conv.status = 'waiting-agent'
   broadcast('conversation:status-changed', conversationId, { status: conv.status, currentAgentId: agentId })
@@ -259,12 +251,11 @@ async function runChain(
     for (let round = startRound; round < config.maxRoundsPerChain; round++) {
       const firstIdx = round === startRound ? startIdx : 0
       for (let i = firstIdx; i < config.participantIds.length; i++) {
-        // 일시정지 체크
-        if (conv.status === 'paused') {
+        // 일시정지 체크 (외부에서 pauseConversation 호출 가능)
+        if ((conv.status as ConversationStatus) === 'paused') {
           conv.chainPosition = { round, participantIdx: i }
           return
         }
-        // 중단 체크
         if (conv.abortController.signal.aborted) return
 
         const agentId = config.participantIds[i]
@@ -304,6 +295,24 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
     return
   }
 
+  // CLI 설치 여부 사전 확인
+  const cliCheck = checkClaudeCli()
+  if (!cliCheck.installed) {
+    const errorMsg: ConversationMessage = {
+      id: uuid(),
+      conversationId: conv.config.id,
+      senderType: 'system',
+      agentId: null,
+      agentName: null,
+      content: `⚠️ Claude Code CLI가 설치되지 않았습니다.\n\n에이전트와 대화하려면 Claude Code CLI가 필요합니다.\n\n**설치 방법:**\n\`\`\`\nnpm install -g @anthropic-ai/claude-code\n\`\`\`\n\n설치 후 다시 시도해주세요.`,
+      timestamp: Date.now()
+    }
+    conv.messages.push(errorMsg)
+    persistMessages(conv)
+    broadcast('conversation:message', conv.config.id, errorMsg)
+    return
+  }
+
   conv.currentAgentId = agentId
   broadcast('conversation:status-changed', conv.config.id, { status: conv.status, currentAgentId: agentId })
 
@@ -315,13 +324,19 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
   } catch (err: unknown) {
     if ((err as Error).name === 'AbortError') return
 
+    const errMessage = (err as Error).message || String(err)
+    const isCliMissing = errMessage.includes('ENOENT') || errMessage.includes('not found') || errMessage.includes('not recognized')
+    const displayMessage = isCliMissing
+      ? `⚠️ Claude Code CLI를 실행할 수 없습니다. \`npm install -g @anthropic-ai/claude-code\` 로 설치하세요.`
+      : `[${agentConfig.name}] 오류: ${errMessage}`
+
     const errorMsg: ConversationMessage = {
       id: uuid(),
       conversationId: conv.config.id,
       senderType: 'system',
       agentId,
       agentName: agentConfig.name,
-      content: `[${agentConfig.name}] 오류: ${(err as Error).message}`,
+      content: displayMessage,
       timestamp: Date.now()
     }
     conv.messages.push(errorMsg)
@@ -332,7 +347,6 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
 
 // ── 컨텍스트 빌드 ──
 
-// ★ Windows spawn 커맨드 라인 최대 32,767자. 안전 마진 확보하여 프롬프트를 제한.
 const MAX_PROMPT_LENGTH = 24000
 
 function buildContextForAgent(conv: ActiveConversation, agentName: string, agentRole: string): string {
@@ -347,14 +361,12 @@ function buildContextForAgent(conv: ActiveConversation, agentName: string, agent
   const footer = `\n---\n지금 네 차례. ${agentName}(${agentRole})로서 자연스럽게 응답해. 다른 참여자의 의견을 참고하고, 네 전문 분야 관점에서 기여해.`
   const budgetForTranscript = MAX_PROMPT_LENGTH - header.length - footer.length
 
-  // 최근 메시지부터 역순으로 채워 넣기 (최신 컨텍스트 우선)
   const recent = conv.messages.slice(-15)
   const lines: string[] = []
   let totalLen = 0
 
   for (let i = recent.length - 1; i >= 0; i--) {
     const m = recent[i]
-    // 개별 메시지 내용 truncate (최대 400자)
     const content = m.content.length > 400 ? m.content.slice(0, 400) + '...' : m.content
     let line: string
     if (m.senderType === 'user') line = `[User]: ${content}`
@@ -373,37 +385,32 @@ function buildContextForAgent(conv: ActiveConversation, agentName: string, agent
 
 function spawnClaude(
   conv: ActiveConversation,
-  agentConfig: { id: string; name: string; model: string; systemPrompt: string; workingDirectory: string },
+  agentConfig: { id: string; name: string; model: string; systemPrompt: string; workingDirectory: string; permissionMode?: string; maxTurns?: number; mcpConfig?: unknown[]; cliFlags?: unknown },
   agentSession: AgentCliSession,
   prompt: string
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const args = [
-      '-p',
-      '--output-format', 'stream-json',
-      '--verbose',
-      '--model', agentConfig.model,
-      '--max-turns', '25',
-      '--permission-mode', 'acceptEdits'
-    ]
+    // MCP config 빌드
+    buildMcpConfigFile(agentConfig.id)
 
-    if (agentSession.hasConversation && agentSession.cliSessionId) {
-      args.push('--resume', agentSession.cliSessionId)
+    // 전사 규칙 + 에이전트 응답 언어 설정 로드
+    const globalSettings = store.getSettings()
+
+    const args = buildCliArgs(agentConfig as import('../../shared/types').AgentConfig, {
+      resumeSessionId: agentSession.cliSessionId,
+      hasConversation: agentSession.hasConversation,
+      userMessage: prompt,
+      companyRules: globalSettings.companyRules,
+      agentLanguage: globalSettings.agentLanguage
+    })
+
+    let cwd: string
+    try {
+      cwd = validateWorkingDirectory(agentConfig.workingDirectory)
+    } catch {
+      cwd = agentConfig.workingDirectory || process.cwd()
     }
-
-    if (agentConfig.systemPrompt) {
-      args.push('--system-prompt', agentConfig.systemPrompt)
-    }
-
-    args.push(prompt)
-
-    const cwd = agentConfig.workingDirectory || process.cwd()
-    const cleanEnv = { ...process.env }
-    for (const key of Object.keys(cleanEnv)) {
-      if (key === 'CLAUDECODE' || key === 'CLAUDE_CODE_ENTRYPOINT' || key === 'CLAUDE_CODE_SESSION') {
-        delete cleanEnv[key]
-      }
-    }
+    const cleanEnv = buildCleanEnv()
 
     let proc: ChildProcess
     try {
@@ -412,8 +419,12 @@ function spawnClaude(
         env: cleanEnv,
         signal: conv.abortController.signal,
         shell: false,
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe']
       })
+
+      // prompt를 stdin으로 전달 (ENAMETOOLONG 방지)
+      proc.stdin?.write(prompt)
+      proc.stdin?.end()
     } catch (err) {
       reject(err)
       return
@@ -432,7 +443,6 @@ function spawnClaude(
     const agentId = agentConfig.id
     const agentName = agentConfig.name
 
-    // stream-start 브로드캐스트
     broadcast('conversation:stream-start', convId, {
       id: streamingMsgId,
       agentId,
@@ -451,7 +461,6 @@ function spawnClaude(
 
       const finalContent = fullResponse.trim() || resultText.trim()
       if (!finalContent) {
-        // 빈 응답 → 건너뜀
         broadcast('conversation:stream-end', convId, { id: streamingMsgId, agentId, agentName, skipped: true })
         resolve()
         return

@@ -1,5 +1,10 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { AgentConfig, AgentState, ChatMessage, ConversationConfig, ConversationMessage, ConversationMode, ConversationStatus } from '../shared/types'
+import {
+  AgentConfig, AgentState, AgentProcessInfo, ChatMessage,
+  ConversationConfig, ConversationMessage, ConversationMode, ConversationStatus,
+  DockSize, GlobalSettings, ActivityEvent, TaskDelegation, McpServerConfig, McpHealthResult, RoleTemplate,
+  ErrorRecoveryEvent
+} from '../shared/types'
 
 interface AgentApi {
   list(): Promise<AgentConfig[]>
@@ -8,6 +13,13 @@ interface AgentApi {
   delete(id: string): Promise<void>
   getState(id: string): Promise<AgentState | null>
   getAllStates(): Promise<AgentState[]>
+  getOrgChart(): Promise<{ leaders: AgentConfig[]; members: AgentConfig[]; temporary: AgentConfig[] }>
+  getProcessInfo(id: string): Promise<AgentProcessInfo | null>
+  spawnTemporary(config: Omit<AgentConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<AgentConfig>
+  removeTemporary(id: string): Promise<void>
+  duplicate(id: string): Promise<AgentConfig>
+  exportConfig(id: string): Promise<string>
+  importConfig(json: string): Promise<AgentConfig>
 }
 
 interface SessionApi {
@@ -15,6 +27,7 @@ interface SessionApi {
   abort(agentId: string): Promise<void>
   clear(agentId: string): Promise<void>
   getHistory(agentId: string): Promise<ChatMessage[]>
+  getErrorLog(agentId: string): Promise<string[]>
 }
 
 interface WindowApi {
@@ -23,9 +36,19 @@ interface WindowApi {
   openNewConversation(): Promise<void>
   openEditor(agentId?: string): Promise<void>
   closeEditor(): Promise<void>
+  openDashboard(): Promise<void>
+  openCommandCenter(): Promise<void>
+  openSettings(): Promise<void>
   minimize(): Promise<void>
   close(): Promise<void>
   selectDirectory(): Promise<string | null>
+  selectFile(): Promise<string | null>
+}
+
+interface FileApi {
+  readContent(filePath: string): Promise<{
+    success: boolean; error: string | null; content: string | null; fileName: string | null; fileSize: number
+  }>
 }
 
 interface ConversationApi {
@@ -45,11 +68,94 @@ interface ConversationApi {
   setMode(conversationId: string, mode: ConversationMode): Promise<void>
 }
 
+interface SettingsApi {
+  get(): Promise<GlobalSettings>
+  update(updates: Partial<GlobalSettings>): Promise<GlobalSettings>
+  getRoleTemplates(): Promise<RoleTemplate[]>
+  saveRoleTemplate(template: RoleTemplate): Promise<RoleTemplate>
+  deleteRoleTemplate(id: string): Promise<boolean>
+}
+
+interface ActivityApi {
+  getRecent(limit?: number): Promise<ActivityEvent[]>
+  clear(): Promise<void>
+}
+
+interface TaskApi {
+  create(task: Omit<TaskDelegation, 'id' | 'createdAt'>): Promise<TaskDelegation>
+  createManual(task: { title: string; description: string; toAgentId: string; priority?: string; dueDate?: number; tags?: string[] }): Promise<TaskDelegation>
+  list(): Promise<TaskDelegation[]>
+  getForAgent(agentId: string): Promise<TaskDelegation[]>
+  update(id: string, updates: Partial<TaskDelegation>): Promise<TaskDelegation | null>
+  delete(id: string): Promise<boolean>
+}
+
+interface PermissionApi {
+  respond(requestId: string, allowed: boolean): Promise<void>
+}
+
+interface DelegationApi {
+  getActive(): Promise<TaskDelegation[]>
+}
+
+interface ErrorRecoveryApi {
+  getActive(): Promise<ErrorRecoveryEvent[]>
+  isRecovering(agentId: string): Promise<boolean>
+}
+
+interface CliApi {
+  check(): Promise<{
+    installed: boolean
+    version: string | null
+    path: string | null
+    error: string | null
+  }>
+  install(): Promise<{
+    success: boolean
+    message: string
+  }>
+  checkNode(): Promise<{
+    installed: boolean
+    version: string | null
+  }>
+  checkUpdate(): Promise<{
+    currentVersion: string | null
+    latestVersion: string | null
+    updateAvailable: boolean
+    error: string | null
+  }>
+}
+
+interface McpApi {
+  getGlobal(): Promise<McpServerConfig[]>
+  setGlobal(servers: McpServerConfig[]): Promise<void>
+  getAgent(agentId: string): Promise<McpServerConfig[]>
+  setAgent(agentId: string, servers: McpServerConfig[]): Promise<void>
+  getHealth(): Promise<Record<string, McpHealthResult[]>>
+  checkNow(): Promise<Record<string, McpHealthResult[]>>
+}
+
+interface AppApi {
+  quit(): Promise<void>
+  setDockExpanded(expanded: boolean): Promise<void>
+  setDockSize(size: DockSize): Promise<void>
+}
+
 interface Api {
   agent: AgentApi
   session: SessionApi
   conversation: ConversationApi
   window: WindowApi
+  file: FileApi
+  settings: SettingsApi
+  activity: ActivityApi
+  task: TaskApi
+  permission: PermissionApi
+  delegation: DelegationApi
+  errorRecovery: ErrorRecoveryApi
+  cli: CliApi
+  mcp: McpApi
+  app: AppApi
   on(channel: string, callback: (...args: unknown[]) => void): () => void
 }
 

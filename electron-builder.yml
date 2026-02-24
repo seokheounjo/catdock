@@ -13,6 +13,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: virtual-company
+  signAndEditExecutable: false
   target:
     - nsis
 nsis:

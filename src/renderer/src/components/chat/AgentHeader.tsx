@@ -2,6 +2,8 @@ import { AgentConfig, AgentStatus } from '../../../../shared/types'
 import fishingImg from '../../assets/cats/fishing.png'
 import caughtImg from '../../assets/cats/caught.png'
 import biteImg from '../../assets/cats/bite.png'
+import { ThemeToggle } from '../theme/ThemeToggle'
+import { useI18n } from '../../hooks/useI18n'
 
 interface AgentHeaderProps {
   agent: AgentConfig
@@ -18,10 +20,11 @@ const catImgMap: Record<string, string> = {
 }
 
 export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: AgentHeaderProps) {
+  const { t } = useI18n()
   const catSrc = catImgMap[status] || caughtImg
 
   const statusLabel =
-    status === 'working' ? '작업 중...' : status === 'error' ? '오류' : '온라인'
+    status === 'working' ? t('chat.statusWorking') : status === 'error' ? t('chat.statusError') : t('chat.statusOnline')
   const statusColor =
     status === 'working'
       ? 'text-accent'
@@ -35,17 +38,18 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
         <img src={catSrc} alt={agent.name} className="w-full h-full object-contain" draggable={false} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-white truncate">{agent.name}</div>
+        <div className="text-sm font-medium text-text truncate">{agent.name}</div>
         <div className={`text-xs ${statusColor}`}>{agent.role} · {statusLabel}</div>
       </div>
       <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+        <ThemeToggle className="w-7 h-7" />
         <button
           onClick={onClear}
-          className="w-7 h-7 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80
+          className="w-7 h-7 rounded-md hover:bg-white/10 text-text-muted hover:text-text-secondary
                      flex items-center justify-center cursor-pointer bg-transparent border-none text-xs
                      focus:outline-2 focus:outline-accent focus:outline-offset-1 transition-all duration-200"
-          title="채팅 기록 지우기"
-          aria-label="채팅 기록 지우기"
+          title={t('chat.clearHistory')}
+          aria-label={t('chat.clearHistory')}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -53,11 +57,11 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
         </button>
         <button
           onClick={onMinimize}
-          className="w-7 h-7 rounded-md hover:bg-white/10 text-white/40 hover:text-white/80
+          className="w-7 h-7 rounded-md hover:bg-white/10 text-text-muted hover:text-text-secondary
                      flex items-center justify-center cursor-pointer bg-transparent border-none
                      focus:outline-2 focus:outline-accent focus:outline-offset-1 transition-all duration-200"
-          title="최소화"
-          aria-label="창 최소화"
+          title={t('chat.minimize')}
+          aria-label={t('chat.minimize')}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M6 12h12"/>
@@ -65,11 +69,11 @@ export function AgentHeader({ agent, status, onMinimize, onClose, onClear }: Age
         </button>
         <button
           onClick={onClose}
-          className="w-7 h-7 rounded-md hover:bg-danger/20 text-white/40 hover:text-danger
+          className="w-7 h-7 rounded-md hover:bg-danger/20 text-text-muted hover:text-danger
                      flex items-center justify-center cursor-pointer bg-transparent border-none
                      focus:outline-2 focus:outline-danger focus:outline-offset-1 transition-all duration-200"
-          title="창 닫기"
-          aria-label="창 닫기"
+          title={t('chat.closeWindow')}
+          aria-label={t('chat.closeWindow')}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M18 6L6 18M6 6l12 12"/>

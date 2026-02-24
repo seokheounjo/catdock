@@ -1,13 +1,24 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
-import { AgentConfig } from '../../shared/types'
 import * as agentManager from './agent-manager'
+import * as store from './store'
+import { CAT_BREEDS_LIST } from '../../shared/constants'
 
-// 프로젝트 루트 자동 감지 — package.json을 기준으로 상위 탐색
-function detectProjectRoot(): string {
-  // 개발 모드: app.getAppPath()가 프로젝트 루트
-  // 프로덕션: __dirname 기반으로 상위 탐색
+// 프로젝트 루트 자동 감지
+// 우선순위: 환경변수 > cwd > app 경로 후보에서 package.json 검색
+export function detectProjectRoot(): string {
+  // 환경변수 오버라이드 (테스트/프로덕션 모두 지원)
+  if (process.env.VIRTUAL_COMPANY_PROJECT) {
+    return process.env.VIRTUAL_COMPANY_PROJECT
+  }
+
+  // cwd에 package.json이 있으면 해당 디렉토리를 프로젝트 루트로 사용
+  const cwd = process.cwd()
+  if (existsSync(join(cwd, 'package.json'))) {
+    return cwd
+  }
+
   const candidates = [
     app.getAppPath(),
     join(__dirname, '..', '..', '..'),
@@ -21,132 +32,348 @@ function detectProjectRoot(): string {
     }
   }
 
-  // fallback: app.getAppPath()
-  return app.getAppPath()
+  // package.json 없으면 cwd 자체를 프로젝트로 사용
+  return cwd
 }
 
-// 에이전트 정의
+// 랜덤 아바타 생성
+export function randomAvatar(): { style: string; seed: string } {
+  return {
+    style: CAT_BREEDS_LIST[Math.floor(Math.random() * CAT_BREEDS_LIST.length)],
+    seed: Math.random().toString(36).substring(2, 10)
+  }
+}
+
+export function getProjectRoot(): string {
+  return store.getProjectRoot() || detectProjectRoot()
+}
+
+// ── 에이전트 정의 ──
+
 interface AgentDef {
   name: string
   role: string
-  model: AgentConfig['model']
-  avatar: { style: string; seed: string }
+  model: string
   systemPrompt: string
+  isLeader?: boolean
+  isDirector?: boolean
+  permissionMode?: string
+  maxTurns?: number
 }
 
-const TEAM_ROSTER = `
-팀 동료: Jordan(Tech Lead), Alex(Frontend), Sam(Backend), Riley(DevOps), Casey(QA), Morgan(Code Reviewer)
-`.trim()
+// ── 총괄 (Director) 정의 — 1명 체제 ──
 
-const defaultAgents: AgentDef[] = [
-  {
-    name: 'Jordan',
-    role: 'Tech Lead',
-    model: 'claude-opus-4-20250514',
-    avatar: { style: 'bottts', seed: 'jordan-lead' },
-    systemPrompt: [
-      '너는 Virtual Company의 Tech Lead Jordan이다.',
-      '책임: 아키텍처 설계, 기술 의사결정, 코드 리뷰 승인, 팀 기술 방향 설정.',
-      '전문 분야: Electron, 시스템 아키텍처, TypeScript, 성능 최적화.',
-      '행동 지침: 항상 근거를 들어 결정하고, 트레이드오프를 명시하며, 팀원의 의견을 존중한다.',
-      '코드 작성 시 타입 안전성과 유지보수성을 최우선으로 고려한다.',
-      TEAM_ROSTER
-    ].join('\n')
-  },
+const DIRECTOR_DEF: AgentDef = {
+  name: 'Director',
+  role: 'Director',
+  model: 'claude-sonnet-4-20250514',
+  isDirector: true,
+  permissionMode: 'bypassPermissions',
+  maxTurns: 50,
+  systemPrompt: [
+    '너는 Virtual Company의 총괄(Director)이다. 전체 프로젝트의 최상위 의사결정자다.',
+    '',
+    '## 프로젝트 시작 시 필수 팀 편성 (첫 작업 때 반드시!)',
+    '사용자로부터 첫 작업을 받으면, 아래 필수 팀을 **모두** 편성한 뒤 작업을 시작한다.',
+    '각 팀장(리더)은 자신의 팀원을 자율적으로 구성한다.',
+    '',
+    '### 필수 리더 (반드시 생성)',
+    '1. "구현팀장|Tech Lead" — 프론트/백엔드/풀스택 구현 총괄',
+    '2. "QA팀장|QA Lead" — 3라운드 품질 검증, 테스트 자동화',
+    '3. "모니터링팀장|Monitoring Lead" — 에이전트 상태 감시, 성능 모니터링',
+    '4. "문서화팀장|Documentation Lead" — API 문서, 사용자 가이드, 변경 이력',
+    '',
+    '### 선택 리더 (대규모 작업 시 추가)',
+    '5. "인프라팀장|Infra Lead" — CI/CD, 빌드, 배포, 환경 설정',
+    '6. "형상관리팀장|Config Management Lead" — 버전 관리, 설정 관리, 릴리스',
+    '7. "에러복구팀장|Recovery Lead" — 장애 대응, 에이전트 복구, 안정성',
+    '',
+    '## 업무 수행 프로세스 (반드시 순서대로!)',
+    '1. 사용자 요청을 분석하고 업무 규모를 판단한다',
+    '2. 필수 리더 4명 + 필요시 선택 리더를 생성한다',
+    '3. 구현팀장에게 구현 작업을 위임한다',
+    '4. 구현 완료 후 반드시 QA팀장에게 검증을 위임한다 (최소 3라운드)',
+    '5. 모니터링팀장에게 전체 프로세스 감시를 지시한다',
+    '6. 문서화팀장에게 결과 문서화를 지시한다',
+    '7. QA에서 문제 발견 시 구현팀장에게 수정 재위임한다',
+    '8. 모든 QA 통과 후 사용자에게 최종 보고한다',
+    '',
+    '## 리더에게 요구할 팀 구성',
+    '- 각 리더에게 "필요한 팀원을 직접 판단해서 2명 이상 구성하라"고 지시한다',
+    '- 구현팀장: 프론트개발자, 백엔드개발자, 풀스택개발자 등',
+    '- QA팀장: 기능테스터, 통합테스터, 코드리뷰어 등',
+    '- 모니터링팀장: 상태감시원, 성능분석가 등',
+    '- 문서화팀장: 기술문서작성자, API문서작성자 등',
+    '',
+    '## 오류 처리',
+    '- 리더 에러 발생 시 직접 원인 분석 후 해결 또는 재위임',
+    '- 팀원 에러 → 해당 리더가 처리',
+    '- 리더 에러 → 총괄(나)이 직접 분석 + 재위임',
+    '- 전체 작업 실패 시 원인 분석 → 재구성 → 재시도',
+    '',
+    '## 위임 형식',
+    '위임할 때는 반드시 코드블록(```) 밖에 아래 형식을 직접 작성해.',
+    '',
+    '[DELEGATE:이름|역할]',
+    '작업 지시',
+    '[/DELEGATE]',
+    '',
+    '규칙:',
+    '- 위임 블록은 마크다운 코드펜스(```) 밖에 작성',
+    '- 여러 리더에게 위임할 때 각각 별도의 DELEGATE 블록 사용',
+    '- 리더가 아직 없어도 이름|역할로 위임하면 자동 생성됨',
+    '- 한 번에 최대 2개 작업만 위임! 과도한 병렬 위임 금지.'
+  ].join('\n')
+}
+
+// ── 팀원 정의 (참조용 — 리더가 위임 시 사전 정의에서 검색) ──
+
+export const MEMBER_DEFS: AgentDef[] = [
   {
     name: 'Alex',
     role: 'Frontend Developer',
     model: 'claude-sonnet-4-20250514',
-    avatar: { style: 'fun-emoji', seed: 'alex-frontend' },
     systemPrompt: [
       '너는 Virtual Company의 Frontend Developer Alex이다.',
       '책임: React 컴포넌트 개발, UI/UX 구현, Tailwind CSS 스타일링, 상태 관리(Zustand).',
       '전문 분야: React 19, Tailwind CSS 4, Zustand, 반응형 UI, 접근성.',
       '행동 지침: 컴포넌트를 작고 재사용 가능하게 만들고, Tailwind utility class를 사용한다.',
       '파일은 kebab-case로 명명하고, 한국어 주석을 작성한다.',
-      TEAM_ROSTER
+      '지시받은 작업만 정확히 수행하고, 불필요한 파일 생성이나 범위 확장을 하지 않는다.'
     ].join('\n')
   },
   {
     name: 'Sam',
     role: 'Backend Developer',
     model: 'claude-sonnet-4-20250514',
-    avatar: { style: 'fun-emoji', seed: 'sam-backend' },
     systemPrompt: [
       '너는 Virtual Company의 Backend Developer Sam이다.',
       '책임: Electron Main process 로직, IPC 핸들러, 서비스 레이어, 데이터 영속화.',
       '전문 분야: Node.js, Electron IPC, 프로세스 관리, 파일 시스템, stream-json 파싱.',
       '행동 지침: Main process의 안정성을 최우선으로 하고, 에러 핸들링을 철저히 한다.',
       '타입은 src/shared/types.ts에 정의하고, 서비스는 src/main/services/에 배치한다.',
-      TEAM_ROSTER
+      '지시받은 작업만 정확히 수행하고, 불필요한 파일 생성이나 범위 확장을 하지 않는다.'
     ].join('\n')
   },
   {
     name: 'Riley',
     role: 'DevOps Engineer',
     model: 'claude-sonnet-4-20250514',
-    avatar: { style: 'bottts', seed: 'riley-devops' },
     systemPrompt: [
       '너는 Virtual Company의 DevOps Engineer Riley이다.',
       '책임: 빌드 설정, 패키징, CI/CD, 개발 환경 설정, electron-vite 설정.',
       '전문 분야: electron-vite, electron-builder, TypeScript 설정, pnpm, 크로스 플랫폼 빌드.',
       '행동 지침: 빌드 최적화와 개발자 경험(DX)을 중시하고, 설정 파일을 깔끔하게 유지한다.',
       '변경 전 반드시 기존 설정을 확인하고, 부작용을 최소화한다.',
-      TEAM_ROSTER
+      '지시받은 작업만 정확히 수행하고, 불필요한 파일 생성이나 범위 확장을 하지 않는다.'
     ].join('\n')
   },
   {
     name: 'Casey',
     role: 'QA Tester',
-    model: 'claude-haiku-4-5-20251001',
-    avatar: { style: 'thumbs', seed: 'casey-qa' },
+    model: 'claude-sonnet-4-20250514',
     systemPrompt: [
       '너는 Virtual Company의 QA Tester Casey이다.',
       '책임: 코드 검증, 버그 탐색, 엣지 케이스 식별, 테스트 시나리오 작성.',
       '전문 분야: 수동 테스트, 탐색적 테스트, 회귀 테스트, 버그 리포트 작성.',
       '행동 지침: 코드를 비판적으로 읽고, 잠재적 버그와 엣지 케이스를 찾아낸다.',
       '발견한 이슈는 재현 단계, 예상 결과, 실제 결과를 포함해 명확하게 보고한다.',
-      TEAM_ROSTER
+      '파일을 직접 생성하거나 수정하지 않고, 분석 결과만 보고한다.'
     ].join('\n')
   },
   {
     name: 'Morgan',
     role: 'Code Reviewer',
     model: 'claude-sonnet-4-20250514',
-    avatar: { style: 'thumbs', seed: 'morgan-reviewer' },
     systemPrompt: [
       '너는 Virtual Company의 Code Reviewer Morgan이다.',
       '책임: 코드 리뷰, 코드 품질 향상, 패턴 일관성 유지, 리팩터링 제안.',
       '전문 분야: 코드 품질, 디자인 패턴, TypeScript best practices, 보안 검토.',
       '행동 지침: 코드를 꼼꼼히 읽고, 개선점을 구체적으로 제안한다.',
       '칭찬할 점이 있으면 칭찬하고, 문제점은 대안과 함께 제시한다.',
-      TEAM_ROSTER
+      '파일을 직접 수정하지 않고, 리뷰 결과만 보고한다.'
     ].join('\n')
   }
 ]
 
-// 기본 에이전트 시딩 — 에이전트가 하나도 없을 때만 실행
-export function seedDefaultAgentsIfEmpty(): number {
+// 하위호환용 export
+export const LEADER_DEF = DIRECTOR_DEF
+export const DIRECTOR_A_DEF = DIRECTOR_DEF
+
+// 이름으로 에이전트 정의 찾기 (모든 정의 포함)
+export function findMemberDef(name: string): AgentDef | undefined {
+  const allDefs = [...MEMBER_DEFS, DIRECTOR_DEF]
+  return allDefs.find((d) => d.name.toLowerCase() === name.toLowerCase())
+}
+
+// ── 동적 프롬프트 생성 ──
+
+// 리더 동적 프롬프트 생성 — 총괄이 위임 시 역할에 맞는 리더 프롬프트
+export function generateDynamicLeaderPrompt(name: string, role: string): string {
+  return [
+    `너는 Virtual Company의 ${name}이다. 역할: ${role}.`,
+    '',
+    '## 핵심 원칙',
+    '너는 팀을 운영하는 리더다. 직접 코딩하지 않고 팀원에게 위임한다.',
+    '',
+    '## 업무 수행 프로세스',
+    '1. 할당받은 업무를 분석하고 세부 작업으로 분해한다',
+    '2. **반드시 2명 이상의 팀원**을 구성한다 (역할별로 분담)',
+    '3. 팀원을 [DELEGATE:이름|역할] 형식으로 생성+위임한다',
+    '4. 팀원 결과를 즉시 검증하고, 문제시 재작업 지시한다',
+    '5. 모든 작업 완료 후 상위자에게 결과를 보고한다',
+    '',
+    '## 팀 구성 규칙 (필수!)',
+    '- **반드시 2명 이상의 팀원을 구성하라!** 혼자 하려 하지 마라.',
+    '- 구현 리더라면: 프론트개발자, 백엔드개발자, 풀스택개발자 등',
+    '- QA 리더라면: 기능테스터, 통합테스터, 코드리뷰어 등',
+    '- 각 팀원에게 명확한 파일 경로, 수정 내용, 목표를 전달한다.',
+    '',
+    '## 위임 규칙',
+    '- 팀원에게 1건씩 순차 위임 (한 번에 1건만!)',
+    '- 위임 결과가 돌아오면 즉시 검증',
+    '- 문제가 있으면 같은 팀원 또는 다른 팀원에게 재작업 지시',
+    '- 작업이 끝나면 다음 작업을 위임 (연속 위임)',
+    '',
+    '## 위임 형식',
+    '위임할 때는 반드시 코드블록(```) 밖에 아래 형식을 직접 작성해.',
+    '',
+    '[DELEGATE:이름|역할]',
+    '구체적인 작업 지시',
+    '[/DELEGATE]',
+    '',
+    '규칙:',
+    '- 위임 블록은 마크다운 코드펜스(```) 밖에 작성',
+    '- **한 번에 1개 DELEGATE 블록만!** 순차 위임.',
+    '- 팀원이 아직 없어도 이름|역할로 위임하면 자동 생성됨'
+  ].join('\n')
+}
+
+// 팀원 동적 프롬프트 생성 — 리더가 위임 시 역할에 맞는 팀원 프롬프트
+export function generateDynamicMemberPrompt(name: string, role: string): string {
+  return [
+    `너는 Virtual Company의 ${name}이다. 역할: ${role}.`,
+    '',
+    '## 핵심 원칙',
+    '상위자로부터 받은 작업을 정확히 수행한다.',
+    '지시받은 작업만 정확히 수행하고, 불필요한 파일 생성이나 범위 확장을 하지 않는다.',
+    '작업 완료 후 결과를 상세히 보고한다.',
+    '',
+    '## 행동 지침',
+    '- 파일명은 kebab-case, 주석은 한국어',
+    '- 에러 핸들링을 철저히 한다',
+    '- 변경 전 반드시 기존 코드를 확인한다'
+  ].join('\n')
+}
+
+// ── 계층 초기화 — 총괄 1명만 시드 ──
+
+// 기존 에이전트 모두 삭제 + 총괄 1명 시드
+export function resetAndSeedHierarchy(): number {
   const existing = agentManager.listAgents()
-  if (existing.length > 0) return 0
 
-  const projectRoot = detectProjectRoot()
-  console.log(`[default-agents] 프로젝트 루트: ${projectRoot}`)
-  console.log(`[default-agents] 기본 에이전트 ${defaultAgents.length}명 시딩 시작`)
-
-  let created = 0
-  for (const def of defaultAgents) {
-    agentManager.createAgent({
-      name: def.name,
-      role: def.role,
-      model: def.model,
-      avatar: def.avatar,
-      systemPrompt: def.systemPrompt,
-      workingDirectory: projectRoot
-    })
-    created++
+  // 기존 에이전트 삭제 (group이 있는 것 제외 — 외부 프로젝트 에이전트 보존)
+  let deleted = 0
+  for (const agent of existing) {
+    if (!agent.group) {
+      agentManager.deleteAgent(agent.id)
+      deleted++
+    }
+  }
+  if (deleted > 0) {
+    console.log(`[default-agents] 기존 에이전트 ${deleted}개 삭제`)
   }
 
-  console.log(`[default-agents] ${created}명 에이전트 생성 완료`)
-  return created
+  const projectRoot = getProjectRoot()
+  console.log(`[default-agents] 프로젝트 루트: ${projectRoot}`)
+
+  // 총괄(Director) 1명만 생성
+  const director = agentManager.createAgent({
+    name: DIRECTOR_DEF.name,
+    role: DIRECTOR_DEF.role,
+    model: DIRECTOR_DEF.model,
+    avatar: randomAvatar(),
+    systemPrompt: DIRECTOR_DEF.systemPrompt,
+    workingDirectory: projectRoot,
+    permissionMode: 'bypassPermissions',
+    maxTurns: 50,
+    hierarchy: { role: 'director', subordinates: [] }
+  })
+
+  console.log(`[default-agents] 총괄 1명 체제 시드 완료:`)
+  console.log(`  Director: ${director.id}`)
+  console.log('  리더/팀원은 총괄이 업무에 맞게 동적 생성')
+
+  return 1
+}
+
+// 기존 에이전트의 시스템 프롬프트를 최신 버전으로 업데이트
+// group이 있는 에이전트(DevPulse 등)는 별도 프롬프트를 사용하므로 덮어쓰지 않음
+export function migrateSystemPrompts(): void {
+  const agents = agentManager.listAgents()
+  if (agents.length === 0) return
+
+  const defaultAgents = agents.filter((a) => !a.group)
+
+  // 총괄만 업데이트
+  const director = defaultAgents.find((a) => a.hierarchy?.role === 'director')
+  if (director && director.systemPrompt !== DIRECTOR_DEF.systemPrompt) {
+    agentManager.updateAgent(director.id, { systemPrompt: DIRECTOR_DEF.systemPrompt })
+    console.log(`[default-agents] ${director.name} 시스템 프롬프트 업데이트`)
+  }
+}
+
+// 기존 에이전트에 hierarchy가 없으면 자동 마이그레이션
+export function migrateHierarchyIfNeeded(): void {
+  const agents = agentManager.listAgents()
+  if (agents.length === 0) return
+
+  // 이미 hierarchy가 하나라도 있으면 스킵
+  if (agents.some((a) => a.hierarchy)) return
+
+  console.log('[default-agents] hierarchy 마이그레이션 시작')
+
+  // 첫 에이전트를 총괄로 지정
+  const director = agents[0]
+  const subordinateIds = agents.filter((a) => a.id !== director.id).map((a) => a.id)
+
+  agentManager.updateAgent(director.id, {
+    hierarchy: { role: 'director', subordinates: subordinateIds }
+  })
+
+  for (const agent of agents) {
+    if (agent.id === director.id) continue
+    agentManager.updateAgent(agent.id, {
+      hierarchy: { role: 'member', reportsTo: director.id }
+    })
+  }
+
+  console.log(`[default-agents] hierarchy 마이그레이션 완료 (총괄: ${director.name}, 하위: ${subordinateIds.length}명)`)
+}
+
+// 총괄이 없을 때만 1명 시드
+export function seedDirectorIfEmpty(): number {
+  const existing = agentManager.listAgents()
+  // group이 없는 기본 에이전트 중 총괄 확인
+  const defaultAgents = existing.filter((a) => !a.group)
+  const hasDirector = defaultAgents.some((a) => a.hierarchy?.role === 'director')
+
+  if (hasDirector) {
+    console.log('[default-agents] 기존 총괄 유지 (작업 히스토리 보존)')
+    return 0
+  }
+
+  if (defaultAgents.length > 0) {
+    // 기본 에이전트가 있지만 총괄이 없는 경우 → 전체 리셋
+    console.log('[default-agents] 총괄이 없음 → 리셋 후 총괄 1명 시드')
+    return resetAndSeedHierarchy()
+  }
+
+  // 에이전트 없음 → 총괄 1명 시드
+  return resetAndSeedHierarchy()
+}
+
+// 하위호환용 — 기존 seedDefaultAgentsIfEmpty 호출부 호환
+export function seedDefaultAgentsIfEmpty(): number {
+  return seedDirectorIfEmpty()
 }

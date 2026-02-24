@@ -1,5 +1,6 @@
 import { AgentConfig, ConversationStatus } from '../../../../shared/types'
 import { generateAvatar } from '../../utils/avatar'
+import { useI18n } from '../../hooks/useI18n'
 
 interface ParticipantBarProps {
   participants: AgentConfig[]
@@ -9,11 +10,12 @@ interface ParticipantBarProps {
 }
 
 export function ParticipantBar({ participants, currentAgentId, status, onTriggerAgent }: ParticipantBarProps) {
+  const { t } = useI18n()
   const isActive = status === 'chaining' || status === 'waiting-agent'
 
   return (
     <div className="px-4 py-2 bg-chat-sidebar border-t border-white/5">
-      <div className="text-[10px] text-white/30 mb-1.5">Trigger agent manually</div>
+      <div className="text-[10px] text-text-muted mb-1.5">{t('groupChat.triggerManually')}</div>
       <div className="flex gap-2 overflow-x-auto">
         {participants.map((agent) => {
           const isCurrent = agent.id === currentAgentId
@@ -26,8 +28,8 @@ export function ParticipantBar({ participants, currentAgentId, status, onTrigger
                 isCurrent
                   ? 'bg-accent/20 border-accent/40 text-accent'
                   : isActive
-                    ? 'bg-white/5 border-white/5 text-white/30 cursor-not-allowed'
-                    : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:border-white/20'
+                    ? 'bg-white/5 border-white/5 text-text-muted cursor-not-allowed'
+                    : 'bg-white/5 border-white/10 text-text-secondary hover:bg-white/10 hover:border-white/20'
               }`}
             >
               <img

@@ -5,12 +5,14 @@ import { GroupMessageList } from './GroupMessageList'
 import { GroupChatInput } from './GroupChatInput'
 import { ParticipantBar } from './ParticipantBar'
 import { useGroupChat } from '../../hooks/useGroupChat'
+import { useI18n } from '../../hooks/useI18n'
 
 interface GroupChatWindowProps {
   conversationId: string
 }
 
 export function GroupChatWindow({ conversationId }: GroupChatWindowProps) {
+  const { t } = useI18n()
   const [config, setConfig] = useState<ConversationConfig | null>(null)
   const [participants, setParticipants] = useState<AgentConfig[]>([])
 
@@ -59,8 +61,8 @@ export function GroupChatWindow({ conversationId }: GroupChatWindowProps) {
 
   if (!config) {
     return (
-      <div className="h-screen bg-chat-bg flex items-center justify-center text-white/30">
-        Loading...
+      <div className="h-screen bg-chat-bg flex items-center justify-center text-text-muted">
+        {t('groupChat.loading')}
       </div>
     )
   }
@@ -76,6 +78,10 @@ export function GroupChatWindow({ conversationId }: GroupChatWindowProps) {
         onMinimize={() => window.api.window.minimize()}
         onClose={() => window.api.window.close()}
         onClear={clear}
+        onDelete={async () => {
+          await window.api.conversation.delete(conversationId)
+          window.api.window.close()
+        }}
       />
 
       <GroupMessageList

@@ -1,50 +1,137 @@
 @import "tailwindcss";
 
+/* ═══ 라이트 테마 (기본) ═══ */
 @theme {
+  /* 시스템 색상 */
+  --color-primary: oklch(0.3 0.15 260);
+  --color-secondary: oklch(0.5 0.1 260);
+  --color-accent: oklch(0.6 0.18 200);
+  --color-accent-hover: oklch(0.65 0.18 200);
+
+  /* 상태 색상 */
+  --color-danger: oklch(0.6 0.2 25);
+  --color-success: oklch(0.65 0.18 150);
+  --color-warning: oklch(0.7 0.15 85);
+
+  /* 배경 및 표면 색상 */
+  --color-background: oklch(0.98 0.002 260);
+  --color-surface: oklch(0.95 0.005 260);
+  --color-surface-hover: oklch(0.92 0.008 260);
+
+  /* 텍스트 색상 */
+  --color-text: oklch(0.2 0.02 260);
+  --color-text-secondary: oklch(0.4 0.05 260);
+  --color-text-muted: oklch(0.6 0.03 260);
+  --color-border: oklch(0.85 0.01 260);
+
+  /* 채팅 전용 색상 (라이트 테마) */
+  --color-chat-bg: oklch(0.96 0.005 260);
+  --color-chat-sidebar: oklch(0.93 0.008 260);
+  --color-bubble-user: oklch(0.88 0.02 200);
+  --color-bubble-assistant: oklch(0.92 0.008 260);
+}
+
+/* ═══ 다크 테마 (.dark 클래스) ═══ */
+.dark {
+  /* 시스템 색상 */
+  --color-primary: oklch(0.8 0.1 260);
+  --color-secondary: oklch(0.6 0.08 260);
   --color-accent: oklch(0.7 0.18 200);
   --color-accent-hover: oklch(0.75 0.18 200);
-  --color-danger: oklch(0.65 0.2 25);
-  --color-success: oklch(0.7 0.18 150);
-  --color-warning: oklch(0.8 0.15 85);
+
+  /* 상태 색상 (다크에서 더 부드럽게) */
+  --color-danger: oklch(0.68 0.18 25);
+  --color-success: oklch(0.72 0.16 150);
+  --color-warning: oklch(0.82 0.14 85);
+
+  /* 배경 및 표면 색상 */
+  --color-background: oklch(0.12 0.015 260);
+  --color-surface: oklch(0.16 0.02 260);
+  --color-surface-hover: oklch(0.2 0.025 260);
+
+  /* 텍스트 색상 */
+  --color-text: oklch(0.9 0.02 260);
+  --color-text-secondary: oklch(0.75 0.03 260);
+  --color-text-muted: oklch(0.6 0.02 260);
+  --color-border: oklch(0.25 0.02 260);
+
+  /* 채팅 전용 색상 (기존 다크 테마 유지) */
   --color-chat-bg: oklch(0.15 0.02 260);
   --color-chat-sidebar: oklch(0.18 0.02 260);
   --color-bubble-user: oklch(0.35 0.12 260);
   --color-bubble-assistant: oklch(0.25 0.02 260);
 }
 
+/* ═══ 테마 전환 애니메이션 ═══ */
+* {
+  transition: background-color 200ms ease-in-out,
+              border-color 200ms ease-in-out,
+              color 200ms ease-in-out,
+              box-shadow 200ms ease-in-out,
+              opacity 200ms ease-in-out;
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 
-/* ── Fishing Cat Animations ── */
+/* 독 수평 스크롤바 숨기기 */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Fishing Cat Animations (enhanced) ── */
 .cat-fishing {
-  animation: fishing-bob 2.5s ease-in-out infinite;
+  animation: fishing-bob 2.5s ease-in-out infinite, fishing-glow 4s ease-in-out infinite;
 }
 @keyframes fishing-bob {
   0%, 100% { transform: translateY(0) rotate(0deg); }
-  30% { transform: translateY(-3px) rotate(-1deg); }
-  60% { transform: translateY(1px) rotate(0.5deg); }
+  15% { transform: translateY(-4px) rotate(-2deg); }
+  30% { transform: translateY(-2px) rotate(1deg); }
+  50% { transform: translateY(2px) rotate(-0.5deg); }
+  70% { transform: translateY(-3px) rotate(1.5deg); }
+  85% { transform: translateY(1px) rotate(-1deg); }
+}
+@keyframes fishing-glow {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  50% { filter: brightness(1.05) drop-shadow(0 2px 8px rgba(100, 180, 255, 0.15)); }
 }
 
 .cat-caught {
-  animation: caught-bounce 2s ease-in-out infinite;
+  animation: caught-breathe 3.5s ease-in-out infinite;
 }
-@keyframes caught-bounce {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-4px) scale(1.03); }
+@keyframes caught-breathe {
+  0%, 100% { transform: translateY(0) scale(1); filter: brightness(1); }
+  25% { transform: translateY(-2px) scale(1.01); }
+  50% { transform: translateY(-4px) scale(1.04); filter: brightness(1.03); }
+  75% { transform: translateY(-1px) scale(1.02); }
 }
 
 .cat-bite {
-  animation: bite-shake 0.12s ease-in-out infinite alternate;
+  animation: bite-shake 0.15s ease-in-out infinite alternate, bite-flash 0.6s ease-in-out infinite;
 }
 @keyframes bite-shake {
-  0% { transform: translateX(-2px) rotate(-2deg); }
-  100% { transform: translateX(2px) rotate(2deg); }
+  0% { transform: translateX(-3px) rotate(-3deg) scale(1.02); }
+  100% { transform: translateX(3px) rotate(3deg) scale(0.98); }
+}
+@keyframes bite-flash {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 80, 80, 0.3)); }
 }
 
 /* Dock slot hover */
-.fishing-slot { transition: transform 0.2s ease; }
-.fishing-slot:hover { transform: translateY(-10px) scale(1.08); }
+.fishing-slot {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+  overflow: visible;
+}
+.fishing-slot:hover {
+  transform: translateY(-14px) scale(1.12);
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.3));
+  z-index: 10;
+}
+.fishing-slot:active {
+  transform: translateY(-4px) scale(0.95);
+  transition-duration: 0.1s;
+}
 
 /* ── Chat animations ── */
 @keyframes bounce-dot {
@@ -68,7 +155,7 @@ html, body, #root {
   width: 100%;
   height: 100%;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: white;
+  color: var(--color-text);
   overflow: hidden;
   background: transparent;
 }

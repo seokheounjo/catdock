@@ -1,7 +1,7 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 import { useSessionStore } from '../stores/session-store'
 import { useAgentStore } from '../stores/agent-store'
-import { ChatMessage } from '../../../shared/types'
+import { ChatMessage, PermissionRequest } from '../../../shared/types'
 
 export function useChat(agentId: string | null) {
   const {
@@ -17,6 +17,7 @@ export function useChat(agentId: string | null) {
   } = useSessionStore()
 
   const { setAgentStatus } = useAgentStore()
+  const [permissionRequest, setPermissionRequest] = useState<PermissionRequest | null>(null)
 
   useEffect(() => {
     if (!agentId) return
@@ -76,6 +77,79 @@ export function useChat(agentId: string | null) {
       })
     )
 
+    // 위임 이벤트 리스너
+    unsubs.push(
+      window.api.on('delegation:started', (data: unknown) => {
+        const d = data as { leaderAgentId: string; leaderName: string; delegatedTo: { id: string; name: string }[]; totalCount: number }
+        if (d.leaderAgentId === agentId) {
+          const names = d.delegatedTo.map((a) => a.name).join(', ')
+          addMessage({
+            id: `delegation-start-${Date.now()}`,
+            agentId: d.leaderAgentId,
+            role: 'system',
+            content: `${names}에게 작업 위임 중... (${d.totalCount}건)`,
+            timestamp: Date.now()
+          })
+        }
+      })
+    )
+
+    unsubs.push(
+      window.api.on('delegation:agent-completed', (data: unknown) => {
+        const d = data as { leaderAgentId: string; agentName: string; completedCount: number; totalCount: number; remainingCount: number }
+        if (d.leaderAgentId === agentId) {
+          addMessage({
+            id: `delegation-progress-${Date.now()}`,
+            agentId: d.leaderAgentId,
+            role: 'system',
+            content: `${d.agentName} 완료 (${d.completedCount}/${d.totalCount})${d.remainingCount > 0 ? `, ${d.remainingCount}명 남음` : ''}`,
+            timestamp: Date.now()
+          })
+        }
+      })
+    )
+
+    unsubs.push(
+      window.api.on('delegation:synthesizing', (data: unknown) => {
+        const d = data as { leaderAgentId: string; leaderName: string }
+        if (d.leaderAgentId === agentId) {
+          addMessage({
+            id: `delegation-synth-${Date.now()}`,
+            agentId: d.leaderAgentId,
+            role: 'system',
+            content: `${d.leaderName}이 결과를 종합하고 있습니다...`,
+            timestamp: Date.now()
+          })
+        }
+      })
+    )
+
+    // 퍼미션 요청 이벤트
+    unsubs.push(
+      window.api.on('permission:request', (data: unknown) => {
+        const req = data as PermissionRequest
+        if (req.agentId === agentId) {
+          setPermissionRequest(req)
+        }
+      })
+    )
+
+    unsubs.push(
+      window.api.on('permission:timeout', (data: unknown) => {
+        const req = data as PermissionRequest
+        if (req.agentId === agentId) {
+          setPermissionRequest(null)
+          addMessage({
+            id: `perm-timeout-${Date.now()}`,
+            agentId: req.agentId,
+            role: 'system',
+            content: `퍼미션 요청 타임아웃: ${req.toolName} (자동 거부)`,
+            timestamp: Date.now()
+          })
+        }
+      })
+    )
+
     return () => unsubs.forEach((fn) => fn())
   }, [agentId])
 
@@ -97,12 +171,26 @@ export function useChat(agentId: string | null) {
     await window.api.session.clear(agentId)
   }, [agentId])
 
+  const respondToPermission = useCallback(async (requestId: string, allowed: boolean) => {
+    await window.api.permission.respond(requestId, allowed)
+    setPermissionRequest(null)
+    addMessage({
+      id: `perm-response-${Date.now()}`,
+      agentId: agentId || '',
+      role: 'system',
+      content: `퍼미션 ${allowed ? '허용' : '거부'}됨`,
+      timestamp: Date.now()
+    })
+  }, [agentId, addMessage])
+
   return {
     messages,
     streaming,
     streamingContent,
     sendMessage,
     abort,
-    clear
+    clear,
+    permissionRequest,
+    respondToPermission
   }
 }

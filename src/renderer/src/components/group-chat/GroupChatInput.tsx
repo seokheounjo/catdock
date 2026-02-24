@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ConversationStatus } from '../../../../shared/types'
+import { useI18n } from '../../hooks/useI18n'
 
 interface GroupChatInputProps {
   onSend: (message: string) => void
@@ -10,6 +11,7 @@ interface GroupChatInputProps {
 }
 
 export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: GroupChatInputProps) {
+  const { t } = useI18n()
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isActive = status === 'chaining' || status === 'waiting-agent'
@@ -52,9 +54,9 @@ export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: G
           value={input}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={t('groupChat.typePlaceholder')}
           rows={1}
-          className="flex-1 bg-transparent text-white text-sm outline-none resize-none max-h-[150px] py-1 placeholder:text-white/30"
+          className="flex-1 bg-transparent text-text text-sm outline-none resize-none max-h-[150px] py-1 placeholder:text-text-muted"
         />
 
         <div className="flex items-center gap-1">
@@ -63,7 +65,7 @@ export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: G
             <button
               onClick={onPause}
               className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none cursor-pointer bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 transition-all"
-              title="Pause"
+              title={t('groupChat.pause')}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
                 <rect x="2" y="2" width="3.5" height="10" rx="1" />
@@ -76,7 +78,7 @@ export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: G
             <button
               onClick={onResume}
               className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none cursor-pointer bg-accent/20 hover:bg-accent/30 text-accent transition-all"
-              title="Resume"
+              title={t('groupChat.resume')}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
                 <path d="M3 1.5v11l9-5.5z" />
@@ -89,7 +91,7 @@ export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: G
             <button
               onClick={onAbort}
               className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none cursor-pointer bg-danger hover:bg-danger/80 text-white transition-all"
-              title="Stop"
+              title={t('groupChat.stop')}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
                 <rect x="2" y="2" width="10" height="10" rx="1.5" />
@@ -104,9 +106,9 @@ export function GroupChatInput({ onSend, onPause, onResume, onAbort, status }: G
               className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none cursor-pointer transition-all ${
                 input.trim()
                   ? 'bg-accent hover:bg-accent-hover text-white'
-                  : 'bg-white/10 text-white/30'
+                  : 'bg-white/10 text-text-muted'
               }`}
-              title="Send"
+              title={t('groupChat.sendMessage')}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M2 8h12M9 3l5 5-5 5" />

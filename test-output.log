@@ -1,0 +1,89 @@
+
+=== Virtual Company Comprehensive Test Suite ===
+
+Target: Virtual Company
+
+-- Agent CRUD--
+  PASS  agent:list - defaults
+  PASS  agent:create
+  PASS  agent:list - count+1
+  PASS  agent:update
+  PASS  agent:duplicate
+  PASS  agent:delete
+
+-- Hierarchy --
+  PASS  agent:get-org-chart
+
+-- Agent States --
+  PASS  agent:get-all-states
+  PASS  agent:get-state
+  PASS  agent:get-process-info
+
+-- Session APIs --
+  PASS  session:get-history
+  PASS  session:get-error-log
+  PASS  session:abort
+  PASS  session:clear
+  PASS  session:send
+
+-- Conversation APIs --
+  PASS  conversation:create
+  PASS  conversation:list
+  PASS  conversation:get
+  PASS  conversation:update
+  PASS  conversation:get-history
+  PASS  conversation:get-state
+  PASS  conversation:set-mode
+  FAIL  conversation:send -- Timeout: Runtime.evaluate
+  PASS  conversation:clear
+  PASS  conversation:delete
+
+-- Settings --
+  PASS  settings:get
+  PASS  settings:update
+  PASS  settings - setupCompleted accessible
+
+-- Activity --
+  PASS  activity:get-recent
+  PASS  activity:clear
+
+-- Tasks --
+  PASS  task:create
+  PASS  task:list
+  PASS  task:get-for-agent
+  PASS  task:update
+
+-- CLI --
+  PASS  cli:check
+  PASS  cli:install - exists
+  PASS  cli:check-node
+
+-- MCP APIs --
+  PASS  mcp:get-global
+  PASS  mcp:set-global
+  PASS  mcp:get-agent
+  PASS  mcp:set-agent
+
+-- Window APIs --
+  PASS  window:open-chat
+  PASS  window:open-dashboard
+  PASS  window:open-group-chat
+
+-- Temporary Agent --
+  PASS  agent:spawn-temporary
+  PASS  agent:remove-temporary
+
+-- Export/Import --
+  PASS  agent:export
+  PASS  agent:import
+
+-- setupCompleted --
+  PASS  settings - setupCompleted set/read
+
+====================================
+  RESULTS: 48 PASS / 1 FAIL / 49 TOTAL
+====================================
+
+Failed:
+  - conversation:send: Timeout: Runtime.evaluate
+

@@ -1,0 +1,1 @@
+const fs=require("fs"); const lines=[]; process.stdin.on("data",d=>lines.push(d)); process.stdin.on("end",()=>{const b=Buffer.from(lines.join(""),"base64"); fs.writeFileSync("test-all-final.js",b.toString("utf8")); console.log("Written",b.length,"bytes");});

@@ -1,18 +1,12 @@
-import { createAvatar } from '@dicebear/core'
-import { bottts, thumbs, funEmoji } from '@dicebear/collection'
+import { CAT_BREEDS, type CatBreed } from './cat-avatar'
 
-const styles = { bottts, thumbs, 'fun-emoji': funEmoji } as Record<string, Parameters<typeof createAvatar>[0]>
+export const AVATAR_STYLES = [...CAT_BREEDS] as readonly string[]
+export type AvatarStyle = CatBreed
 
-export const AVATAR_STYLES = ['bottts', 'thumbs', 'fun-emoji'] as const
-export type AvatarStyle = (typeof AVATAR_STYLES)[number]
-
+// RoboHash set4 (고양이) — 외부 서비스에서 seed별 고유 고양이 아바타 생성
 export function generateAvatar(style: string, seed: string): string {
-  const collection = styles[style] || bottts
-  const avatar = createAvatar(collection, {
-    seed,
-    size: 64
-  })
-  return avatar.toDataUri()
+  const key = encodeURIComponent(`${style}-${seed}`)
+  return `https://robohash.org/${key}?set=set4&size=200x200&bgset=bg2`
 }
 
 export function getRandomSeed(): string {
