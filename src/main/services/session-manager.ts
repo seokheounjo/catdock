@@ -648,6 +648,7 @@ export async function sendMessageAndCapture(agentId: string, userMessage: string
 export function abortSession(agentId: string): void {
   const session = activeSessions.get(agentId)
   if (session) {
+    const wasRunning = !!session.process
     session.abortController.abort()
     if (session.process) {
       session.process.kill()
@@ -656,6 +657,20 @@ export function abortSession(agentId: string): void {
     agentManager.setAgentStatus(agentId, 'idle')
     broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
     broadcastProcessInfo(agentId, { processStatus: 'stopped' })
+
+    // 스트리밍 중이었으면 stream-end 브로드캐스트 → UI의 streaming 상태 리셋
+    if (wasRunning) {
+      const abortMsg: ChatMessage = {
+        id: `abort-${uuid()}`,
+        agentId,
+        role: 'system',
+        content: '⏹ 중지됨',
+        timestamp: Date.now()
+      }
+      session.messages.push(abortMsg)
+      store.saveSessionHistory(agentId, session.messages)
+      broadcastToChat(agentId, 'session:stream-end', abortMsg)
+    }
   }
 }
 

@@ -24,6 +24,13 @@ export function useChat(agentId: string | null) {
 
     loadHistory(agentId)
 
+    // 에이전트가 현재 작업 중이면 streaming 상태 복원
+    window.api.agent.getState(agentId).then((state) => {
+      if (state && state.status === 'working') {
+        setStreaming(true)
+      }
+    })
+
     // Listen for IPC events
     const unsubs: (() => void)[] = []
 
