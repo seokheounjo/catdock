@@ -50,6 +50,7 @@ export function CommandCenterPage() {
       })
     ]
     return () => unsubs.forEach((fn) => fn())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 조직도 분류

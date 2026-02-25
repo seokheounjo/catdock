@@ -162,6 +162,7 @@ export function useChat(agentId: string | null) {
     )
 
     return () => unsubs.forEach((fn) => fn())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentId])
 
   const sendMessage = useCallback(

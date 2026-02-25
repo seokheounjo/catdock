@@ -48,7 +48,7 @@ export function DashboardPage() {
     fetchActivities()
     fetchTasks()
     fetchSettings()
-    checkCli() // eslint-disable-line react-hooks/set-state-in-effect
+    checkCli()
 
     const unsubs = [
       window.api.on('agent:created', () => fetchAgents()),
@@ -75,6 +75,7 @@ export function DashboardPage() {
       clearInterval(stateInterval)
       unsubs.forEach((fn) => fn())
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

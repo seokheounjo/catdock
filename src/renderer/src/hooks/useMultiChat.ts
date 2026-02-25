@@ -1,10 +1,13 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useMemo } from 'react'
 import { useMultiSessionStore } from '../stores/multi-session-store'
 import { ChatMessage } from '../../../shared/types'
 
 export function useMultiChat(agentIds: string[]) {
   const store = useMultiSessionStore()
   const prevIdsRef = useRef<string[]>([])
+
+  // 안정적인 의존성 키 — agentIds 배열을 문자열로 직렬화
+  const idsKey = useMemo(() => agentIds.join(','), [agentIds])
 
   // agentIds 변경 시 히스토리 로드/언로드
   useEffect(() => {
@@ -16,7 +19,8 @@ export function useMultiChat(agentIds: string[]) {
     removedIds.forEach((id) => store.unloadSession(id))
 
     prevIdsRef.current = agentIds
-  }, [agentIds.join(',')])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey])
 
   // IPC 리스너 — 1세트로 N개 에이전트 이벤트 라우팅
   useEffect(() => {
@@ -70,7 +74,8 @@ export function useMultiChat(agentIds: string[]) {
     )
 
     return () => unsubs.forEach((fn) => fn())
-  }, [agentIds.join(',')])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey])
 
   const sendMessage = useCallback(async (agentId: string, message: string) => {
     if (!agentId || !message.trim()) return

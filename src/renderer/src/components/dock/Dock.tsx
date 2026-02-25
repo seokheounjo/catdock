@@ -82,6 +82,7 @@ export function Dock() {
     return () => {
       unsubs.forEach((fn) => fn())
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

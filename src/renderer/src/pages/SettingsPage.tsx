@@ -34,6 +34,7 @@ export function SettingsPage() {
     return () => {
       unsubs.forEach((fn) => fn())
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const menuBtn = `w-full px-4 py-3 text-left text-sm text-text hover:bg-white/10

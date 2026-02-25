@@ -96,6 +96,7 @@ export function useGroupChat(conversationId: string | null) {
     )
 
     return () => unsubs.forEach((fn) => fn())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId])
 
   const sendMessage = useCallback(
