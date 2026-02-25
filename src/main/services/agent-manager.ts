@@ -48,8 +48,8 @@ export function updateAgent(id: string, updates: Partial<AgentConfig>): AgentCon
   return store.updateAgent(id, updates)
 }
 
-export function deleteAgent(id: string): void {
-  store.deleteAgent(id)
+export function deleteAgent(id: string, archivedBy?: string): void {
+  store.deleteAgent(id, archivedBy)
   runtimeState.delete(id)
 }
 

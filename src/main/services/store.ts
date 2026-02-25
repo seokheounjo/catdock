@@ -15,6 +15,13 @@ import {
 
 // ── 프로젝트 데이터 스키마 (projects/<hash>/config.json) ──
 
+interface ArchivedAgent {
+  config: AgentConfig
+  session: SessionInfo | null
+  archivedAt: number
+  archivedBy?: string // 삭제를 요청한 에이전트 ID (팀장)
+}
+
 interface StoreSchema {
   agents: AgentConfig[]
   sessions: Record<string, SessionInfo>
@@ -22,6 +29,7 @@ interface StoreSchema {
   conversationHistories: Record<string, ConversationMessage[]>
   activities: ActivityEvent[]
   tasks: TaskDelegation[]
+  archivedAgents: ArchivedAgent[]
 }
 
 const projectDefaults: StoreSchema = {
@@ -30,7 +38,8 @@ const projectDefaults: StoreSchema = {
   conversations: [],
   conversationHistories: {},
   activities: [],
-  tasks: []
+  tasks: [],
+  archivedAgents: []
 }
 
 // ── 전역 설정 디폴트 ──
@@ -138,7 +147,8 @@ function migrateIfNeeded(): void {
         conversations: oldData.conversations || [],
         conversationHistories: oldData.conversationHistories || {},
         activities: oldData.activities || [],
-        tasks: oldData.tasks || []
+        tasks: oldData.tasks || [],
+        archivedAgents: oldData.archivedAgents || []
       }
       writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
       console.log('[store] 마이그레이션: 프로젝트 config.json 생성')
@@ -214,11 +224,39 @@ export function updateAgent(id: string, updates: Partial<AgentConfig>): AgentCon
   return agents[idx]
 }
 
-export function deleteAgent(id: string): void {
-  setAgents(getAgents().filter((a) => a.id !== id))
+export function deleteAgent(id: string, archivedBy?: string): void {
+  const agent = getAgent(id)
   const d = load()
+
+  // 삭제 전 히스토리를 아카이브에 보관 (리더/총괄이 참조할 수 있도록)
+  if (agent) {
+    if (!d.archivedAgents) d.archivedAgents = []
+    d.archivedAgents.push({
+      config: agent,
+      session: d.sessions[id] ?? null,
+      archivedAt: Date.now(),
+      archivedBy
+    })
+    // 아카이브 상한 (최대 100건)
+    if (d.archivedAgents.length > 100) {
+      d.archivedAgents = d.archivedAgents.slice(-100)
+    }
+  }
+
+  setAgents(getAgents().filter((a) => a.id !== id))
   delete d.sessions[id]
   save()
+}
+
+// ── 아카이브 조회 ──
+
+export function getArchivedAgents(): ArchivedAgent[] {
+  const d = load()
+  return d.archivedAgents || []
+}
+
+export function getArchivedAgentsByLeader(leaderId: string): ArchivedAgent[] {
+  return getArchivedAgents().filter((a) => a.archivedBy === leaderId)
 }
 
 // ── Session ──

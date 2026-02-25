@@ -82,6 +82,47 @@ export function hasDelegation(text: string): boolean {
   return /\[DELEGATE:[^\]]+\]/i.test(cleaned)
 }
 
+// [REMOVE:Name] 블록 파싱 — 리더가 불필요한 팀원 삭제 요청
+export function parseRemoveBlocks(text: string): string[] {
+  const cleaned = stripCodeBlocks(text)
+  const names: string[] = []
+  const regex = /\[REMOVE:([^\]]+)\]/gi
+  let match: RegExpExecArray | null
+  while ((match = regex.exec(cleaned)) !== null) {
+    const name = match[1].trim()
+    if (name) names.push(name)
+  }
+  return names
+}
+
+// [REMOVE:Name] 블록 실행 — 팀원을 아카이브하고 삭제
+export function executeRemoveBlocks(leaderAgentId: string, text: string): void {
+  const removeNames = parseRemoveBlocks(text)
+  if (removeNames.length === 0) return
+
+  const leader = store.getAgent(leaderAgentId)
+  if (!leader) return
+
+  // 리더 또는 디렉터만 삭제 가능
+  if (leader.hierarchy?.role !== 'leader' && leader.hierarchy?.role !== 'director') return
+
+  for (const name of removeNames) {
+    const agents = agentManager.listAgents()
+    const target = agents.find(
+      (a) =>
+        a.name.toLowerCase() === name.toLowerCase() &&
+        a.hierarchy?.reportsTo === leaderAgentId
+    )
+
+    if (target) {
+      console.log(`[remove] ${leader.name}이 ${target.name} 삭제 요청 (아카이브 보관)`)
+      agentManager.deleteAgent(target.id, leaderAgentId)
+      logActivity('agent-deleted', target.id, target.name, `${leader.name}이 팀원 ${target.name} 제거 (히스토리 아카이브 보관)`)
+      BrowserWindow.getAllWindows().forEach((w) => w.webContents.send('agent:deleted', target.id))
+    }
+  }
+}
+
 // 에이전트 이름으로 매칭 — 같은 그룹 우선, 없으면 자동 생성 (동적 포함)
 function findOrCreateAgent(
   name: string,

@@ -8,7 +8,7 @@ import {
 } from './cli-builder'
 import { buildMcpConfigFile } from './mcp-manager'
 import { logActivity } from './activity-logger'
-import { hasDelegation, executeDelegation, setSendMessageAndCapture } from './delegation-manager'
+import { hasDelegation, executeDelegation, setSendMessageAndCapture, executeRemoveBlocks } from './delegation-manager'
 import { handleAgentError, setSessionCallbacks, setFindBackupDirector } from './error-recovery'
 import * as watchdog from './process-watchdog'
 import { v4 as uuid } from 'uuid'
@@ -293,6 +293,16 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
         } catch (reportErr) {
           console.error('[chain-report] 체인 보고 실패:', reportErr)
         }
+      }
+    }
+
+    // [REMOVE:Name] 블록 처리 — 리더/디렉터가 팀원 삭제 요청
+    const canManageTeam = config.hierarchy?.role === 'director' || config.hierarchy?.role === 'leader'
+    if (canManageTeam && response) {
+      try {
+        executeRemoveBlocks(agentId, response)
+      } catch (removeErr) {
+        console.error('[remove-blocks] 팀원 삭제 실패:', removeErr)
       }
     }
 
