@@ -281,7 +281,8 @@ const en: LocaleMessages = {
 
   orgChart: {
     noAgents: 'No agents.',
-    temporaryAgents: 'Temporary Agents'
+    temporaryAgents: 'Temporary Agents',
+    unassignedMembers: 'Unassigned Members'
   },
 
   agentCard: {

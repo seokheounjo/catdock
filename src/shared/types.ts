@@ -170,6 +170,7 @@ export type ActivityType =
   | 'agent-deleted'
   | 'task-delegated'
   | 'upward-report'
+  | 'chain-report'
 
 export interface ActivityEvent {
   id: string

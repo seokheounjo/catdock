@@ -280,7 +280,8 @@ const zh: LocaleMessages = {
 
   orgChart: {
     noAgents: '没有智能体。',
-    temporaryAgents: '临时智能体'
+    temporaryAgents: '临时智能体',
+    unassignedMembers: '未分配成员'
   },
 
   agentCard: {

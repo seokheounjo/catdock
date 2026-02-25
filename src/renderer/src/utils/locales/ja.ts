@@ -281,7 +281,8 @@ const ja: LocaleMessages = {
 
   orgChart: {
     noAgents: 'エージェントがいません。',
-    temporaryAgents: '一時エージェント'
+    temporaryAgents: '一時エージェント',
+    unassignedMembers: '未配属メンバー'
   },
 
   agentCard: {

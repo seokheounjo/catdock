@@ -11,7 +11,8 @@ const typeColors: Record<ActivityType, string> = {
   'agent-created': 'text-green-400',
   'agent-deleted': 'text-orange-400',
   'task-delegated': 'text-yellow-400',
-  'upward-report': 'text-cyan-400'
+  'upward-report': 'text-cyan-400',
+  'chain-report': 'text-teal-400'
 }
 
 const typeIcons: Record<ActivityType, string> = {
@@ -22,7 +23,8 @@ const typeIcons: Record<ActivityType, string> = {
   'agent-created': '\u{2795}',
   'agent-deleted': '\u{2796}',
   'task-delegated': '\u{1F4CB}',
-  'upward-report': '\u{1F4E4}'
+  'upward-report': '\u{1F4E4}',
+  'chain-report': '\u{1F517}'
 }
 
 export function ActivityFeed() {

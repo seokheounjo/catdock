@@ -295,7 +295,8 @@ const ko = {
   // 조직도
   orgChart: {
     noAgents: '에이전트가 없습니다.',
-    temporaryAgents: '임시 에이전트'
+    temporaryAgents: '임시 에이전트',
+    unassignedMembers: '미배정 팀원'
   },
 
   // 에이전트 카드

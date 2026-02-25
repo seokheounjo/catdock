@@ -138,7 +138,7 @@ function processNextInQueue(agentId: string): void {
   })
 }
 
-// ── 상향 보고 ── CLI 호출 없이 상위자 채팅에 시스템 메시지 삽입
+// ── 상향 보고 ── 상위자에게 보고하고 CLI를 호출하여 판단 + 재위임 가능
 function sendUpwardReport(agentId: string, userMessage: string, assistantResponse: string): void {
   const config = store.getAgent(agentId)
   if (!config) return
@@ -149,39 +149,62 @@ function sendUpwardReport(agentId: string, userMessage: string, assistantRespons
   const superior = agentManager.findSuperiorForAgent(agentId)
   if (!superior) return
 
-  const session = getSession(superior.id)
-
   // 보고 내용 구성: 사용자 지시 요약 + 에이전트 응답 요약
-  const userSummary = userMessage.length > 200 ? userMessage.slice(0, 200) + '...' : userMessage
+  const userSummary = userMessage.length > 300 ? userMessage.slice(0, 300) + '...' : userMessage
   const responseSummary =
-    assistantResponse.length > 300 ? assistantResponse.slice(0, 300) + '...' : assistantResponse
+    assistantResponse.length > 500 ? assistantResponse.slice(0, 500) + '...' : assistantResponse
 
   const reportContent =
-    `[📋 자동 보고] 사용자가 ${config.name}에게 직접 지시:\n` +
-    `▸ 지시: ${userSummary}\n` +
-    `▸ 응답: ${responseSummary}`
+    `[📋 자동 보고] 사용자가 ${config.name}(${config.role})에게 직접 지시했습니다.\n` +
+    `▸ 사용자 지시: ${userSummary}\n` +
+    `▸ ${config.name}의 응답: ${responseSummary}\n\n` +
+    `이 보고를 검토하고, 필요하다면 추가 조치를 취하거나 작업을 재배분해주세요. ` +
+    `문제가 있다면 관련 팀원에게 수정을 위임할 수 있습니다.`
 
-  const reportMsg: ChatMessage = {
-    id: `report-${uuid()}`,
-    agentId: superior.id,
-    role: 'user',
-    content: reportContent,
-    timestamp: Date.now(),
-    isAutoReport: true,
-    reportOriginAgentId: agentId
-  }
+  // 상위자에게 실제 CLI 호출로 보고 (판단 + 위임 가능)
+  // 비동기로 실행 — 현재 흐름을 블록하지 않음
+  const reportId = `report-${uuid()}`
+  reportMessageIds.add(reportId)
 
-  // 보고 메시지 ID 추적 (재보고 방지)
-  reportMessageIds.add(reportMsg.id)
-
-  session.messages.push(reportMsg)
-  broadcastToChat(superior.id, 'session:message', reportMsg)
-  store.saveSessionHistory(superior.id, session.messages)
-
-  // 활동 로그
   logActivity('upward-report', agentId, config.name, `${config.name} → ${superior.name} 상향 보고`)
+  console.log(`[upward-report] ${config.name} → ${superior.name} 보고 전송 (CLI 호출)`)
 
-  console.log(`[upward-report] ${config.name} → ${superior.name} 보고 완료`)
+  // sendMessage로 실제 CLI 호출 — 상위자가 판단하고 위임할 수 있음
+  sendMessage(superior.id, reportContent).catch((err) => {
+    console.error(`[upward-report] ${config.name} → ${superior.name} 보고 처리 실패:`, err)
+  })
+}
+
+// ── 체인 보고 ── 리더가 멤버 보고를 검토한 뒤 총괄에게 판단 결과 전달
+function sendChainReport(agentId: string, _originalReport: string, leaderJudgment: string): void {
+  const config = store.getAgent(agentId)
+  if (!config) return
+
+  // 리더만 체인 보고 가능
+  if (config.hierarchy?.role !== 'leader') return
+
+  // 총괄(Director)를 찾음
+  const director = agentManager.findSuperiorForAgent(agentId)
+  if (!director || director.hierarchy?.role !== 'director') return
+
+  const judgmentSummary =
+    leaderJudgment.length > 500 ? leaderJudgment.slice(0, 500) + '...' : leaderJudgment
+
+  const chainContent =
+    `[📋 체인 보고] ${config.name}(${config.role})이 팀원 보고를 검토한 결과입니다:\n` +
+    `▸ ${config.name}의 판단: ${judgmentSummary}\n\n` +
+    `추가 조치가 필요하면 관련 팀에 작업을 재배분해주세요.`
+
+  const reportId = `chain-report-${uuid()}`
+  reportMessageIds.add(reportId)
+
+  logActivity('chain-report', agentId, config.name, `${config.name} → ${director.name} 체인 보고`)
+  console.log(`[chain-report] ${config.name} → ${director.name} 판단 결과 전달 (CLI 호출)`)
+
+  // 총괄에게 CLI 호출 — 총괄이 판단하고 재위임할 수 있음
+  sendMessage(director.id, chainContent).catch((err) => {
+    console.error(`[chain-report] ${config.name} → ${director.name} 보고 처리 실패:`, err)
+  })
 }
 
 export async function sendMessage(agentId: string, userMessage: string): Promise<void> {
@@ -249,13 +272,27 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
   try {
     const response = await runClaudeSession(config, session, userMessage)
 
-    // ── 상향 보고: isAutoReport가 아닌 사용자 메시지 + director가 아닌 에이전트
-    const isReport = reportMessageIds.has(userMsg.id) || userMessage.includes('[📋 자동 보고]')
-    if (!isReport && config.hierarchy?.role !== 'director' && response) {
-      try {
-        sendUpwardReport(agentId, userMessage, response)
-      } catch (reportErr) {
-        console.error('[upward-report] 보고 실패:', reportErr)
+    // ── 상향 보고 체인: member → leader → director
+    // 1) 일반 사용자 메시지 → 상위자에게 보고 (member/leader 모두)
+    // 2) 자동 보고 메시지 수신 시 (leader가 member 보고를 받은 경우) → director에게 체인 보고
+    const isMemberReport = userMessage.includes('[📋 자동 보고]')
+    const isDirectReport = reportMessageIds.has(userMsg.id)
+
+    if (config.hierarchy?.role !== 'director' && response) {
+      if (!isDirectReport && !isMemberReport) {
+        // 일반 사용자 지시 → 상위자에게 보고
+        try {
+          sendUpwardReport(agentId, userMessage, response)
+        } catch (reportErr) {
+          console.error('[upward-report] 보고 실패:', reportErr)
+        }
+      } else if (isMemberReport && config.hierarchy?.role === 'leader') {
+        // 리더가 멤버 보고를 처리한 후 → 총괄에게 판단 결과 체인 보고
+        try {
+          sendChainReport(agentId, userMessage, response)
+        } catch (reportErr) {
+          console.error('[chain-report] 체인 보고 실패:', reportErr)
+        }
       }
     }
 
