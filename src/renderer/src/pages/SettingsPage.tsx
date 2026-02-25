@@ -33,6 +33,8 @@ export function SettingsPage() {
         }
       })
       .catch(() => {})
+    // 앱 업데이트 자동 확인
+    window.api.app.checkAppUpdate().catch(() => {})
     window.api.conversation.list().then(setConversations).catch(() => {})
 
     const unsubs = [
@@ -459,9 +461,19 @@ export function SettingsPage() {
           </>
         )}
 
-        {/* 종료 — 하단 고정 */}
+        {/* 하단 고정 영역 */}
         <div className="flex-1" />
+
+        {/* 버전 정보 */}
+        <div className="px-4 py-2 text-center">
+          <span className="text-[10px] text-text-muted">
+            Virtual Company v{__APP_VERSION__}
+          </span>
+        </div>
+
         <div className="h-px bg-white/10 mx-4" />
+
+        {/* 종료 */}
         <button className={`${menuBtn} !text-red-400`} onClick={() => window.api.app.quit()}>
           <svg
             width="16"

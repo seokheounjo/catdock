@@ -2,7 +2,9 @@ import { resolve } from 'path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { copyFileSync, existsSync, mkdirSync } from 'fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'fs'
+
+const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'))
 
 // MCP 서버 스크립트를 빌드 출력 디렉토리에 복사하는 플러그인
 function copyMcpServerPlugin() {
@@ -31,6 +33,9 @@ export default defineConfig({
   },
   preload: {},
   renderer: {
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version)
+    },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src')
