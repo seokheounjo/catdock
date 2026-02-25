@@ -18,9 +18,9 @@ const RECOVERY_COOLDOWN_MS = 15_000
 const MAX_SELF_RECOVERY_ATTEMPTS = 3
 const selfRecoveryAttempts = new Map<string, number>()
 
-function broadcast(channel: string, data: unknown): void {
+function broadcast(channel: string, ...args: unknown[]): void {
   BrowserWindow.getAllWindows().forEach((w) => {
-    w.webContents.send(channel, data)
+    w.webContents.send(channel, ...args)
   })
 }
 

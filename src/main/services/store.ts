@@ -162,7 +162,7 @@ function load(): StoreSchema {
   } catch {
     data = { ...projectDefaults }
   }
-  return data
+  return data!
 }
 
 function save(): void {

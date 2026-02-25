@@ -202,7 +202,7 @@ export function resizeDock(agentCount: number): void {
 
   const gap = DOCK_SIZES[effectiveSize].agentGap
   let neededW = agentCount * gap + 200
-  let finalGap = gap
+  let finalGap: number = gap
 
   if (neededW > maxW && effectiveSize === 'small') {
     finalGap = Math.max(40, Math.floor((maxW - 200) / agentCount))
