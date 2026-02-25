@@ -38,3 +38,4 @@ publish:
   owner: seokheounjo
   repo: catdock
   private: true
+  releaseType: release
