@@ -2,7 +2,6 @@
 import { BrowserWindow } from 'electron'
 import { v4 as uuid } from 'uuid'
 import * as agentManager from './agent-manager'
-import * as sessionManager from './session-manager'
 import * as store from './store'
 import { logActivity } from './activity-logger'
 import {
@@ -13,6 +12,19 @@ import {
   generateDynamicMemberPrompt
 } from './default-agents'
 import { TaskDelegation } from '../../shared/types'
+
+// ── 순환 의존 방지: session-manager가 콜백 주입 ──
+type SendMessageAndCaptureFn = (agentId: string, message: string) => Promise<string>
+let _sendMessageAndCapture: SendMessageAndCaptureFn | null = null
+
+export function setSendMessageAndCapture(fn: SendMessageAndCaptureFn): void {
+  _sendMessageAndCapture = fn
+}
+
+function sendMessageAndCapture(agentId: string, message: string): Promise<string> {
+  if (!_sendMessageAndCapture) throw new Error('[delegation] sendMessageAndCapture 미등록')
+  return _sendMessageAndCapture(agentId, message)
+}
 
 export interface DelegationBlock {
   agentName: string
@@ -292,7 +304,7 @@ async function executeOneRound(
         broadcast('agent:status-changed', d.agentId, { id: d.agentId, status: 'working' })
 
         const context = `[${delegatorConfig.name}(${roleLabel})로부터 위임받은 작업]\n원래 요청: ${originalMessage}\n\n작업 지시:\n${d.block.task}`
-        const agentResponse = await sessionManager.sendMessageAndCapture(d.agentId, context)
+        const agentResponse = await sendMessageAndCapture(d.agentId, context)
 
         completedCount++
         store.updateTask(tasks[idx].id, {
@@ -361,10 +373,7 @@ async function executeOneRound(
     ...summaryParts
   ].join('\n')
 
-  const synthesisResponse = await sessionManager.sendMessageAndCapture(
-    delegatorAgentId,
-    synthesisPrompt
-  )
+  const synthesisResponse = await sendMessageAndCapture(delegatorAgentId, synthesisPrompt)
 
   return { summaryParts, synthesisResponse }
 }

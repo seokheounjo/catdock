@@ -5,6 +5,14 @@ import * as agentManager from './agent-manager'
 import * as store from './store'
 import { logActivity } from './activity-logger'
 
+// ── 순환 의존 방지: session-manager가 콜백 주입 ──
+type SendMessageFn = (agentId: string, message: string) => Promise<void>
+let _sendMessage: SendMessageFn | null = null
+
+export function setSendMessage(fn: SendMessageFn): void {
+  _sendMessage = fn
+}
+
 // 감시 대상 프로세스
 interface WatchedProcess {
   agentId: string
@@ -166,20 +174,22 @@ function triggerDirectorFailover(failedDirectorId: string, failedDirectorName: s
       backupDirectorName: backup.name
     })
 
-    // 백업 디렉터에게 자동 메시지 전송 (지연 임포트로 순환 참조 방지)
-    setImmediate(async () => {
-      try {
-        const sessionManager = await import('./session-manager')
-        await sessionManager.sendMessage(
-          backup.id,
-          `[자동 장애조치] Director "${failedDirectorName}"이 응답 불능 상태입니다. ` +
-            `진행 중이던 작업을 인수하여 계속 진행해주세요. ` +
-            `현재 팀 상태를 확인하고 미완료 작업이 있으면 이어서 처리하세요.`
-        )
-      } catch (err) {
-        console.error(`[watchdog] 백업 디렉터 ${backup.name}에게 인수 요청 실패:`, err)
-      }
-    })
+    // 백업 디렉터에게 자동 메시지 전송
+    if (_sendMessage) {
+      const sendMsg = _sendMessage
+      setImmediate(async () => {
+        try {
+          await sendMsg(
+            backup.id,
+            `[자동 장애조치] Director "${failedDirectorName}"이 응답 불능 상태입니다. ` +
+              `진행 중이던 작업을 인수하여 계속 진행해주세요. ` +
+              `현재 팀 상태를 확인하고 미완료 작업이 있으면 이어서 처리하세요.`
+          )
+        } catch (err) {
+          console.error(`[watchdog] 백업 디렉터 ${backup.name}에게 인수 요청 실패:`, err)
+        }
+      })
+    }
   } else {
     // ★ 백업 디렉터 없음 → 총괄 자가복구
     console.log(`[watchdog] 백업 디렉터 없음 → ${failedDirectorName} 자가복구 모드`)

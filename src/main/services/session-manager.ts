@@ -10,8 +10,8 @@ import {
 } from './cli-builder'
 import { buildMcpConfigFile } from './mcp-manager'
 import { logActivity } from './activity-logger'
-import { hasDelegation, executeDelegation } from './delegation-manager'
-import { handleAgentError } from './error-recovery'
+import { hasDelegation, executeDelegation, setSendMessageAndCapture } from './delegation-manager'
+import { handleAgentError, setSessionCallbacks, setFindBackupDirector } from './error-recovery'
 import * as watchdog from './process-watchdog'
 import { v4 as uuid } from 'uuid'
 import { spawn, ChildProcess } from 'child_process'
@@ -35,6 +35,19 @@ const delegatingAgents = new Set<string>()
 const messageQueues = new Map<string, string[]>()
 // 상향 보고 메시지 ID 추적 — 보고에 대한 재보고 방지
 const reportMessageIds = new Set<string>()
+
+// ── 순환 의존 방지: 하위 모듈에 콜백 주입 ──
+// 모듈 로드 시점에는 함수가 아직 정의되지 않았으므로, 래퍼를 통해 지연 바인딩
+setSendMessageAndCapture((agentId: string, message: string) =>
+  sendMessageAndCapture(agentId, message)
+)
+setSessionCallbacks({
+  getErrorLog: (agentId: string) => getErrorLog(agentId),
+  sendMessage: (agentId: string, message: string) => sendMessage(agentId, message),
+  abortSession: (agentId: string) => abortSession(agentId)
+})
+setFindBackupDirector(watchdog.findBackupDirector)
+watchdog.setSendMessage((agentId: string, message: string) => sendMessage(agentId, message))
 
 function getConfigDir(agentId: string): string {
   // 프로젝트별 세션 디렉토리 사용

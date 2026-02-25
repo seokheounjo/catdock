@@ -3,9 +3,26 @@ import { BrowserWindow } from 'electron'
 import { v4 as uuid } from 'uuid'
 import { ErrorRecoveryEvent, ErrorRecoveryStatus } from '../../shared/types'
 import * as agentManager from './agent-manager'
-import * as sessionManager from './session-manager'
 import { logActivity } from './activity-logger'
-import { findBackupDirector } from './process-watchdog'
+import { AgentConfig } from '../../shared/types'
+
+// ── 순환 의존 방지: session-manager / process-watchdog가 콜백 주입 ──
+interface SessionCallbacks {
+  getErrorLog: (agentId: string) => string[]
+  sendMessage: (agentId: string, message: string) => Promise<void>
+  abortSession: (agentId: string) => void
+}
+type FindBackupDirectorFn = (failedDirectorId: string) => AgentConfig | null
+
+let _session: SessionCallbacks | null = null
+let _findBackupDirector: FindBackupDirectorFn | null = null
+
+export function setSessionCallbacks(callbacks: SessionCallbacks): void {
+  _session = callbacks
+}
+export function setFindBackupDirector(fn: FindBackupDirectorFn): void {
+  _findBackupDirector = fn
+}
 
 // 진행 중인 복구 이벤트
 const activeRecoveries = new Map<string, ErrorRecoveryEvent>()
@@ -84,7 +101,7 @@ export async function handleAgentError(agentId: string, error: string): Promise<
   broadcast('error-recovery:started', recoveryEvent)
 
   // 에러 로그 수집
-  const errorLog = sessionManager.getErrorLog(agentId).slice(-20).join('\n')
+  const errorLog = _session!.getErrorLog(agentId).slice(-20).join('\n')
 
   // 상위자에게 자동 메시지
   const superiorRole = superior.hierarchy?.role === 'director' ? 'Director' : 'Team Lead'
@@ -109,7 +126,7 @@ ${errorLog}
 
   try {
     updateRecoveryStatus(recoveryEvent.id, 'recovering')
-    await sessionManager.sendMessage(superior.id, message)
+    await _session!.sendMessage(superior.id, message)
     updateRecoveryStatus(recoveryEvent.id, 'resolved')
     logActivity(
       'status-change',
@@ -146,7 +163,7 @@ async function escalateDirectorError(
   error: string
 ): Promise<void> {
   // 1. 백업 디렉터가 있으면 인수 (기존 로직)
-  const backup = findBackupDirector(failedDirectorId)
+  const backup = _findBackupDirector?.(failedDirectorId) ?? null
   if (backup) {
     await escalateToBackupDirector(failedDirectorId, failedDirectorName, error, backup)
     return
@@ -161,7 +178,7 @@ async function escalateToBackupDirector(
   failedDirectorId: string,
   failedDirectorName: string,
   error: string,
-  backup: import('../../shared/types').AgentConfig
+  backup: AgentConfig
 ): Promise<void> {
   lastRecoveryTime.set(failedDirectorId, Date.now())
 
@@ -193,7 +210,7 @@ async function escalateToBackupDirector(
 
   try {
     updateRecoveryStatus(recoveryEvent.id, 'recovering')
-    await sessionManager.sendMessage(backup.id, message)
+    await _session!.sendMessage(backup.id, message)
     updateRecoveryStatus(recoveryEvent.id, 'resolved')
     logActivity(
       'status-change',
@@ -291,7 +308,7 @@ async function selfRecoverDirector(
     broadcast('agent:status-changed', failedDirectorId, { id: failedDirectorId, status: 'idle' })
 
     // 2. 세션 초기화 (기존 세션 종료)
-    sessionManager.abortSession(failedDirectorId)
+    _session!.abortSession(failedDirectorId)
 
     // 3. 사용자에게 알림
     broadcast('error-recovery:director-restarted', {
