@@ -17,6 +17,7 @@ export function SettingsPage() {
     percent?: number
     message?: string
   } | null>(null)
+  const [appUpdateChecked, setAppUpdateChecked] = useState(false)
   const [groupChatOpen, setGroupChatOpen] = useState(false)
   const [conversations, setConversations] = useState<ConversationConfig[]>([])
 
@@ -43,7 +44,14 @@ export function SettingsPage() {
         setCliUpdate(data as { latestVersion: string })
       }),
       window.api.on('app-update:status', (data: unknown) => {
-        setAppUpdate(data as { state: string; version?: string; percent?: number; message?: string })
+        const status = data as { state: string; version?: string; percent?: number; message?: string }
+        setAppUpdate(status)
+        if (status.state === 'not-available') {
+          setAppUpdateChecked(true)
+          setTimeout(() => setAppUpdateChecked(false), 3000)
+        } else {
+          setAppUpdateChecked(false)
+        }
       }),
       window.api.on('conversation:created', () => {
         window.api.conversation.list().then(setConversations).catch(() => {})
@@ -417,7 +425,25 @@ export function SettingsPage() {
             )}
             {(!appUpdate || appUpdate.state === 'not-available') && (
               <>
-                <span className="text-xs text-text-muted">{t('settings.appUpdateLatest')}</span>
+                {appUpdateChecked ? (
+                  <span className="flex items-center gap-1.5 text-xs text-green-400 animate-fade-in">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    {t('settings.appUpdateLatest')}
+                  </span>
+                ) : (
+                  <span className="text-xs text-text-muted">{t('settings.appUpdateLatest')}</span>
+                )}
                 <button
                   className="ml-auto px-2 py-0.5 text-xs rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20"
                   onClick={() => window.api.app.checkAppUpdate()}

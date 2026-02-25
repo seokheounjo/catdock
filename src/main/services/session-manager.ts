@@ -81,14 +81,18 @@ function getConfigDir(agentId: string): string {
 function getSession(agentId: string): ActiveSession {
   if (!activeSessions.has(agentId)) {
     const messages = store.getSessionHistory(agentId)
+    // 영속 저장소에서 CLI 세션 ID 복원 — 앱 재시작 후에도 --resume 유지
+    const sessionInfo = store.getSessionInfo(agentId)
+    const restoredCliSessionId = sessionInfo?.sessionId ?? null
+    const hasExistingMessages = messages.length > 0
     activeSessions.set(agentId, {
       agentId,
       process: null,
       abortController: new AbortController(),
       messages,
       configDir: getConfigDir(agentId),
-      hasConversation: false,
-      cliSessionId: null
+      hasConversation: hasExistingMessages,
+      cliSessionId: restoredCliSessionId
     })
   }
   return activeSessions.get(agentId)!
@@ -329,7 +333,8 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
 async function runCliSession(
   config: AgentConfig,
   session: ActiveSession,
-  userMessage: string
+  userMessage: string,
+  _retryWithoutResume = false
 ): Promise<string> {
   const agentId = config.id
   const provider = resolveProvider(config)
@@ -343,10 +348,13 @@ async function runCliSession(
   // 전사 규칙 + 에이전트 응답 언어 설정 로드
   const globalSettings = store.getSettings()
 
+  // resume 재시도 시에는 세션 ID 무시
+  const useResumeId = _retryWithoutResume ? null : (adapter.supportsResume() ? session.cliSessionId : null)
+
   // 어댑터로 인수 빌드
   const args = adapter.buildArgs(config, {
-    resumeSessionId: adapter.supportsResume() ? session.cliSessionId : null,
-    hasConversation: session.hasConversation,
+    resumeSessionId: useResumeId,
+    hasConversation: _retryWithoutResume ? false : session.hasConversation,
     userMessage,
     companyRules: globalSettings.companyRules,
     agentLanguage: globalSettings.agentLanguage
@@ -465,6 +473,8 @@ async function runCliSession(
     const parserCallbacks = {
       onInit: (sessionId: string) => {
         session.cliSessionId = sessionId
+        // 영속 저장소에도 CLI 세션 ID 저장 — 앱 재시작 후 --resume 유지
+        store.updateSessionId(agentId, sessionId)
       },
       onText: (text: string) => {
         fullResponse += text
@@ -533,6 +543,18 @@ async function runCliSession(
       if (code !== 0 && !fullResponse.trim() && !resultText.trim()) {
         session.process = null
         watchdog.unregisterProcess(agentId)
+
+        // --resume 실패 시 세션 ID를 지우고 재시도 (1회만)
+        if (!_retryWithoutResume && useResumeId) {
+          console.warn(`[${config.name}] --resume 실패 (code ${code}), 새 세션으로 재시도`)
+          session.cliSessionId = null
+          session.hasConversation = false
+          store.updateSessionId(agentId, '')
+          broadcastProcessInfo(agentId, { processStatus: 'starting', modelInUse: config.model })
+          runCliSession(config, session, userMessage, true).then(resolve, reject)
+          return
+        }
+
         broadcastProcessInfo(agentId, { processStatus: 'crashed', lastError: `Exit code ${code}` })
         const displayName = adapter.getDisplayName()
         reject(new Error(`${displayName} process exited with code ${code}`))

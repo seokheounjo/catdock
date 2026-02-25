@@ -247,8 +247,17 @@ export function updateSessionId(agentId: string, sessionId: string): void {
   const d = load()
   if (d.sessions[agentId]) {
     d.sessions[agentId].sessionId = sessionId
-    save()
+  } else {
+    // 세션 엔트리가 아직 없으면 생성 (첫 대화 시 onInit이 saveSessionHistory보다 먼저 호출됨)
+    d.sessions[agentId] = {
+      sessionId,
+      agentId,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    }
   }
+  save()
 }
 
 export function clearSessionHistory(agentId: string): void {
