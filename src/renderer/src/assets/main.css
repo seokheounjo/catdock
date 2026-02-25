@@ -71,9 +71,15 @@
               opacity 200ms ease-in-out;
 }
 
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+/* 얇은 스크롤바 (독 에이전트 영역) */
+.scrollbar-thin::-webkit-scrollbar { width: 4px; height: 3px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent; }
 
 /* 독 수평 스크롤바 숨기기 */
 .scrollbar-hide::-webkit-scrollbar { display: none; }

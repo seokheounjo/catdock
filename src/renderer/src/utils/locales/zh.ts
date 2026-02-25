@@ -96,6 +96,18 @@ const zh: LocaleMessages = {
     dockSize: 'Dock 大小',
     quit: '退出',
     cliUpdate: 'CLI 更新 (v{version})',
+    appUpdateChecking: '正在检查应用更新...',
+    appUpdateAvailable: '新版本 v{version} 可用',
+    appUpdateDownloading: '下载中... {percent}%',
+    appUpdateReady: 'v{version} 准备安装 — 重启',
+    appUpdateLatest: '已是最新版本',
+    appUpdateError: '更新检查失败',
+    appUpdateCheck: '检查更新',
+    appUpdateDownload: '下载',
+    appUpdateInstall: '重启并安装',
+    groupChatMembers: '人',
+    noGroupChats: '暂无群组聊天',
+    newGroupChat: '创建新房间',
     globalSettings: '全局设置',
     defaultModel: '默认模型',
     defaultPermissionMode: '默认权限模式',
@@ -363,7 +375,10 @@ const zh: LocaleMessages = {
     catError: '错误状态的钓鱼猫',
     catRecovering: '组长正在恢复的钓鱼猫',
     catDefault: '钓鱼猫',
-    statusRecovering: '组长处理中...'
+    statusRecovering: '组长处理中...',
+    collapse: '折叠',
+    expand: '展开',
+    collapsedCount: '隐藏{count}人'
   },
 
   common: {

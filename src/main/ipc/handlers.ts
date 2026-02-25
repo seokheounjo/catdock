@@ -12,6 +12,7 @@ import {
   checkForCliUpdate
 } from '../services/cli-builder'
 import * as errorRecovery from '../services/error-recovery'
+import * as appUpdater from '../services/app-updater'
 import { randomAvatar } from '../services/default-agents'
 import { respondToPermission } from '../services/permission-server'
 import * as taskManager from '../services/task-manager'
@@ -515,6 +516,10 @@ export function registerIpcHandlers(): void {
     store.updateSettings({ dockSize: size } as Partial<GlobalSettings>)
   })
 
+  ipcMain.handle('dock:set-visible-count', (_e, count: number) => {
+    windowFns?.resizeDock(count)
+  })
+
   // ── 파일 선택 / 읽기 ──
 
   ipcMain.handle('window:select-file', async () => {
@@ -603,5 +608,19 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('cli:check-update', () => {
     return checkForCliUpdate()
+  })
+
+  // ── 앱 업데이트 (electron-updater) ──
+
+  ipcMain.handle('app:check-app-update', async () => {
+    await appUpdater.checkForAppUpdate()
+  })
+
+  ipcMain.handle('app:download-app-update', async () => {
+    await appUpdater.downloadAppUpdate()
+  })
+
+  ipcMain.handle('app:install-app-update', () => {
+    appUpdater.installAppUpdate()
   })
 }

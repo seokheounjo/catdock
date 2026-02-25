@@ -25,6 +25,7 @@ import { startPermissionServer, stopPermissionServer } from './services/permissi
 import { startWatchdog, stopWatchdog } from './services/process-watchdog'
 import { startMonitoring, stopMonitoring } from './services/monitoring-loop'
 import { setDockResizeCallback } from './services/delegation-manager'
+import { initAutoUpdater, checkForAppUpdate } from './services/app-updater'
 import * as wm from './window-manager'
 
 // ★ GPU 비활성화 → transparent: true 윈도우 크래시 방지
@@ -231,9 +232,20 @@ if (gotLock) {
   app
     .whenReady()
     .then(async () => {
-      electronApp.setAppUserModelId('com.virtual-company')
+      electronApp.setAppUserModelId('com.virtual-company.app')
 
-      // 프로젝트 루트 설정
+      // 프로젝트 루트 설정 — 저장된 경로 없으면 폴더 선택 다이얼로그
+      const saved = store.getSettings().defaultWorkingDirectory
+      if (!saved) {
+        const result = await dialog.showOpenDialog({
+          title: '작업 디렉토리 선택',
+          message: '에이전트가 작업할 프로젝트 폴더를 선택하세요.',
+          properties: ['openDirectory']
+        })
+        if (result.filePaths.length > 0) {
+          store.updateSettings({ defaultWorkingDirectory: result.filePaths[0] })
+        }
+      }
       store.setProjectRoot(detectProjectRoot())
 
       // dock 생성 중이면 optimizer 제외
@@ -322,6 +334,18 @@ if (gotLock) {
           if (!isQuitting) broadcastCliUpdate()
         },
         24 * 60 * 60 * 1000
+      )
+
+      // 앱 자동 업데이트 (electron-updater)
+      initAutoUpdater()
+      setTimeout(() => {
+        if (!isQuitting) checkForAppUpdate().catch(() => {})
+      }, 30000)
+      setInterval(
+        () => {
+          if (!isQuitting) checkForAppUpdate().catch(() => {})
+        },
+        4 * 60 * 60 * 1000
       )
 
       app.on('activate', () => {

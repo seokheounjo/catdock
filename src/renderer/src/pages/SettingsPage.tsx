@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '../contexts/ThemeContext'
-import { DockSize } from '../../../shared/types'
+import { DockSize, ConversationConfig } from '../../../shared/types'
 import { useI18n } from '../hooks/useI18n'
 import { useSettingsStore } from '../stores/settings-store'
 
@@ -10,6 +10,14 @@ export function SettingsPage() {
   const { settings, fetchSettings, updateSettings } = useSettingsStore()
   const [dockSize, setDockSize] = useState<DockSize>('medium')
   const [cliUpdate, setCliUpdate] = useState<{ latestVersion: string } | null>(null)
+  const [appUpdate, setAppUpdate] = useState<{
+    state: string
+    version?: string
+    percent?: number
+    message?: string
+  } | null>(null)
+  const [groupChatOpen, setGroupChatOpen] = useState(false)
+  const [conversations, setConversations] = useState<ConversationConfig[]>([])
 
   useEffect(() => {
     fetchSettings()
@@ -24,11 +32,21 @@ export function SettingsPage() {
         }
       })
       .catch(() => {})
+    window.api.conversation.list().then(setConversations).catch(() => {})
 
     const unsubs = [
       window.api.on('dock:size-changed', (size: unknown) => setDockSize(size as DockSize)),
       window.api.on('cli:update-available', (data: unknown) => {
         setCliUpdate(data as { latestVersion: string })
+      }),
+      window.api.on('app-update:status', (data: unknown) => {
+        setAppUpdate(data as { state: string; version?: string; percent?: number; message?: string })
+      }),
+      window.api.on('conversation:created', () => {
+        window.api.conversation.list().then(setConversations).catch(() => {})
+      }),
+      window.api.on('conversation:deleted', () => {
+        window.api.conversation.list().then(setConversations).catch(() => {})
       })
     ]
     return () => {
@@ -72,12 +90,10 @@ export function SettingsPage() {
 
       {/* 메뉴 목록 */}
       <div className="flex-1 flex flex-col py-1">
+        {/* 그룹 채팅 — 토글 섹션 */}
         <button
           className={menuBtn}
-          onClick={() => {
-            window.api.window.openNewConversation()
-            window.api.window.close()
-          }}
+          onClick={() => setGroupChatOpen((v) => !v)}
         >
           <svg
             width="16"
@@ -92,8 +108,89 @@ export function SettingsPage() {
             <path d="M4 14v1a2 2 0 002 2h8l4 3v-3a2 2 0 002-2V7a2 2 0 00-2-2h-3" />
             <rect x="1" y="1" width="12" height="10" rx="2" />
           </svg>
-          {t('settings.groupChat')}
+          <span className="flex-1">{t('settings.groupChat')}</span>
+          {conversations.length > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-text-muted">
+              {conversations.length}
+            </span>
+          )}
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 10 10"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            className={`transition-transform duration-200 ${groupChatOpen ? 'rotate-180' : ''}`}
+          >
+            <polyline points="2,3.5 5,6.5 8,3.5" />
+          </svg>
         </button>
+        {groupChatOpen && (
+          <div className="px-4 pb-2 space-y-1">
+            {/* 기존 방 목록 */}
+            {conversations.map((conv) => (
+              <button
+                key={conv.id}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5
+                           border border-white/10 hover:border-accent/40 hover:bg-white/10
+                           cursor-pointer transition-colors text-left"
+                onClick={() => {
+                  window.api.window.openGroupChat(conv.id)
+                  window.api.window.close()
+                }}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="text-text-muted shrink-0"
+                >
+                  <path d="M4 14v1a2 2 0 002 2h8l4 3v-3a2 2 0 002-2V7a2 2 0 00-2-2h-3" />
+                  <rect x="1" y="1" width="12" height="10" rx="2" />
+                </svg>
+                <span className="text-xs text-text truncate flex-1">{conv.name}</span>
+                <span className="text-[10px] text-text-muted shrink-0">
+                  {conv.participantIds.length}{t('settings.groupChatMembers')}
+                </span>
+              </button>
+            ))}
+            {conversations.length === 0 && (
+              <div className="text-[11px] text-text-muted text-center py-2">
+                {t('settings.noGroupChats')}
+              </div>
+            )}
+            {/* 새 방 만들기 버튼 */}
+            <button
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg
+                         border border-dashed border-white/20 hover:border-accent/50 hover:bg-accent/10
+                         cursor-pointer transition-colors bg-transparent"
+              onClick={() => {
+                window.api.window.openNewConversation()
+                window.api.window.close()
+              }}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                className="text-accent"
+              >
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              <span className="text-xs text-accent">{t('settings.newGroupChat')}</span>
+            </button>
+          </div>
+        )}
 
         <button
           className={menuBtn}
@@ -194,6 +291,117 @@ export function SettingsPage() {
               {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
             </button>
           ))}
+        </div>
+
+        {/* 작업 디렉토리 설정 */}
+        <div className="px-4 py-3 space-y-2">
+          <span className="text-sm text-text-muted">{t('settings.defaultWorkingDir')}</span>
+          <div
+            className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/10 cursor-pointer hover:border-accent/50 transition-colors"
+            onClick={async () => {
+              const dir = await window.api.window.selectDirectory()
+              if (dir) {
+                await updateSettings({ defaultWorkingDirectory: dir })
+              }
+            }}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-text-muted shrink-0"
+            >
+              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+            </svg>
+            <span className="text-xs text-text font-mono truncate flex-1">
+              {settings?.defaultWorkingDirectory || '-'}
+            </span>
+            <span className="text-xs text-accent shrink-0">{t('settings.browse')}</span>
+          </div>
+        </div>
+
+        {/* 앱 업데이트 */}
+        <div className="px-4 py-3 space-y-1">
+          <div className="flex items-center gap-2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-text-muted shrink-0"
+            >
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {appUpdate?.state === 'checking' && (
+              <span className="text-xs text-text-muted">{t('settings.appUpdateChecking')}</span>
+            )}
+            {appUpdate?.state === 'available' && (
+              <>
+                <span className="text-xs text-orange-400">
+                  {t('settings.appUpdateAvailable', { version: appUpdate.version ?? '' })}
+                </span>
+                <button
+                  className="ml-auto px-2 py-0.5 text-xs rounded bg-accent text-white border-none cursor-pointer hover:opacity-80"
+                  onClick={() => window.api.app.downloadAppUpdate()}
+                >
+                  {t('settings.appUpdateDownload')}
+                </button>
+              </>
+            )}
+            {appUpdate?.state === 'downloading' && (
+              <span className="text-xs text-blue-400">
+                {t('settings.appUpdateDownloading', {
+                  percent: String(Math.round(appUpdate.percent ?? 0))
+                })}
+              </span>
+            )}
+            {appUpdate?.state === 'downloaded' && (
+              <>
+                <span className="text-xs text-green-400">
+                  {t('settings.appUpdateReady', { version: appUpdate.version ?? '' })}
+                </span>
+                <button
+                  className="ml-auto px-2 py-0.5 text-xs rounded bg-green-600 text-white border-none cursor-pointer hover:opacity-80"
+                  onClick={() => window.api.app.installAppUpdate()}
+                >
+                  {t('settings.appUpdateInstall')}
+                </button>
+              </>
+            )}
+            {appUpdate?.state === 'error' && (
+              <>
+                <span className="text-xs text-red-400">{t('settings.appUpdateError')}</span>
+                <button
+                  className="ml-auto px-2 py-0.5 text-xs rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20"
+                  onClick={() => window.api.app.checkAppUpdate()}
+                >
+                  {t('settings.appUpdateCheck')}
+                </button>
+              </>
+            )}
+            {(!appUpdate || appUpdate.state === 'not-available') && (
+              <>
+                <span className="text-xs text-text-muted">{t('settings.appUpdateLatest')}</span>
+                <button
+                  className="ml-auto px-2 py-0.5 text-xs rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20"
+                  onClick={() => window.api.app.checkAppUpdate()}
+                >
+                  {t('settings.appUpdateCheck')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="h-px bg-white/10 mx-4" />

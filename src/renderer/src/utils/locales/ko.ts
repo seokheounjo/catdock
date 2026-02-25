@@ -99,6 +99,18 @@ const ko = {
     dockSize: '독 크기',
     quit: '종료',
     cliUpdate: 'CLI 업데이트 (v{version})',
+    appUpdateChecking: '앱 업데이트 확인 중...',
+    appUpdateAvailable: '새 버전 v{version} 사용 가능',
+    appUpdateDownloading: '다운로드 중... {percent}%',
+    appUpdateReady: 'v{version} 설치 준비 완료 — 재시작',
+    appUpdateLatest: '최신 버전 사용 중',
+    appUpdateError: '업데이트 확인 실패',
+    appUpdateCheck: '업데이트 확인',
+    appUpdateDownload: '다운로드',
+    appUpdateInstall: '재시작하여 설치',
+    groupChatMembers: '명',
+    noGroupChats: '그룹 채팅이 없습니다',
+    newGroupChat: '새 방 만들기',
     // 글로벌 설정
     globalSettings: '글로벌 설정',
     defaultModel: '기본 모델',
@@ -384,7 +396,10 @@ const ko = {
     catError: '오류 상태의 낚시 고양이',
     catRecovering: '팀장이 복구 중인 낚시 고양이',
     catDefault: '낚시 고양이',
-    statusRecovering: '팀장이 해결 중...'
+    statusRecovering: '팀장이 해결 중...',
+    collapse: '접기',
+    expand: '펼치기',
+    collapsedCount: '{count}명 숨김'
   },
 
   common: {

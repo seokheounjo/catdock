@@ -96,6 +96,18 @@ const en: LocaleMessages = {
     dockSize: 'Dock Size',
     quit: 'Quit',
     cliUpdate: 'CLI Update (v{version})',
+    appUpdateChecking: 'Checking for app updates...',
+    appUpdateAvailable: 'New version v{version} available',
+    appUpdateDownloading: 'Downloading... {percent}%',
+    appUpdateReady: 'v{version} ready to install — Restart',
+    appUpdateLatest: 'Up to date',
+    appUpdateError: 'Update check failed',
+    appUpdateCheck: 'Check for updates',
+    appUpdateDownload: 'Download',
+    appUpdateInstall: 'Restart to install',
+    groupChatMembers: ' members',
+    noGroupChats: 'No group chats yet',
+    newGroupChat: 'Create new room',
     globalSettings: 'Global Settings',
     defaultModel: 'Default Model',
     defaultPermissionMode: 'Default Permission Mode',
@@ -365,7 +377,10 @@ const en: LocaleMessages = {
     catError: 'Error fishing cat',
     catRecovering: 'Leader recovering fishing cat',
     catDefault: 'Fishing cat',
-    statusRecovering: 'Leader resolving...'
+    statusRecovering: 'Leader resolving...',
+    collapse: 'Collapse',
+    expand: 'Expand',
+    collapsedCount: '{count} hidden'
   },
 
   common: {

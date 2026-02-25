@@ -95,24 +95,26 @@ export function MiniChatPane({
         <div className={`w-2 h-2 rounded-full shrink-0 ${statusColor}`} title={status} />
       </div>
 
-      {/* 메시지 영역 */}
-      <div className="flex-1 overflow-y-auto py-2 space-y-0.5 min-h-0">
-        {messages.length === 0 && !streaming && (
-          <div className="flex items-center justify-center h-full text-text-muted text-[10px]">
-            대화 없음
-          </div>
-        )}
-        {messages.slice(-20).map((msg) => (
-          <div key={msg.id} className="scale-[0.85] origin-top-left w-[118%]">
-            <MessageBubble message={msg} />
-          </div>
-        ))}
-        {streaming && (
-          <div className="scale-[0.85] origin-top-left w-[118%]">
-            <StreamingText content={streamingContent} />
-          </div>
-        )}
-        <div ref={bottomRef} />
+      {/* 메시지 영역 — justify-end로 하단 정렬 */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex flex-col justify-end min-h-full py-2 space-y-0.5">
+          {messages.length === 0 && !streaming && (
+            <div className="flex-1 flex items-center justify-center text-text-muted text-[10px]">
+              대화 없음
+            </div>
+          )}
+          {messages.slice(-20).map((msg) => (
+            <div key={msg.id} className="scale-[0.85] origin-top-left w-[118%]">
+              <MessageBubble message={msg} />
+            </div>
+          ))}
+          {streaming && (
+            <div className="scale-[0.85] origin-top-left w-[118%]">
+              <StreamingText content={streamingContent} />
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
       </div>
     </div>
   )

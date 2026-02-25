@@ -192,25 +192,13 @@ export function resizeDock(agentCount: number): void {
   const { workArea } = screen.getPrimaryDisplay()
   const maxW = workArea.width - 40
 
-  let effectiveSize = currentDockSize
-  const sizes: DockSize[] = ['large', 'medium', 'small']
-  for (const size of sizes) {
-    effectiveSize = size
-    const g = DOCK_SIZES[size].agentGap
-    if (agentCount * g + 200 <= maxW) break
-  }
-
-  const gap = DOCK_SIZES[effectiveSize].agentGap
-  let neededW = agentCount * gap + 200
-  let finalGap: number = gap
-
-  if (neededW > maxW && effectiveSize === 'small') {
-    finalGap = Math.max(40, Math.floor((maxW - 200) / agentCount))
-    neededW = agentCount * finalGap + 140
-  }
-
+  // 버튼 영역 (추가/커맨드센터/설정) 고정폭 약 160px
+  const buttonsW = 160
+  const gap = DOCK_SIZES[currentDockSize].agentGap
+  const neededW = agentCount * gap + buttonsW + 40
+  // 넘치면 maxW로 제한 — 스크롤로 처리
   const newW = Math.max(150, Math.min(neededW, maxW))
-  const h = dockExpanded ? DOCK_HEIGHT_EXPANDED : DOCK_SIZES[effectiveSize].height
+  const h = dockExpanded ? DOCK_HEIGHT_EXPANDED : DOCK_SIZES[currentDockSize].height
 
   dockWindow.setBounds({
     x: Math.round(workArea.x + (workArea.width - newW) / 2),
@@ -218,12 +206,6 @@ export function resizeDock(agentCount: number): void {
     width: newW,
     height: h
   })
-
-  if (effectiveSize !== currentDockSize || finalGap !== gap) {
-    BrowserWindow.getAllWindows().forEach((w) =>
-      w.webContents.send('dock:density-changed', { size: effectiveSize, gap: finalGap, agentCount })
-    )
-  }
 }
 
 export function setDockSize(size: DockSize): void {

@@ -15,7 +15,9 @@ export function DockPage() {
         justifyContent: 'center',
         background: 'transparent',
         paddingBottom: 4,
-        overflow: 'visible'
+        paddingLeft: 8,
+        paddingRight: 8,
+        overflow: 'hidden'
       }}
     >
       <Dock />

@@ -170,6 +170,10 @@ interface AppApi {
   quit(): Promise<void>
   setDockExpanded(expanded: boolean): Promise<void>
   setDockSize(size: DockSize): Promise<void>
+  setDockVisibleCount(count: number): Promise<void>
+  checkAppUpdate(): Promise<void>
+  downloadAppUpdate(): Promise<void>
+  installAppUpdate(): Promise<void>
 }
 
 interface Api {

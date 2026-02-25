@@ -216,7 +216,12 @@ const api = {
     quit: (): Promise<void> => ipcRenderer.invoke('app:quit'),
     setDockExpanded: (expanded: boolean): Promise<void> =>
       ipcRenderer.invoke('app:set-dock-expanded', expanded),
-    setDockSize: (size: DockSize): Promise<void> => ipcRenderer.invoke('app:set-dock-size', size)
+    setDockSize: (size: DockSize): Promise<void> => ipcRenderer.invoke('app:set-dock-size', size),
+    setDockVisibleCount: (count: number): Promise<void> =>
+      ipcRenderer.invoke('dock:set-visible-count', count),
+    checkAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:check-app-update'),
+    downloadAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:download-app-update'),
+    installAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:install-app-update')
   },
 
   // Events from main

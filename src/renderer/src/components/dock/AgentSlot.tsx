@@ -8,6 +8,9 @@ interface Props {
   status: AgentStatus
   recovering?: boolean
   dockSize?: DockSize
+  collapsed?: boolean
+  subordinateCount?: number
+  groupRole?: 'head' | 'sub'
   onClick: () => void
   onContextMenu?: (e: React.MouseEvent) => void
 }
@@ -17,6 +20,9 @@ export function AgentSlot({
   status,
   recovering = false,
   dockSize = 'medium',
+  collapsed,
+  subordinateCount = 0,
+  groupRole,
   onClick,
   onContextMenu
 }: Props) {
@@ -53,7 +59,7 @@ export function AgentSlot({
     <button
       className={`fishing-slot flex flex-col items-center gap-0 cursor-pointer bg-transparent border-none p-0 flex-shrink-0
                  focus:outline-2 focus:outline-accent focus:outline-offset-2 focus:ring-2 focus:ring-accent/50
-                 transition-all duration-200 ${isTemporary ? 'opacity-70' : ''}`}
+                 transition-all duration-200 ${isTemporary ? 'opacity-70' : ''} ${groupRole === 'sub' ? 'mt-1' : ''}`}
       onClick={onClick}
       onContextMenu={onContextMenu}
       onKeyDown={handleKeyDown}
@@ -92,6 +98,15 @@ export function AgentSlot({
             className="w-full h-full object-cover"
           />
         </div>
+        {/* 접힌 상태 카운트 배지 (토글 버튼은 그룹 컨테이너로 이동) */}
+        {collapsed && subordinateCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center
+                       rounded-full bg-blue-600/90 text-[8px] text-white font-bold px-1 z-10"
+          >
+            +{subordinateCount}
+          </span>
+        )}
       </div>
       <div className="flex flex-col items-center">
         <span
@@ -105,10 +120,10 @@ export function AgentSlot({
         >
           {agent.name}
         </span>
-        {/* 리더/디렉터 역할 표시 */}
-        {(isDirector || isLeader) && agent.role && (
-          <span className="text-[7px] text-blue-300/70 leading-none truncate max-w-[72px]">
-            {agent.role}
+        {/* 접힌 상태 인원 수 표시 */}
+        {collapsed && subordinateCount > 0 && (
+          <span className="text-[7px] text-blue-400/90 leading-none font-medium">
+            {t('dock.collapsedCount', { count: String(subordinateCount) })}
           </span>
         )}
         {/* 복구 중 표시 */}

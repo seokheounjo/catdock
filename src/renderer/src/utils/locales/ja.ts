@@ -96,6 +96,18 @@ const ja: LocaleMessages = {
     dockSize: 'ドックサイズ',
     quit: '終了',
     cliUpdate: 'CLIアップデート (v{version})',
+    appUpdateChecking: 'アプリのアップデートを確認中...',
+    appUpdateAvailable: '新バージョン v{version} が利用可能',
+    appUpdateDownloading: 'ダウンロード中... {percent}%',
+    appUpdateReady: 'v{version} インストール準備完了 — 再起動',
+    appUpdateLatest: '最新バージョンです',
+    appUpdateError: 'アップデート確認に失敗',
+    appUpdateCheck: 'アップデートを確認',
+    appUpdateDownload: 'ダウンロード',
+    appUpdateInstall: '再起動してインストール',
+    groupChatMembers: '名',
+    noGroupChats: 'グループチャットがありません',
+    newGroupChat: '新しいルームを作成',
     globalSettings: 'グローバル設定',
     defaultModel: 'デフォルトモデル',
     defaultPermissionMode: 'デフォルト権限モード',
@@ -366,7 +378,10 @@ const ja: LocaleMessages = {
     catError: 'エラー状態の釣り猫',
     catRecovering: 'リーダーが復旧中の釣り猫',
     catDefault: '釣り猫',
-    statusRecovering: 'リーダーが対応中...'
+    statusRecovering: 'リーダーが対応中...',
+    collapse: '折りたたむ',
+    expand: '展開する',
+    collapsedCount: '{count}人非表示'
   },
 
   common: {

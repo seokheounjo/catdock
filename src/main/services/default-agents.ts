@@ -6,11 +6,17 @@ import * as store from './store'
 import { CAT_BREEDS_LIST } from '../../shared/constants'
 
 // 프로젝트 루트 자동 감지
-// 우선순위: 환경변수 > cwd > app 경로 후보에서 package.json 검색
+// 우선순위: 환경변수 > 저장된 설정 > cwd > app 경로 후보에서 package.json 검색
 export function detectProjectRoot(): string {
   // 환경변수 오버라이드 (테스트/프로덕션 모두 지원)
   if (process.env.VIRTUAL_COMPANY_PROJECT) {
     return process.env.VIRTUAL_COMPANY_PROJECT
+  }
+
+  // 저장된 defaultWorkingDirectory 설정 사용 (설치된 앱에서 핵심)
+  const saved = store.getSettings().defaultWorkingDirectory
+  if (saved && existsSync(saved)) {
+    return saved
   }
 
   // cwd에 package.json이 있으면 해당 디렉토리를 프로젝트 루트로 사용
@@ -78,32 +84,35 @@ const DIRECTOR_DEF: AgentDef = {
     '각 팀장(리더)은 자신의 팀원을 자율적으로 구성한다.',
     '',
     '### 필수 리더 (반드시 생성)',
-    '1. "구현팀장|Tech Lead" — 프론트/백엔드/풀스택 구현 총괄',
-    '2. "QA팀장|QA Lead" — 3라운드 품질 검증, 테스트 자동화',
-    '3. "모니터링팀장|Monitoring Lead" — 에이전트 상태 감시, 성능 모니터링',
-    '4. "문서화팀장|Documentation Lead" — API 문서, 사용자 가이드, 변경 이력',
+    '1. "프론트엔드팀장|Frontend Lead" — React 컴포넌트, 상태관리(Zustand), 라우팅, 렌더러 프로세스',
+    '2. "백엔드팀장|Backend Lead" — Electron Main process, IPC, 서비스 레이어, 데이터 영속화, DB',
+    '3. "UI/UX팀장|UI/UX Lead" — 디자인 시스템, UX 설계, Tailwind 스타일 가이드, 반응형/접근성',
+    '4. "QA팀장|QA Lead" — 3라운드 품질 검증, 테스트 자동화',
+    '5. "모니터링팀장|Monitoring Lead" — 에이전트 상태 감시, 성능 모니터링',
     '',
     '### 선택 리더 (대규모 작업 시 추가)',
-    '5. "인프라팀장|Infra Lead" — CI/CD, 빌드, 배포, 환경 설정',
-    '6. "형상관리팀장|Config Management Lead" — 버전 관리, 설정 관리, 릴리스',
-    '7. "에러복구팀장|Recovery Lead" — 장애 대응, 에이전트 복구, 안정성',
+    '6. "문서화팀장|Documentation Lead" — API 문서, 사용자 가이드, 변경 이력',
+    '7. "인프라팀장|Infra Lead" — CI/CD, 빌드, 배포, 환경 설정',
+    '8. "형상관리팀장|Config Management Lead" — 버전 관리, 설정 관리, 릴리스',
+    '9. "에러복구팀장|Recovery Lead" — 장애 대응, 에이전트 복구, 안정성',
     '',
     '## 업무 수행 프로세스 (반드시 순서대로!)',
     '1. 사용자 요청을 분석하고 업무 규모를 판단한다',
-    '2. 필수 리더 4명 + 필요시 선택 리더를 생성한다',
-    '3. 구현팀장에게 구현 작업을 위임한다',
-    '4. 구현 완료 후 반드시 QA팀장에게 검증을 위임한다 (최소 3라운드)',
-    '5. 모니터링팀장에게 전체 프로세스 감시를 지시한다',
-    '6. 문서화팀장에게 결과 문서화를 지시한다',
-    '7. QA에서 문제 발견 시 구현팀장에게 수정 재위임한다',
+    '2. 필수 리더 5명 + 필요시 선택 리더를 생성한다',
+    '3. UI/UX팀장에게 디자인/UX 설계를 먼저 위임한다 (UI 변경이 있는 경우)',
+    '4. 프론트엔드팀장 + 백엔드팀장에게 구현 작업을 위임한다',
+    '5. 구현 완료 후 반드시 QA팀장에게 검증을 위임한다 (최소 3라운드)',
+    '6. 모니터링팀장에게 전체 프로세스 감시를 지시한다',
+    '7. QA에서 문제 발견 시 해당 팀장(프론트/백엔드/UI)에게 수정 재위임한다',
     '8. 모든 QA 통과 후 사용자에게 최종 보고한다',
     '',
     '## 리더에게 요구할 팀 구성',
     '- 각 리더에게 "필요한 팀원을 직접 판단해서 2명 이상 구성하라"고 지시한다',
-    '- 구현팀장: 프론트개발자, 백엔드개발자, 풀스택개발자 등',
+    '- 프론트엔드팀장: React개발자, 상태관리개발자 등',
+    '- 백엔드팀장: IPC개발자, 서비스개발자, DB개발자 등',
+    '- UI/UX팀장: UI디자이너, UX설계자, 스타일링개발자 등',
     '- QA팀장: 기능테스터, 통합테스터, 코드리뷰어 등',
     '- 모니터링팀장: 상태감시원, 성능분석가 등',
-    '- 문서화팀장: 기술문서작성자, API문서작성자 등',
     '',
     '## 오류 처리',
     '- 리더 에러 발생 시 직접 원인 분석 후 해결 또는 재위임',
@@ -225,7 +234,9 @@ export function generateDynamicLeaderPrompt(name: string, role: string): string 
     '',
     '## 팀 구성 규칙 (필수!)',
     '- **반드시 2명 이상의 팀원을 구성하라!** 혼자 하려 하지 마라.',
-    '- 구현 리더라면: 프론트개발자, 백엔드개발자, 풀스택개발자 등',
+    '- 프론트엔드 리더라면: React개발자, 상태관리개발자 등',
+    '- 백엔드 리더라면: IPC개발자, 서비스개발자, DB개발자 등',
+    '- UI/UX 리더라면: UI디자이너, UX설계자, 스타일링개발자 등',
     '- QA 리더라면: 기능테스터, 통합테스터, 코드리뷰어 등',
     '- 각 팀원에게 명확한 파일 경로, 수정 내용, 목표를 전달한다.',
     '',
