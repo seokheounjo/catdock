@@ -1,5 +1,6 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState, useRef, useEffect } from 'react'
 import { AgentConfig, AgentState } from '../../../../shared/types'
+import { MODEL_OPTIONS } from '../../../../shared/constants'
 import { generateAvatar } from '../../utils/avatar'
 import { useAgentStore } from '../../stores/agent-store'
 import { useI18n } from '../../hooks/useI18n'
@@ -15,9 +16,16 @@ const statusColors: Record<string, string> = {
   error: 'bg-red-500'
 }
 
+// 모델 ID → 짧은 표시명
+function shortModelName(model: string): string {
+  return model.replace('claude-', '').split('-202')[0]
+}
+
 export const AgentCard = memo(function AgentCard({ agent, state }: Props) {
   const { t } = useI18n()
-  const { deleteAgent } = useAgentStore()
+  const { deleteAgent, updateAgent } = useAgentStore()
+  const [showModelPicker, setShowModelPicker] = useState(false)
+  const pickerRef = useRef<HTMLDivElement>(null)
   const avatarUri = useMemo(
     () => generateAvatar(agent.avatar.style, agent.avatar.seed),
     [agent.avatar.style, agent.avatar.seed]
@@ -27,6 +35,23 @@ export const AgentCard = memo(function AgentCard({ agent, state }: Props) {
   const status = state?.status ?? 'idle'
   const cost = state?.costTotal ?? 0
   const processStatus = state?.processInfo?.processStatus ?? 'stopped'
+
+  // 외부 클릭 시 모델 피커 닫기
+  useEffect(() => {
+    if (!showModelPicker) return
+    const handleClick = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowModelPicker(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showModelPicker])
+
+  const handleModelChange = (newModel: string) => {
+    updateAgent(agent.id, { model: newModel })
+    setShowModelPicker(false)
+  }
 
   return (
     <div
@@ -93,17 +118,39 @@ export const AgentCard = memo(function AgentCard({ agent, state }: Props) {
               </span>
             )}
           </div>
-          <span className="text-xs text-text-muted">{agent.role}</span>
+          {agent.role !== agent.name && (
+            <span className="text-xs text-text-muted">{agent.role}</span>
+          )}
         </div>
       </div>
 
       {/* 세부 정보 */}
       <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-        <div>
+        <div className="relative" ref={pickerRef} onClick={(e) => e.stopPropagation()}>
           <span className="text-text-muted">{t('agentCard.model')}</span>
-          <div className="text-text-secondary truncate">
-            {agent.model.replace('claude-', '').split('-202')[0]}
-          </div>
+          <button
+            onClick={() => setShowModelPicker(!showModelPicker)}
+            className="w-full text-left text-accent hover:text-accent-hover truncate bg-transparent border-none cursor-pointer p-0 text-xs"
+            title={agent.model}
+          >
+            {shortModelName(agent.model)}
+          </button>
+          {/* 모델 선택 드롭다운 */}
+          {showModelPicker && (
+            <div className="absolute top-full left-0 mt-1 z-50 bg-chat-bg border border-white/20 rounded-lg shadow-xl py-1 min-w-[160px] max-h-[200px] overflow-auto">
+              {MODEL_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleModelChange(opt.value)}
+                  className={`w-full text-left px-3 py-1.5 text-xs hover:bg-white/10 bg-transparent border-none cursor-pointer transition-colors ${
+                    agent.model === opt.value ? 'text-accent' : 'text-text-secondary'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <span className="text-text-muted">{t('agentCard.cost')}</span>

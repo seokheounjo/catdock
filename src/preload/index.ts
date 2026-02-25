@@ -2,6 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import {
   AgentConfig,
+  CliProvider,
+  CliCheckResult,
   ConversationConfig,
   ConversationMode,
   DockSize,
@@ -194,7 +196,11 @@ const api = {
         latestVersion: string | null
         updateAvailable: boolean
         error: string | null
-      }>
+      }>,
+    checkProvider: (provider: CliProvider) =>
+      ipcRenderer.invoke('cli:check-provider', provider) as Promise<CliCheckResult>,
+    checkAllProviders: () =>
+      ipcRenderer.invoke('cli:check-all-providers') as Promise<Record<CliProvider, CliCheckResult>>
   },
 
   // MCP

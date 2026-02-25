@@ -9,7 +9,9 @@ import {
   checkClaudeCli,
   installClaudeCli,
   checkNodeInstalled,
-  checkForCliUpdate
+  checkForCliUpdate,
+  checkCliForProvider,
+  checkAllProviders
 } from '../services/cli-builder'
 import * as errorRecovery from '../services/error-recovery'
 import * as appUpdater from '../services/app-updater'
@@ -18,6 +20,7 @@ import { respondToPermission } from '../services/permission-server'
 import * as taskManager from '../services/task-manager'
 import {
   AgentConfig,
+  CliProvider,
   ConversationConfig,
   ConversationMode,
   DockSize,
@@ -205,6 +208,16 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('cli:check-node', () => {
     return checkNodeInstalled()
+  })
+
+  // ── CLI 프로바이더별 확인 ──
+
+  ipcMain.handle('cli:check-provider', (_e, provider: CliProvider) => {
+    return checkCliForProvider(provider)
+  })
+
+  ipcMain.handle('cli:check-all-providers', () => {
+    return checkAllProviders()
   })
 
   // ── Windows ──

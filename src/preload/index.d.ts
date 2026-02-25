@@ -4,6 +4,8 @@ import {
   AgentState,
   AgentProcessInfo,
   ChatMessage,
+  CliProvider,
+  CliCheckResult,
   ConversationConfig,
   ConversationMessage,
   ConversationMode,
@@ -155,6 +157,8 @@ interface CliApi {
     updateAvailable: boolean
     error: string | null
   }>
+  checkProvider(provider: CliProvider): Promise<CliCheckResult>
+  checkAllProviders(): Promise<Record<CliProvider, CliCheckResult>>
 }
 
 interface McpApi {

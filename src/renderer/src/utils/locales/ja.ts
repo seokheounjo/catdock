@@ -136,7 +136,8 @@ const ja: LocaleMessages = {
     templateName: 'テンプレート名',
     leaderTemplate: 'リーダー専用',
     memberTemplate: 'メンバー用',
-    workingDirPlaceholder: 'デフォルトプロジェクトフォルダを選択...'
+    workingDirPlaceholder: 'デフォルトプロジェクトフォルダを選択...',
+    defaultCliProvider: 'デフォルトCLIプロバイダー'
   },
 
   agentEditor: {
@@ -191,7 +192,11 @@ const ja: LocaleMessages = {
     templateAutoFillHint:
       'テンプレートを選択すると、役割・システムプロンプト・モデル・権限・最大ターンが自動設定されます。',
     templateApplied: "'{name}' 適用 — モデル: {model}, 権限: {perm}, ターン: {turns}",
-    rolePlaceholder: '役割名（例: Frontend Developer）'
+    rolePlaceholder: '役割名（例: Frontend Developer）',
+    cliProvider: 'CLIプロバイダー',
+    cliInstalled: 'インストール済',
+    cliNotInstalled: '未インストール',
+    notSupportedByProvider: 'このプロバイダーでは未対応'
   },
 
   mcp: {

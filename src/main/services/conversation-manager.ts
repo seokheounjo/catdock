@@ -9,15 +9,15 @@ import * as agentManager from './agent-manager'
 import * as store from './store'
 import {
   buildCleanEnv,
-  validateWorkingDirectory,
-  checkClaudeCli,
-  buildCliArgs
+  validateWorkingDirectory
 } from './cli-builder'
 import { buildMcpConfigFile } from './mcp-manager'
 import { v4 as uuid } from 'uuid'
-import { spawn, ChildProcess } from 'child_process'
+import { ChildProcess } from 'child_process'
 import path from 'path'
 import fs from 'fs'
+import { getAdapter, resolveProvider } from './cli-adapters'
+import { StreamParser, formatToolInput } from './stream-parser'
 
 // ── 내부 상태 ──
 
@@ -323,16 +323,20 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
     return
   }
 
-  // CLI 설치 여부 사전 확인
-  const cliCheck = checkClaudeCli()
+  // CLI 설치 여부 사전 확인 (프로바이더별)
+  const provider = resolveProvider(agentConfig)
+  const adapter = getAdapter(provider)
+  const cliCheck = adapter.checkInstalled()
   if (!cliCheck.installed) {
+    const displayName = adapter.getDisplayName()
+    const installCmd = adapter.getInstallCommand()
     const errorMsg: ConversationMessage = {
       id: uuid(),
       conversationId: conv.config.id,
       senderType: 'system',
       agentId: null,
       agentName: null,
-      content: `⚠️ Claude Code CLI가 설치되지 않았습니다.\n\n에이전트와 대화하려면 Claude Code CLI가 필요합니다.\n\n**설치 방법:**\n\`\`\`\nnpm install -g @anthropic-ai/claude-code\n\`\`\`\n\n설치 후 다시 시도해주세요.`,
+      content: `⚠️ ${displayName}가 설치되지 않았습니다.\n\n에이전트와 대화하려면 ${displayName}가 필요합니다.\n\n**설치 방법:**\n\`\`\`\n${installCmd}\n\`\`\`\n\n설치 후 다시 시도해주세요.`,
       timestamp: Date.now()
     }
     conv.messages.push(errorMsg)
@@ -356,12 +360,13 @@ async function runSingleAgent(conv: ActiveConversation, agentId: string): Promis
     if ((err as Error).name === 'AbortError') return
 
     const errMessage = (err as Error).message || String(err)
+    const adapterForError = getAdapter(resolveProvider(agentConfig))
     const isCliMissing =
       errMessage.includes('ENOENT') ||
       errMessage.includes('not found') ||
       errMessage.includes('not recognized')
     const displayMessage = isCliMissing
-      ? `⚠️ Claude Code CLI를 실행할 수 없습니다. \`npm install -g @anthropic-ai/claude-code\` 로 설치하세요.`
+      ? `⚠️ ${adapterForError.getDisplayName()}를 실행할 수 없습니다. \`${adapterForError.getInstallCommand()}\` 로 설치하세요.`
       : `[${agentConfig.name}] 오류: ${errMessage}`
 
     const errorMsg: ConversationMessage = {
@@ -419,9 +424,9 @@ function buildContextForAgent(
   return header + lines.join('\n') + footer
 }
 
-// ── Claude CLI 스폰 ──
+// ── CLI 프로세스 스폰 (어댑터 패턴) ──
 
-function spawnClaude(
+function spawnCliProcess(
   conv: ActiveConversation,
   agentConfig: {
     id: string
@@ -433,19 +438,25 @@ function spawnClaude(
     maxTurns?: number
     mcpConfig?: unknown[]
     cliFlags?: unknown
+    cliProvider?: import('../../shared/types').CliProvider
   },
   agentSession: AgentCliSession,
   prompt: string
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    // MCP config 빌드
-    buildMcpConfigFile(agentConfig.id)
+    const fullConfig = agentConfig as import('../../shared/types').AgentConfig
+    const provider = resolveProvider(fullConfig)
+    const adapter = getAdapter(provider)
 
-    // 전사 규칙 + 에이전트 응답 언어 설정 로드
+    // MCP config 빌드 (MCP 지원 프로바이더만)
+    if (adapter.supportsMcp()) {
+      buildMcpConfigFile(agentConfig.id)
+    }
+
     const globalSettings = store.getSettings()
 
-    const args = buildCliArgs(agentConfig as import('../../shared/types').AgentConfig, {
-      resumeSessionId: agentSession.cliSessionId,
+    const args = adapter.buildArgs(fullConfig, {
+      resumeSessionId: adapter.supportsResume() ? agentSession.cliSessionId : null,
       hasConversation: agentSession.hasConversation,
       userMessage: prompt,
       companyRules: globalSettings.companyRules,
@@ -462,17 +473,17 @@ function spawnClaude(
 
     let proc: ChildProcess
     try {
-      proc = spawn('claude', args, {
+      const spawnResult = adapter.spawnProcess(fullConfig, args, {
         cwd,
         env: cleanEnv,
-        signal: conv.abortController.signal,
-        shell: false,
-        stdio: ['pipe', 'pipe', 'pipe']
+        signal: conv.abortController.signal
       })
+      proc = spawnResult.process
 
-      // prompt를 stdin으로 전달 (ENAMETOOLONG 방지)
-      proc.stdin?.write(prompt)
-      proc.stdin?.end()
+      if (spawnResult.writeStdin) {
+        proc.stdin?.write(prompt)
+        proc.stdin?.end()
+      }
     } catch (err) {
       reject(err)
       return
@@ -483,13 +494,15 @@ function spawnClaude(
     let fullResponse = ''
     let resultText = ''
     const streamingMsgId = uuid()
-    let lineBuffer = ''
     let costTotal = 0
     let finished = false
 
     const convId = conv.config.id
     const agentId = agentConfig.id
     const agentName = agentConfig.name
+
+    // StreamParser로 통합 파싱
+    const parser = new StreamParser(adapter)
 
     broadcast('conversation:stream-start', convId, {
       id: streamingMsgId,
@@ -547,39 +560,54 @@ function spawnClaude(
       resolve()
     }
 
-    proc.stdout?.on('data', (data: Buffer) => {
-      lineBuffer += data.toString()
-      const lines = lineBuffer.split('\n')
-      lineBuffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (!line.trim()) continue
-        try {
-          const event = JSON.parse(line)
-          handleStreamEvent(
-            event,
-            convId,
-            agentId,
-            agentName,
-            streamingMsgId,
-            (text) => {
-              fullResponse += text
-            },
-            (cost) => {
-              costTotal = cost
-            }
-          )
-          if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
-            agentSession.cliSessionId = event.session_id as string
-          }
-          if (event.type === 'result') {
-            if (event.result) resultText = event.result as string
-            finishSession()
-          }
-        } catch {
-          // JSON 파싱 실패 무시
-        }
+    const parserCallbacks = {
+      onInit: (sessionId: string) => {
+        agentSession.cliSessionId = sessionId
+      },
+      onText: (text: string) => {
+        fullResponse += text
+        broadcast('conversation:stream-delta', convId, {
+          id: streamingMsgId,
+          agentId,
+          agentName,
+          delta: text
+        })
+      },
+      onToolUse: (toolName: string, toolInput: Record<string, unknown>) => {
+        const toolText = `\n\n**${toolName}** \`${formatToolInput(toolName, toolInput)}\`\n`
+        fullResponse += toolText
+        broadcast('conversation:stream-delta', convId, {
+          id: streamingMsgId,
+          agentId,
+          agentName,
+          delta: toolText
+        })
+      },
+      onToolResult: (output: string) => {
+        const preview = output.length > 300 ? output.slice(0, 300) + '...' : output
+        const rt = `\n\`\`\`\n${preview}\n\`\`\`\n`
+        fullResponse += rt
+        broadcast('conversation:stream-delta', convId, {
+          id: streamingMsgId,
+          agentId,
+          agentName,
+          delta: rt
+        })
+      },
+      onCost: (cost: number) => {
+        costTotal = cost
+      },
+      onResult: (text: string) => {
+        resultText = text
+        finishSession()
+      },
+      onError: (message: string) => {
+        console.error(`[conversation:${agentName}] stream error:`, message)
       }
+    }
+
+    proc.stdout?.on('data', (data: Buffer) => {
+      parser.processChunk(data.toString(), parserCallbacks)
     })
 
     proc.stderr?.on('data', (data: Buffer) => {
@@ -587,33 +615,13 @@ function spawnClaude(
     })
 
     proc.on('close', (code) => {
-      if (lineBuffer.trim()) {
-        try {
-          const event = JSON.parse(lineBuffer)
-          handleStreamEvent(
-            event,
-            convId,
-            agentId,
-            agentName,
-            streamingMsgId,
-            (text) => {
-              fullResponse += text
-            },
-            (cost) => {
-              costTotal = cost
-            }
-          )
-          if (event.type === 'result' && event.result) {
-            resultText = event.result as string
-          }
-        } catch {
-          /* ignore */
-        }
-      }
+      parser.flush(parserCallbacks)
+
       if (finished) return
       if (code !== 0 && !fullResponse.trim() && !resultText.trim()) {
         conv.currentProcess = null
-        reject(new Error(`Claude process exited with code ${code}`))
+        const displayName = adapter.getDisplayName()
+        reject(new Error(`${displayName} process exited with code ${code}`))
       } else {
         finishSession()
       }
@@ -626,77 +634,25 @@ function spawnClaude(
   })
 }
 
-// ── 스트림 이벤트 처리 ──
-
-function handleStreamEvent(
-  event: Record<string, unknown>,
-  convId: string,
-  agentId: string,
-  agentName: string,
-  streamingMsgId: string,
-  appendText: (text: string) => void,
-  setCost: (cost: number) => void
-): void {
-  const type = event.type as string
-
-  if (type === 'assistant') {
-    const message = event.message as Record<string, unknown> | undefined
-    if (!message) return
-    const contentBlocks = message.content as Array<Record<string, unknown>> | undefined
-    if (!contentBlocks || !Array.isArray(contentBlocks)) return
-
-    for (const block of contentBlocks) {
-      const blockType = block.type as string
-      if (blockType === 'text') {
-        const text = block.text as string
-        if (text) {
-          appendText(text)
-          broadcast('conversation:stream-delta', convId, {
-            id: streamingMsgId,
-            agentId,
-            agentName,
-            delta: text
-          })
-        }
-      } else if (blockType === 'tool_use') {
-        const toolName = block.name as string
-        const toolInput = block.input as Record<string, unknown>
-        const toolText = `\n\n**${toolName}** \`${formatToolInput(toolName, toolInput)}\`\n`
-        appendText(toolText)
-        broadcast('conversation:stream-delta', convId, {
-          id: streamingMsgId,
-          agentId,
-          agentName,
-          delta: toolText
-        })
-      } else if (blockType === 'tool_result') {
-        const content = block.content as string
-        if (content) {
-          const preview = content.length > 300 ? content.slice(0, 300) + '...' : content
-          const rt = `\n\`\`\`\n${preview}\n\`\`\`\n`
-          appendText(rt)
-          broadcast('conversation:stream-delta', convId, {
-            id: streamingMsgId,
-            agentId,
-            agentName,
-            delta: rt
-          })
-        }
-      }
-    }
-  } else if (type === 'result') {
-    setCost((event.total_cost_usd as number) || 0)
-  }
-}
-
-function formatToolInput(toolName: string, input: Record<string, unknown>): string {
-  if (toolName === 'Read' || toolName === 'Write' || toolName === 'Edit') {
-    return (input.file_path as string) || JSON.stringify(input)
-  }
-  if (toolName === 'Bash') return (input.command as string) || JSON.stringify(input)
-  if (toolName === 'Grep' || toolName === 'Glob')
-    return (input.pattern as string) || JSON.stringify(input)
-  return JSON.stringify(input)
+// 하위호환 래퍼
+function spawnClaude(
+  conv: ActiveConversation,
+  agentConfig: {
+    id: string
+    name: string
+    model: string
+    systemPrompt: string
+    workingDirectory: string
+    permissionMode?: string
+    maxTurns?: number
+    mcpConfig?: unknown[]
+    cliFlags?: unknown
+    cliProvider?: import('../../shared/types').CliProvider
+  },
+  agentSession: AgentCliSession,
+  prompt: string
+): Promise<void> {
+  return spawnCliProcess(conv, agentConfig, agentSession, prompt)
 }
 
 // ── Cleanup ──

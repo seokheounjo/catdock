@@ -1,72 +1,30 @@
-import { AgentConfig } from '../../shared/types'
+import { AgentConfig, CliProvider, CliCheckResult } from '../../shared/types'
+export type { CliCheckResult }
 import path from 'path'
 import fs from 'fs'
 import { execFileSync, spawn } from 'child_process'
 import { BrowserWindow } from 'electron'
 import { generateMcpDocumentation } from './mcp-manager'
+import { getAdapter } from './cli-adapters'
 
-// Claude Code CLI 설치 여부 + 버전 확인
-export interface CliCheckResult {
-  installed: boolean
-  version: string | null
-  path: string | null
-  error: string | null
+// 하위호환 래퍼 — 내부적으로 어댑터에 위임
+export function checkClaudeCli(): CliCheckResult {
+  return getAdapter('claude').checkInstalled()
 }
 
-export function checkClaudeCli(): CliCheckResult {
-  try {
-    const output = execFileSync('claude', ['--version'], {
-      encoding: 'utf8',
-      timeout: 10000,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: process.platform === 'win32'
-    }).trim()
+// 프로바이더별 CLI 설치 확인
+export function checkCliForProvider(provider: CliProvider): CliCheckResult {
+  return getAdapter(provider).checkInstalled()
+}
 
-    // 버전 문자열 파싱 (예: "claude 1.0.5" 또는 "1.0.5")
-    const versionMatch = output.match(/(\d+\.\d+\.\d+)/)
-    const version = versionMatch ? versionMatch[1] : output
-
-    // claude 경로 확인
-    let claudePath: string | null = null
-    try {
-      const whereCmd = process.platform === 'win32' ? 'where' : 'which'
-      claudePath = execFileSync(whereCmd, ['claude'], {
-        encoding: 'utf8',
-        timeout: 5000,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        shell: process.platform === 'win32'
-      })
-        .trim()
-        .split('\n')[0]
-    } catch {
-      // where/which 실패해도 버전은 나왔으므로 설치됨
-    }
-
-    return { installed: true, version, path: claudePath, error: null }
-  } catch (err) {
-    const message = (err as Error).message || String(err)
-
-    // ENOENT = 명령어를 찾을 수 없음
-    if (
-      message.includes('ENOENT') ||
-      message.includes('not found') ||
-      message.includes('not recognized')
-    ) {
-      return {
-        installed: false,
-        version: null,
-        path: null,
-        error: 'Claude Code CLI가 설치되지 않았습니다.'
-      }
-    }
-
-    return {
-      installed: false,
-      version: null,
-      path: null,
-      error: `Claude Code CLI 확인 실패: ${message}`
-    }
+// 모든 프로바이더 CLI 설치 상태 확인
+export function checkAllProviders(): Record<CliProvider, CliCheckResult> {
+  const providers: CliProvider[] = ['claude', 'gemini', 'aider', 'codex', 'q']
+  const results = {} as Record<CliProvider, CliCheckResult>
+  for (const p of providers) {
+    results[p] = getAdapter(p).checkInstalled()
   }
+  return results
 }
 
 // CLI 업데이트 확인

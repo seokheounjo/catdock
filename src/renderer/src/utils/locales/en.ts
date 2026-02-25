@@ -136,7 +136,8 @@ const en: LocaleMessages = {
     templateName: 'Template Name',
     leaderTemplate: 'Leader Only',
     memberTemplate: 'For Members',
-    workingDirPlaceholder: 'Select a default project folder...'
+    workingDirPlaceholder: 'Select a default project folder...',
+    defaultCliProvider: 'Default CLI Provider'
   },
 
   agentEditor: {
@@ -191,7 +192,11 @@ const en: LocaleMessages = {
     templateAutoFillHint:
       'Selecting a template auto-fills role, system prompt, model, permissions, and max turns.',
     templateApplied: "'{name}' applied — Model: {model}, Perms: {perm}, Turns: {turns}",
-    rolePlaceholder: 'Role name (e.g. Frontend Developer)'
+    rolePlaceholder: 'Role name (e.g. Frontend Developer)',
+    cliProvider: 'CLI Provider',
+    cliInstalled: 'Installed',
+    cliNotInstalled: 'Not installed',
+    notSupportedByProvider: 'Not supported by this provider'
   },
 
   mcp: {

@@ -1,0 +1,7 @@
+export type { CliAdapter, CliBuildOptions, CliSpawnResult, CliSpawnOptions } from './cli-adapter'
+export { getAdapter, resolveProvider } from './adapter-registry'
+export { ClaudeAdapter } from './claude-adapter'
+export { GeminiAdapter } from './gemini-adapter'
+export { AiderAdapter } from './aider-adapter'
+export { CodexAdapter } from './codex-adapter'
+export { QAdapter } from './q-adapter'

@@ -209,7 +209,9 @@ function OrgNode({
         />
       </div>
       <span className="text-xs text-text-secondary max-w-[60px] truncate">{agent.name}</span>
-      <span className="text-[10px] text-text-muted max-w-[70px] truncate">{agent.role}</span>
+      {agent.role !== agent.name && (
+        <span className="text-[10px] text-text-muted max-w-[70px] truncate">{agent.role}</span>
+      )}
     </button>
   )
 }

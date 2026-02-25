@@ -1,3 +1,48 @@
+import type { CliProvider, RoleTemplate, PermissionMode } from './types'
+
+// ── CLI 프로바이더 옵션 ──
+
+export const CLI_PROVIDER_OPTIONS: {
+  value: CliProvider
+  label: string
+  description: string
+}[] = [
+  { value: 'claude', label: 'Claude Code', description: 'Anthropic Claude Code CLI' },
+  { value: 'gemini', label: 'Gemini CLI', description: 'Google Gemini CLI' },
+  { value: 'aider', label: 'Aider', description: 'AI pair programming (aider)' },
+  { value: 'codex', label: 'OpenAI Codex CLI', description: 'OpenAI Codex CLI' },
+  { value: 'q', label: 'Amazon Q', description: 'Amazon Q Developer CLI' }
+]
+
+export const PROVIDER_MODEL_OPTIONS: Record<
+  CliProvider,
+  { value: string; label: string; tier: 'premium' | 'standard' | 'fast' }[]
+> = {
+  claude: [
+    { value: 'claude-opus-4-6', label: 'Opus 4.6', tier: 'premium' },
+    { value: 'claude-opus-4-20250514', label: 'Opus 4', tier: 'premium' },
+    { value: 'claude-sonnet-4-20250514', label: 'Sonnet 4', tier: 'standard' },
+    { value: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5', tier: 'fast' }
+  ],
+  gemini: [
+    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', tier: 'premium' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', tier: 'standard' },
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash', tier: 'fast' }
+  ],
+  aider: [
+    { value: 'claude-sonnet-4', label: 'Claude Sonnet 4', tier: 'standard' },
+    { value: 'gpt-4o', label: 'GPT-4o', tier: 'premium' },
+    { value: 'deepseek-chat', label: 'DeepSeek Chat', tier: 'fast' }
+  ],
+  codex: [
+    { value: 'o4-mini', label: 'o4-mini', tier: 'standard' },
+    { value: 'o3', label: 'o3', tier: 'premium' }
+  ],
+  q: [{ value: 'default', label: 'Default', tier: 'standard' }]
+}
+
+// ── 모델 옵션 (Claude 전용 — 하위호환) ──
+
 export const MODEL_OPTIONS = [
   { value: 'claude-opus-4-6', label: 'Opus 4.6', tier: 'premium' as const },
   { value: 'claude-opus-4-20250514', label: 'Opus 4', tier: 'premium' as const },
@@ -49,7 +94,6 @@ export const CAT_BREEDS_LIST = [
 
 // ── 역할 템플릿 (빌트인) ──
 
-import type { RoleTemplate, PermissionMode } from './types'
 
 export const BUILTIN_ROLE_TEMPLATES: RoleTemplate[] = [
   // 일반 멤버 10종

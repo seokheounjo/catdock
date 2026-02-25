@@ -1,3 +1,36 @@
+// ── CLI 프로바이더 ──
+
+export type CliProvider = 'claude' | 'gemini' | 'aider' | 'codex' | 'q'
+
+export type UnifiedStreamEventType =
+  | 'init'
+  | 'text'
+  | 'tool-use'
+  | 'tool-result'
+  | 'cost'
+  | 'result'
+  | 'error'
+
+export interface UnifiedStreamEvent {
+  type: UnifiedStreamEventType
+  sessionId?: string
+  text?: string
+  toolName?: string
+  toolInput?: Record<string, unknown>
+  toolOutput?: string
+  totalCostUsd?: number
+  resultText?: string
+  errorMessage?: string
+}
+
+export interface CliCheckResult {
+  installed: boolean
+  version: string | null
+  path: string | null
+  error: string | null
+  provider?: CliProvider
+}
+
 // ── 에이전트 계층 ──
 
 export type AgentRole = 'director' | 'leader' | 'member' | 'temporary'
@@ -58,6 +91,7 @@ export interface AgentConfig {
   systemPrompt: string
   workingDirectory: string
   model: string
+  cliProvider?: CliProvider
   group?: string
   createdAt: number
   updatedAt: number
@@ -207,6 +241,7 @@ export interface GlobalSettings {
   roleTemplates?: RoleTemplate[]
   language?: 'ko' | 'en' | 'ja' | 'zh'
   agentLanguage?: 'ko' | 'en' | 'ja' | 'zh'
+  defaultCliProvider?: CliProvider
 }
 
 // ── 그룹 대화 ──

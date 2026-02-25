@@ -136,7 +136,8 @@ const zh: LocaleMessages = {
     templateName: '模板名称',
     leaderTemplate: '仅限领导',
     memberTemplate: '成员用',
-    workingDirPlaceholder: '选择默认项目文件夹...'
+    workingDirPlaceholder: '选择默认项目文件夹...',
+    defaultCliProvider: '默认 CLI 提供者'
   },
 
   agentEditor: {
@@ -190,7 +191,11 @@ const zh: LocaleMessages = {
     invalidJson: '无效的 JSON',
     templateAutoFillHint: '选择模板后将自动填充角色、系统提示、模型、权限和最大轮次。',
     templateApplied: "'{name}' 已应用 — 模型: {model}, 权限: {perm}, 轮次: {turns}",
-    rolePlaceholder: '角色名称（例如 Frontend Developer）'
+    rolePlaceholder: '角色名称（例如 Frontend Developer）',
+    cliProvider: 'CLI 提供者',
+    cliInstalled: '已安装',
+    cliNotInstalled: '未安装',
+    notSupportedByProvider: '此提供者不支持'
   },
 
   mcp: {

@@ -3,10 +3,8 @@ import { AgentConfig, ChatMessage, AgentProcessInfo } from '../../shared/types'
 import * as agentManager from './agent-manager'
 import * as store from './store'
 import {
-  buildCliArgs,
   buildCleanEnv,
-  validateWorkingDirectory,
-  checkClaudeCli
+  validateWorkingDirectory
 } from './cli-builder'
 import { buildMcpConfigFile } from './mcp-manager'
 import { logActivity } from './activity-logger'
@@ -14,9 +12,11 @@ import { hasDelegation, executeDelegation, setSendMessageAndCapture } from './de
 import { handleAgentError, setSessionCallbacks, setFindBackupDirector } from './error-recovery'
 import * as watchdog from './process-watchdog'
 import { v4 as uuid } from 'uuid'
-import { spawn, ChildProcess } from 'child_process'
+import { ChildProcess } from 'child_process'
 import path from 'path'
 import fs from 'fs'
+import { getAdapter, resolveProvider } from './cli-adapters'
+import { StreamParser, formatToolInput } from './stream-parser'
 
 interface ActiveSession {
   agentId: string
@@ -31,10 +31,30 @@ interface ActiveSession {
 const activeSessions = new Map<string, ActiveSession>()
 // 위임 재귀 방지 — 현재 위임 종합 중인 에이전트 ID (director/leader)
 const delegatingAgents = new Set<string>()
+// 위임 시작 시간 추적 — 타임아웃 감지용
+const delegatingStartTimes = new Map<string, number>()
 // 메시지 큐 — 에이전트가 바쁠 때 대기
 const messageQueues = new Map<string, string[]>()
 // 상향 보고 메시지 ID 추적 — 보고에 대한 재보고 방지
 const reportMessageIds = new Set<string>()
+
+// 위임 교착 상태 감시 — 10분 이상 위임 중이면 강제 해제
+const DELEGATION_TIMEOUT_MS = 10 * 60 * 1000
+setInterval(() => {
+  const now = Date.now()
+  for (const agentId of delegatingAgents) {
+    const started = delegatingStartTimes.get(agentId) ?? 0
+    if (now - started > DELEGATION_TIMEOUT_MS) {
+      console.warn(`[delegation-watchdog] ${agentId} 위임 타임아웃 (${Math.round((now - started) / 60000)}분) — 강제 해제`)
+      delegatingAgents.delete(agentId)
+      delegatingStartTimes.delete(agentId)
+      agentManager.setAgentStatus(agentId, 'idle')
+      agentManager.setCurrentTask(agentId, undefined)
+      broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
+      processNextInQueue(agentId)
+    }
+  }
+}, 30_000) // 30초마다 체크
 
 // ── 순환 의존 방지: 하위 모듈에 콜백 주입 ──
 // 모듈 로드 시점에는 함수가 아직 정의되지 않았으므로, 래퍼를 통해 지연 바인딩
@@ -198,14 +218,18 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
   session.messages.push(userMsg)
   broadcastToChat(agentId, 'session:message', userMsg)
 
-  // CLI 설치 여부 사전 확인
-  const cliCheck = checkClaudeCli()
+  // CLI 설치 여부 사전 확인 (프로바이더별)
+  const provider = resolveProvider(config)
+  const adapter = getAdapter(provider)
+  const cliCheck = adapter.checkInstalled()
   if (!cliCheck.installed) {
+    const displayName = adapter.getDisplayName()
+    const installCmd = adapter.getInstallCommand()
     const errorMsg: ChatMessage = {
       id: uuid(),
       agentId,
       role: 'system',
-      content: `⚠️ Claude Code CLI가 설치되지 않았습니다.\n\n에이전트와 대화하려면 Claude Code CLI가 필요합니다.\n\n**설치 방법:**\n\`\`\`\nnpm install -g @anthropic-ai/claude-code\n\`\`\`\n\n설치 후 다시 시도해주세요.`,
+      content: `⚠️ ${displayName}가 설치되지 않았습니다.\n\n에이전트와 대화하려면 ${displayName}가 필요합니다.\n\n**설치 방법:**\n\`\`\`\n${installCmd}\n\`\`\`\n\n설치 후 다시 시도해주세요.`,
       timestamp: Date.now()
     }
     session.messages.push(errorMsg)
@@ -243,12 +267,14 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
       broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'working' })
 
       delegatingAgents.add(agentId)
+      delegatingStartTimes.set(agentId, Date.now())
       executeDelegation(agentId, response, userMessage)
         .catch((err) => {
           console.error('[delegation] 위임 실행 실패:', err)
         })
         .finally(() => {
           delegatingAgents.delete(agentId)
+          delegatingStartTimes.delete(agentId)
           agentManager.setAgentStatus(agentId, 'idle')
           agentManager.setCurrentTask(agentId, undefined)
           broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
@@ -263,13 +289,15 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
     if ((err as Error).name === 'AbortError') return
 
     const errMessage = (err as Error).message || String(err)
+    const providerForError = resolveProvider(config)
+    const adapterForError = getAdapter(providerForError)
     // ENOENT = CLI 실행 파일을 찾을 수 없음
     const isCliMissing =
       errMessage.includes('ENOENT') ||
       errMessage.includes('not found') ||
       errMessage.includes('not recognized')
     const displayMessage = isCliMissing
-      ? `⚠️ Claude Code CLI를 실행할 수 없습니다.\n\n**설치 방법:**\n\`\`\`\nnpm install -g @anthropic-ai/claude-code\n\`\`\`\n\n설치 후 터미널을 다시 열고, \`claude --version\`으로 확인하세요.`
+      ? `⚠️ ${adapterForError.getDisplayName()}를 실행할 수 없습니다.\n\n**설치 방법:**\n\`\`\`\n${adapterForError.getInstallCommand()}\n\`\`\`\n\n설치 후 다시 시도하세요.`
       : `Error: ${errMessage}`
 
     const errorMsg: ChatMessage = {
@@ -298,22 +326,26 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
   }
 }
 
-async function runClaudeSession(
+async function runCliSession(
   config: AgentConfig,
   session: ActiveSession,
   userMessage: string
 ): Promise<string> {
   const agentId = config.id
+  const provider = resolveProvider(config)
+  const adapter = getAdapter(provider)
 
-  // MCP config 파일 빌드 (있으면)
-  buildMcpConfigFile(agentId)
+  // MCP config 파일 빌드 (MCP 지원 프로바이더만)
+  if (adapter.supportsMcp()) {
+    buildMcpConfigFile(agentId)
+  }
 
   // 전사 규칙 + 에이전트 응답 언어 설정 로드
   const globalSettings = store.getSettings()
 
-  // cli-builder로 인수 빌드
-  const args = buildCliArgs(config, {
-    resumeSessionId: session.cliSessionId,
+  // 어댑터로 인수 빌드
+  const args = adapter.buildArgs(config, {
+    resumeSessionId: adapter.supportsResume() ? session.cliSessionId : null,
     hasConversation: session.hasConversation,
     userMessage,
     companyRules: globalSettings.companyRules,
@@ -339,17 +371,18 @@ async function runClaudeSession(
 
     let proc: ChildProcess
     try {
-      proc = spawn('claude', args, {
+      const spawnResult = adapter.spawnProcess(config, args, {
         cwd,
         env: cleanEnv,
-        signal: session.abortController.signal,
-        shell: false,
-        stdio: ['pipe', 'pipe', 'pipe']
+        signal: session.abortController.signal
       })
+      proc = spawnResult.process
 
-      // userMessage를 stdin으로 전달 (ENAMETOOLONG 방지)
-      proc.stdin?.write(userMessage)
-      proc.stdin?.end()
+      // stdin 전달 여부에 따라 분기
+      if (spawnResult.writeStdin) {
+        proc.stdin?.write(userMessage)
+        proc.stdin?.end()
+      }
     } catch (err) {
       broadcastProcessInfo(agentId, { processStatus: 'crashed', lastError: String(err) })
       reject(err)
@@ -371,9 +404,11 @@ async function runClaudeSession(
     let fullResponse = ''
     let resultText = ''
     const streamingMsgId = uuid()
-    let lineBuffer = ''
     let costTotal = 0
     let finished = false
+
+    // StreamParser로 통합 파싱
+    const parser = new StreamParser(adapter)
 
     const finishSession = (): void => {
       if (finished) return
@@ -427,42 +462,61 @@ async function runClaudeSession(
     }
     broadcastToChat(agentId, 'session:stream-start', streamStart)
 
-    proc.stdout?.on('data', (data: Buffer) => {
-      // 워치독 하트비트 갱신
-      watchdog.updateHeartbeat(agentId)
-
-      lineBuffer += data.toString()
-      const lines = lineBuffer.split('\n')
-      lineBuffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (!line.trim()) continue
-        try {
-          const event = JSON.parse(line)
-          handleStreamEvent(
-            event,
-            agentId,
-            streamingMsgId,
-            (text) => {
-              fullResponse += text
-            },
-            (cost) => {
-              costTotal = cost
-            }
-          )
-          // init 이벤트에서 CLI session_id 저장
-          if (event.type === 'system' && event.subtype === 'init' && event.session_id) {
-            session.cliSessionId = event.session_id as string
-          }
-          // result 이벤트에서 최종 텍스트 추출 + 즉시 완료
-          if (event.type === 'result') {
-            if (event.result) resultText = event.result as string
-            finishSession()
-          }
-        } catch {
-          // JSON 파싱 실패 시 무시
+    const parserCallbacks = {
+      onInit: (sessionId: string) => {
+        session.cliSessionId = sessionId
+      },
+      onText: (text: string) => {
+        fullResponse += text
+        broadcastToChat(agentId, 'session:stream-delta', {
+          id: streamingMsgId,
+          agentId,
+          delta: text
+        })
+      },
+      onToolUse: (toolName: string, toolInput: Record<string, unknown>) => {
+        const toolText = `\n\n**${toolName}** \`${formatToolInput(toolName, toolInput)}\`\n`
+        fullResponse += toolText
+        broadcastToChat(agentId, 'session:stream-delta', {
+          id: streamingMsgId,
+          agentId,
+          delta: toolText
+        })
+        const agentConfig = store.getAgent(agentId)
+        if (agentConfig) {
+          logActivity('tool-use', agentId, agentConfig.name, `${toolName} 사용`, { toolName })
         }
+      },
+      onToolResult: (output: string) => {
+        const preview = output.length > 300 ? output.slice(0, 300) + '...' : output
+        const rt = `\n\`\`\`\n${preview}\n\`\`\`\n`
+        fullResponse += rt
+        broadcastToChat(agentId, 'session:stream-delta', {
+          id: streamingMsgId,
+          agentId,
+          delta: rt
+        })
+      },
+      onCost: (cost: number) => {
+        costTotal = cost
+      },
+      onResult: (text: string) => {
+        resultText = text
+        broadcastToChat(agentId, 'session:result-text', {
+          id: streamingMsgId,
+          agentId,
+          text
+        })
+        finishSession()
+      },
+      onError: (message: string) => {
+        console.error(`[${config.name}] stream error:`, message)
       }
+    }
+
+    proc.stdout?.on('data', (data: Buffer) => {
+      watchdog.updateHeartbeat(agentId)
+      parser.processChunk(data.toString(), parserCallbacks)
     })
 
     proc.stderr?.on('data', (data: Buffer) => {
@@ -472,27 +526,7 @@ async function runClaudeSession(
     })
 
     proc.on('close', (code) => {
-      if (lineBuffer.trim()) {
-        try {
-          const event = JSON.parse(lineBuffer)
-          handleStreamEvent(
-            event,
-            agentId,
-            streamingMsgId,
-            (text) => {
-              fullResponse += text
-            },
-            (cost) => {
-              costTotal = cost
-            }
-          )
-          if (event.type === 'result') {
-            if (event.result) resultText = event.result as string
-          }
-        } catch {
-          // ignore
-        }
-      }
+      parser.flush(parserCallbacks)
 
       if (finished) return
 
@@ -500,7 +534,8 @@ async function runClaudeSession(
         session.process = null
         watchdog.unregisterProcess(agentId)
         broadcastProcessInfo(agentId, { processStatus: 'crashed', lastError: `Exit code ${code}` })
-        reject(new Error(`Claude process exited with code ${code}`))
+        const displayName = adapter.getDisplayName()
+        reject(new Error(`${displayName} process exited with code ${code}`))
       } else {
         finishSession()
       }
@@ -515,90 +550,13 @@ async function runClaudeSession(
   })
 }
 
-// 스트림 이벤트 처리
-function handleStreamEvent(
-  event: Record<string, unknown>,
-  agentId: string,
-  streamingMsgId: string,
-  appendText: (text: string) => void,
-  setCost: (cost: number) => void
-): void {
-  const type = event.type as string
-
-  if (type === 'assistant') {
-    const message = event.message as Record<string, unknown> | undefined
-    if (!message) return
-
-    const contentBlocks = message.content as Array<Record<string, unknown>> | undefined
-    if (!contentBlocks || !Array.isArray(contentBlocks)) return
-
-    for (const block of contentBlocks) {
-      const blockType = block.type as string
-
-      if (blockType === 'text') {
-        const text = block.text as string
-        if (text) {
-          appendText(text)
-          broadcastToChat(agentId, 'session:stream-delta', {
-            id: streamingMsgId,
-            agentId,
-            delta: text
-          })
-        }
-      } else if (blockType === 'tool_use') {
-        const toolName = block.name as string
-        const toolInput = block.input as Record<string, unknown>
-        const toolText = `\n\n**${toolName}** \`${formatToolInput(toolName, toolInput)}\`\n`
-        appendText(toolText)
-        broadcastToChat(agentId, 'session:stream-delta', {
-          id: streamingMsgId,
-          agentId,
-          delta: toolText
-        })
-        // 도구 사용 활동 로깅
-        const config = store.getAgent(agentId)
-        if (config) {
-          logActivity('tool-use', agentId, config.name, `${toolName} 사용`, { toolName })
-        }
-      } else if (blockType === 'tool_result') {
-        const content = block.content as string
-        if (content) {
-          const preview = content.length > 300 ? content.slice(0, 300) + '...' : content
-          const rt = `\n\`\`\`\n${preview}\n\`\`\`\n`
-          appendText(rt)
-          broadcastToChat(agentId, 'session:stream-delta', {
-            id: streamingMsgId,
-            agentId,
-            delta: rt
-          })
-        }
-      }
-    }
-  } else if (type === 'result') {
-    const cost = (event.total_cost_usd as number) || 0
-    setCost(cost)
-    const rt = event.result as string | undefined
-    if (rt) {
-      broadcastToChat(agentId, 'session:result-text', {
-        id: streamingMsgId,
-        agentId,
-        text: rt
-      })
-    }
-  }
-}
-
-function formatToolInput(toolName: string, input: Record<string, unknown>): string {
-  if (toolName === 'Read' || toolName === 'Write' || toolName === 'Edit') {
-    return (input.file_path as string) || JSON.stringify(input)
-  }
-  if (toolName === 'Bash') {
-    return (input.command as string) || JSON.stringify(input)
-  }
-  if (toolName === 'Grep' || toolName === 'Glob') {
-    return (input.pattern as string) || JSON.stringify(input)
-  }
-  return JSON.stringify(input)
+// 하위호환 래퍼
+async function runClaudeSession(
+  config: AgentConfig,
+  session: ActiveSession,
+  userMessage: string
+): Promise<string> {
+  return runCliSession(config, session, userMessage)
 }
 
 // 메시지 전송 + 응답 텍스트 캡처하여 반환 (위임 시스템용)
@@ -695,6 +653,28 @@ export function getHistory(agentId: string): ChatMessage[] {
   const session = activeSessions.get(agentId)
   if (session) return session.messages
   return store.getSessionHistory(agentId)
+}
+
+// 모든 교착 상태 강제 해제 — UI에서 수동 호출 가능
+export function flushStuckDelegations(): number {
+  let flushed = 0
+  for (const agentId of delegatingAgents) {
+    console.warn(`[flush] ${agentId} 위임 상태 강제 해제`)
+    delegatingAgents.delete(agentId)
+    delegatingStartTimes.delete(agentId)
+    agentManager.setAgentStatus(agentId, 'idle')
+    agentManager.setCurrentTask(agentId, undefined)
+    broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
+    processNextInQueue(agentId)
+    flushed++
+  }
+  // 큐에 남은 메시지도 처리 시도
+  for (const [agentId] of messageQueues) {
+    if (!isAgentBusy(agentId)) {
+      processNextInQueue(agentId)
+    }
+  }
+  return flushed
 }
 
 // ── stderr 에러 로그 ──

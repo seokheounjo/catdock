@@ -144,7 +144,8 @@ const ko = {
     leaderTemplate: '리더 전용',
     memberTemplate: '멤버용',
     // 작업 디렉토리 플레이스홀더
-    workingDirPlaceholder: '기본 프로젝트 폴더 선택...'
+    workingDirPlaceholder: '기본 프로젝트 폴더 선택...',
+    defaultCliProvider: '기본 CLI 프로바이더'
   },
 
   // 에이전트 에디터
@@ -200,7 +201,11 @@ const ko = {
     templateAutoFillHint:
       '템플릿을 선택하면 역할, 시스템 프롬프트, 모델, 권한, 최대 턴이 자동으로 설정됩니다.',
     templateApplied: "'{name}' 적용됨 — 모델: {model}, 권한: {perm}, 턴: {turns}",
-    rolePlaceholder: '역할명 (예: Frontend Developer)'
+    rolePlaceholder: '역할명 (예: Frontend Developer)',
+    cliProvider: 'CLI 프로바이더',
+    cliInstalled: '설치됨',
+    cliNotInstalled: '미설치',
+    notSupportedByProvider: '이 프로바이더에서 미지원'
   },
 
   // MCP 서버 편집기

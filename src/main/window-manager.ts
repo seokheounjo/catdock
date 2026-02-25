@@ -276,10 +276,10 @@ export function closeAllChatWindows(): void {
 // ── Editor ──
 
 export function createEditorWindow(agentId?: string): BrowserWindow {
+  // 기존 창이 있으면 닫고 새로 열기 (다른 에이전트 편집 시 라우트 갱신)
   if (editorWindow && !editorWindow.isDestroyed()) {
-    editorWindow.show()
-    editorWindow.focus()
-    return editorWindow
+    editorWindow.close()
+    editorWindow = null
   }
 
   editorWindow = new BrowserWindow({

@@ -5,11 +5,19 @@ import { CAT_BREEDS, CAT_BREED_LABELS } from '../../utils/cat-avatar'
 import {
   AgentConfig,
   AgentRole,
+  CliProvider,
+  CliCheckResult,
   PermissionMode,
   McpServerConfig,
   RoleTemplate
 } from '../../../../shared/types'
-import { MODEL_OPTIONS, PERMISSION_MODES, ROLE_PRESETS } from '../../../../shared/constants'
+import {
+  MODEL_OPTIONS,
+  PERMISSION_MODES,
+  ROLE_PRESETS,
+  CLI_PROVIDER_OPTIONS,
+  PROVIDER_MODEL_OPTIONS
+} from '../../../../shared/constants'
 import { useI18n } from '../../hooks/useI18n'
 
 interface AgentEditorProps {
@@ -41,6 +49,8 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
   const [avatarSeed, setAvatarSeed] = useState(getRandomSeed())
 
   // Model & Permissions
+  const [cliProvider, setCliProvider] = useState<CliProvider>('claude')
+  const [providerStatus, setProviderStatus] = useState<Record<string, CliCheckResult>>({})
   const [model, setModel] = useState('claude-opus-4-6')
   const [customModel, setCustomModel] = useState('')
   const [permissionMode, setPermissionMode] = useState<PermissionMode>('acceptEdits')
@@ -74,11 +84,21 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
   const [autoFillBanner, setAutoFillBanner] = useState<string | null>(null)
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // 에이전트 목록 + 역할 템플릿 로드
+  // 에이전트 목록 + 역할 템플릿 + 프로바이더 상태 + 기본 설정 로드
   useEffect(() => {
     window.api.agent.list().then(setAllAgents)
     window.api.settings.getRoleTemplates().then(setRoleTemplates)
-  }, [])
+    window.api.cli.checkAllProviders().then(setProviderStatus)
+    // 새 에이전트 생성 시 글로벌 기본 모델/권한/턴 적용
+    if (!editAgentId) {
+      window.api.settings.get().then((s) => {
+        if (s.defaultModel) setModel(s.defaultModel)
+        if (s.defaultPermissionMode) setPermissionMode(s.defaultPermissionMode)
+        if (s.defaultMaxTurns) setMaxTurns(s.defaultMaxTurns)
+        if (s.defaultCliProvider) setCliProvider(s.defaultCliProvider)
+      })
+    }
+  }, [editAgentId])
 
   // 템플릿 적용 헬퍼
   const applyTemplate = useCallback(
@@ -132,6 +152,7 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
           setGroup(c.group || '')
           setHierarchyRole(c.hierarchy?.role ?? 'member')
           setReportsTo(c.hierarchy?.reportsTo ?? '')
+          setCliProvider(c.cliProvider ?? 'claude')
 
           // 모델: MODEL_OPTIONS에 있으면 선택, 없으면 custom
           const isKnown = MODEL_OPTIONS.some((m) => m.value === c.model)
@@ -157,6 +178,16 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
     }
   }, [editAgentId])
 
+  // 프로바이더별 모델 옵션
+  const currentModelOptions = useMemo(
+    () => PROVIDER_MODEL_OPTIONS[cliProvider] ?? MODEL_OPTIONS,
+    [cliProvider]
+  )
+
+  // 프로바이더별 기능 지원 여부
+  const providerSupportsMcp = cliProvider === 'claude'
+  const providerSupportsPermission = cliProvider === 'claude'
+
   const avatarUri = useMemo(
     () => generateAvatar(avatarStyle, avatarSeed),
     [avatarStyle, avatarSeed]
@@ -179,6 +210,7 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
       systemPrompt: systemPrompt || getDefaultPrompt(role),
       workingDirectory,
       model: resolvedModel,
+      cliProvider: cliProvider !== 'claude' ? cliProvider : undefined,
       group: group || undefined,
       hierarchy:
         hierarchyRole === 'director'
@@ -498,10 +530,55 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
 
         {activeTab === 'model' && (
           <div className="space-y-4">
+            {/* CLI 프로바이더 선택 */}
+            <label className="block">
+              <span className="text-xs text-text-muted mb-1 block">
+                {t('agentEditor.cliProvider')}
+              </span>
+              <select
+                value={cliProvider}
+                onChange={(e) => {
+                  const newProvider = e.target.value as CliProvider
+                  setCliProvider(newProvider)
+                  // 프로바이더 변경 시 모델을 해당 프로바이더의 첫 번째 모델로 초기화
+                  const providerModels = PROVIDER_MODEL_OPTIONS[newProvider]
+                  if (providerModels && providerModels.length > 0) {
+                    setModel(providerModels[0].value)
+                    setCustomModel('')
+                  }
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
+              >
+                {CLI_PROVIDER_OPTIONS.map((p) => {
+                  const status = providerStatus[p.value]
+                  const badge = status?.installed ? ' ●' : ' ○'
+                  return (
+                    <option key={p.value} value={p.value} className="bg-surface">
+                      {p.label}{badge} — {p.description}
+                    </option>
+                  )
+                })}
+              </select>
+              {/* 설치 상태 뱃지 */}
+              {providerStatus[cliProvider] && (
+                <span
+                  className={`text-[10px] mt-1 block ${
+                    providerStatus[cliProvider].installed
+                      ? 'text-green-400'
+                      : 'text-red-400'
+                  }`}
+                >
+                  {providerStatus[cliProvider].installed
+                    ? `✓ ${t('agentEditor.cliInstalled')} (v${providerStatus[cliProvider].version})`
+                    : `✗ ${t('agentEditor.cliNotInstalled')} — ${CLI_PROVIDER_OPTIONS.find((p) => p.value === cliProvider)?.label}`}
+                </span>
+              )}
+            </label>
+
             <label className="block">
               <span className="text-xs text-text-muted mb-1 block">{t('agentEditor.model')}</span>
               <select
-                value={MODEL_OPTIONS.some((m) => m.value === model) ? model : 'custom'}
+                value={currentModelOptions.some((m) => m.value === model) ? model : 'custom'}
                 onChange={(e) => {
                   if (e.target.value === 'custom') {
                     setModel('custom')
@@ -512,7 +589,7 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                 }}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
               >
-                {MODEL_OPTIONS.map((m) => (
+                {currentModelOptions.map((m) => (
                   <option key={m.value} value={m.value} className="bg-surface">
                     {m.label} ({m.tier})
                   </option>
@@ -523,7 +600,7 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
               </select>
             </label>
 
-            {(model === 'custom' || !MODEL_OPTIONS.some((m) => m.value === model)) && (
+            {(model === 'custom' || !currentModelOptions.some((m) => m.value === model)) && (
               <label className="block">
                 <span className="text-xs text-text-muted mb-1 block">
                   {t('agentEditor.customModelId')}
@@ -532,20 +609,26 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                   type="text"
                   value={customModel}
                   onChange={(e) => setCustomModel(e.target.value)}
-                  placeholder="claude-..."
+                  placeholder="model-id..."
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent"
                 />
               </label>
             )}
 
-            <label className="block">
+            <label className={`block ${!providerSupportsPermission ? 'opacity-50' : ''}`}>
               <span className="text-xs text-text-muted mb-1 block">
                 {t('agentEditor.permissionMode')}
+                {!providerSupportsPermission && (
+                  <span className="text-[10px] text-text-muted ml-1">
+                    ({t('agentEditor.notSupportedByProvider')})
+                  </span>
+                )}
               </span>
               <select
                 value={permissionMode}
                 onChange={(e) => setPermissionMode(e.target.value as PermissionMode)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
+                disabled={!providerSupportsPermission}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {PERMISSION_MODES.map((m) => (
                   <option key={m.value} value={m.value} className="bg-surface">
@@ -595,6 +678,12 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
 
         {activeTab === 'mcp' && (
           <div className="space-y-3">
+            {/* MCP 미지원 프로바이더 경고 */}
+            {!providerSupportsMcp && (
+              <div className="px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs">
+                {t('agentEditor.notSupportedByProvider')}
+              </div>
+            )}
             {/* 팀 MCP 섹션 (리더/디렉터 전용) */}
             {(hierarchyRole === 'leader' || hierarchyRole === 'director') && (
               <>

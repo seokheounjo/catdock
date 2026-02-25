@@ -11,6 +11,7 @@ import {
   generateDynamicLeaderPrompt,
   generateDynamicMemberPrompt
 } from './default-agents'
+import { MODEL_OPTIONS } from '../../shared/constants'
 import { TaskDelegation } from '../../shared/types'
 
 // ── 순환 의존 방지: session-manager가 콜백 주입 ──
@@ -24,6 +25,17 @@ export function setSendMessageAndCapture(fn: SendMessageAndCaptureFn): void {
 function sendMessageAndCapture(agentId: string, message: string): Promise<string> {
   if (!_sendMessageAndCapture) throw new Error('[delegation] sendMessageAndCapture 미등록')
   return _sendMessageAndCapture(agentId, message)
+}
+
+// 설정에서 기본 모델 조회
+function getDefaultModel(): string {
+  try {
+    const settings = store.getSettings()
+    if (settings.defaultModel) return settings.defaultModel
+  } catch {
+    // 초기화 전이면 무시
+  }
+  return MODEL_OPTIONS[0]?.value ?? 'claude-sonnet-4-20250514'
 }
 
 export interface DelegationBlock {
@@ -116,7 +128,7 @@ function findOrCreateAgent(
     const agent = agentManager.createAgent({
       name: memberDef.name,
       role: memberDef.role,
-      model: memberDef.model,
+      model: getDefaultModel(),
       avatar: randomAvatar(),
       systemPrompt: memberDef.systemPrompt,
       workingDirectory: getProjectRoot(),
@@ -147,7 +159,7 @@ function findOrCreateAgent(
     const agent = agentManager.createAgent({
       name,
       role: leaderRole,
-      model: 'claude-sonnet-4-20250514',
+      model: getDefaultModel(),
       avatar: randomAvatar(),
       systemPrompt: generateDynamicLeaderPrompt(name, leaderRole),
       workingDirectory: getProjectRoot(),
@@ -174,7 +186,7 @@ function findOrCreateAgent(
     const agent = agentManager.createAgent({
       name,
       role: memberRole,
-      model: 'claude-sonnet-4-20250514',
+      model: getDefaultModel(),
       avatar: randomAvatar(),
       systemPrompt: generateDynamicMemberPrompt(name, memberRole),
       workingDirectory: getProjectRoot(),

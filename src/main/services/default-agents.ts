@@ -3,7 +3,7 @@ import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 import * as agentManager from './agent-manager'
 import * as store from './store'
-import { CAT_BREEDS_LIST } from '../../shared/constants'
+import { CAT_BREEDS_LIST, MODEL_OPTIONS } from '../../shared/constants'
 
 // 프로젝트 루트 자동 감지
 // 우선순위: 환경변수 > 저장된 설정 > cwd > app 경로 후보에서 package.json 검색
@@ -52,6 +52,19 @@ export function randomAvatar(): { style: string; seed: string } {
 
 export function getProjectRoot(): string {
   return store.getProjectRoot() || detectProjectRoot()
+}
+
+// ── 기본 모델 조회 ──
+
+// 설정에서 기본 모델을 읽어 반환 (유효하지 않으면 MODEL_OPTIONS 첫 항목)
+function getDefaultModel(): string {
+  try {
+    const settings = store.getSettings()
+    if (settings.defaultModel) return settings.defaultModel
+  } catch {
+    // 초기화 전이면 무시
+  }
+  return MODEL_OPTIONS[0]?.value ?? 'claude-sonnet-4-20250514'
 }
 
 // ── 에이전트 정의 ──
@@ -298,11 +311,11 @@ export function resetAndSeedHierarchy(): number {
   const projectRoot = getProjectRoot()
   console.log(`[default-agents] 프로젝트 루트: ${projectRoot}`)
 
-  // 총괄(Director) 1명만 생성
+  // 총괄(Director) 1명만 생성 — 설정의 기본 모델 사용
   const director = agentManager.createAgent({
     name: DIRECTOR_DEF.name,
     role: DIRECTOR_DEF.role,
-    model: DIRECTOR_DEF.model,
+    model: getDefaultModel(),
     avatar: randomAvatar(),
     systemPrompt: DIRECTOR_DEF.systemPrompt,
     workingDirectory: projectRoot,

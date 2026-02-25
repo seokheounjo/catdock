@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '../contexts/ThemeContext'
-import { DockSize, ConversationConfig } from '../../../shared/types'
+import { CliProvider, DockSize, ConversationConfig } from '../../../shared/types'
+import { CLI_PROVIDER_OPTIONS } from '../../../shared/constants'
 import { useI18n } from '../hooks/useI18n'
 import { useSettingsStore } from '../stores/settings-store'
 
@@ -269,6 +270,28 @@ export function SettingsPage() {
                 {lang === 'ko' ? '한' : lang === 'en' ? 'EN' : lang === 'ja' ? '日' : '中'}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* 기본 CLI 프로바이더 */}
+        {settings && (
+          <div className="px-4 py-3 flex items-center gap-2">
+            <span className="text-sm text-text-muted mr-auto">
+              {t('settings.defaultCliProvider')}
+            </span>
+            <select
+              value={settings.defaultCliProvider ?? 'claude'}
+              onChange={(e) =>
+                updateSettings({ defaultCliProvider: e.target.value as CliProvider })
+              }
+              className="bg-white/5 border border-white/10 rounded px-2 py-1 text-xs text-text outline-none focus:border-accent appearance-none cursor-pointer"
+            >
+              {CLI_PROVIDER_OPTIONS.map((p) => (
+                <option key={p.value} value={p.value} className="bg-surface">
+                  {p.label}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
