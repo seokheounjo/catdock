@@ -122,15 +122,19 @@ ${errorLog}
     updateRecoveryStatus(recoveryEvent.id, 'failed')
 
     // 상위자에게 보고 실패 시 한 단계 더 에스컬레이션
-    if (superior.hierarchy?.role === 'leader') {
-      console.log(`[error-recovery] 리더 ${superior.name} 보고 실패 → 디렉터로 에스컬레이션`)
-      await handleAgentError(
-        superior.id,
-        `리더 ${superior.name} 응답 불능: ${(err as Error).message}`
-      )
-    } else if (superior.hierarchy?.role === 'director') {
-      console.log(`[error-recovery] 디렉터 ${superior.name} 보고 실패 → 자가복구 시도`)
-      await escalateDirectorError(superior.id, superior.name, `디렉터 ${superior.name} 응답 불능`)
+    try {
+      if (superior.hierarchy?.role === 'leader') {
+        console.log(`[error-recovery] 리더 ${superior.name} 보고 실패 → 디렉터로 에스컬레이션`)
+        await handleAgentError(
+          superior.id,
+          `리더 ${superior.name} 응답 불능: ${(err as Error).message}`
+        )
+      } else if (superior.hierarchy?.role === 'director') {
+        console.log(`[error-recovery] 디렉터 ${superior.name} 보고 실패 → 자가복구 시도`)
+        await escalateDirectorError(superior.id, superior.name, `디렉터 ${superior.name} 응답 불능`)
+      }
+    } catch (escalateErr) {
+      console.error(`[error-recovery] 에스컬레이션 실패:`, escalateErr)
     }
   }
 }

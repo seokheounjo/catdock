@@ -119,13 +119,17 @@ export async function checkAllMcpServers(): Promise<void> {
   const agents = agentManager.listAgents()
 
   for (const agent of agents) {
-    const results = await checkAgentMcpServers(agent.id)
+    try {
+      const results = await checkAgentMcpServers(agent.id)
 
-    // 실패한 서버 보고
-    for (const result of results) {
-      if (result.status === 'disconnected') {
-        await reportFailure(agent.id, result)
+      // 실패한 서버 보고
+      for (const result of results) {
+        if (result.status === 'disconnected') {
+          await reportFailure(agent.id, result)
+        }
       }
+    } catch (err) {
+      console.error(`[mcp-health] ${agent.id} 체크 실패:`, err)
     }
   }
 

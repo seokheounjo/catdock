@@ -30,6 +30,14 @@ import * as wm from './window-manager'
 // ★ GPU 비활성화 → transparent: true 윈도우 크래시 방지
 app.disableHardwareAcceleration()
 
+// ★ 미처리 예외/거부 핸들러 — 앱 크래시 방지
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason)
+})
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err)
+})
+
 // ★ 디버깅용 CDP 포트 (dev 모드에서만)
 if (process.argv.includes('--cdp')) {
   app.commandLine.appendSwitch('remote-debugging-port', '9222')
@@ -216,104 +224,113 @@ if (gotLock) {
           }
         }
       })
+      .catch((err) => console.error('[second-instance] dialog error:', err))
   })
 
   // ── App ──
-  app.whenReady().then(async () => {
-    electronApp.setAppUserModelId('com.virtual-company')
+  app
+    .whenReady()
+    .then(async () => {
+      electronApp.setAppUserModelId('com.virtual-company')
 
-    // 프로젝트 루트 설정
-    store.setProjectRoot(detectProjectRoot())
+      // 프로젝트 루트 설정
+      store.setProjectRoot(detectProjectRoot())
 
-    // dock 생성 중이면 optimizer 제외
-    app.on('browser-window-created', (_, w) => {
-      if (!wm.isCreatingDock()) {
-        optimizer.watchWindowShortcuts(w)
+      // dock 생성 중이면 optimizer 제외
+      app.on('browser-window-created', (_, w) => {
+        if (!wm.isCreatingDock()) {
+          optimizer.watchWindowShortcuts(w)
+        }
+      })
+
+      registerIpcHandlers()
+      setWindowFunctions({
+        createChatWindow: wm.createChatWindow,
+        createEditorWindow: wm.createEditorWindow,
+        closeEditorWindow: wm.closeEditorWindow,
+        createGroupChatWindow: wm.createGroupChatWindow,
+        createConversationCreatorWindow: wm.createConversationCreatorWindow,
+        createDashboardWindow: wm.createDashboardWindow,
+        createCommandCenterWindow: wm.createCommandCenterWindow,
+        createSettingsWindow: wm.createSettingsWindow,
+        resizeDock: wm.resizeDock,
+        isDockWindow: wm.isDockWindow,
+        forceQuit,
+        setDockExpanded: wm.setDockExpanded,
+        setDockSize: wm.setDockSize
+      })
+
+      // 위임 시 에이전트 동적 생성 후 독 크기 자동 조정
+      setDockResizeCallback(wm.resizeDock)
+
+      // 퍼미션 서버 시작
+      startPermissionServer().catch((err) => {
+        console.error('[permission-server] 시작 실패:', err)
+      })
+
+      // 저장된 독 크기 복원
+      const savedSettings = store.getSettings()
+      wm.restoreDockSize(savedSettings.dockSize)
+
+      // 총괄 1명 체제
+      seedDirectorIfEmpty()
+      migrateHierarchyIfNeeded()
+      migrateSystemPrompts()
+      const staleRemoved = cleanStaleTasks()
+      if (staleRemoved > 0) console.log(`[startup] 오래된 태스크 ${staleRemoved}건 정리`)
+
+      // 프로세스 워치독 + 모니터링 루프 시작
+      startWatchdog()
+      startMonitoring()
+
+      wm.createDockWindow()
+
+      // 첫 실행이면 셋업 위자드, 아니면 CLI 확인
+      const settings = store.getSettings()
+      if (!settings.setupCompleted) {
+        wm.createSetupWindow()
+      } else {
+        await checkCliAndNotify()
       }
+
+      // 시딩 후 독 크기 조정
+      setTimeout(() => {
+        const count = agentManager.listAgents().length
+        if (count > 0) wm.resizeDock(count)
+      }, 500)
+      setTimeout(createTray, 1000)
+
+      // 2초마다 독 생존 확인
+      setInterval(() => {
+        if (!isQuitting) {
+          const dock = wm.getDockWindow()
+          if (!dock || dock.isDestroyed()) wm.createDockWindow()
+        }
+      }, 2000)
+
+      // 60초마다 만료된 임시 에이전트 정리
+      setInterval(() => {
+        if (!isQuitting) cleanupExpiredAgents()
+      }, 60000)
+
+      // CLI 업데이트 체크
+      setTimeout(() => {
+        if (!isQuitting) broadcastCliUpdate()
+      }, 10000)
+      setInterval(
+        () => {
+          if (!isQuitting) broadcastCliUpdate()
+        },
+        24 * 60 * 60 * 1000
+      )
+
+      app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) wm.createDockWindow()
+      })
     })
-
-    registerIpcHandlers()
-    setWindowFunctions({
-      createChatWindow: wm.createChatWindow,
-      createEditorWindow: wm.createEditorWindow,
-      closeEditorWindow: wm.closeEditorWindow,
-      createGroupChatWindow: wm.createGroupChatWindow,
-      createConversationCreatorWindow: wm.createConversationCreatorWindow,
-      createDashboardWindow: wm.createDashboardWindow,
-      createCommandCenterWindow: wm.createCommandCenterWindow,
-      createSettingsWindow: wm.createSettingsWindow,
-      resizeDock: wm.resizeDock,
-      isDockWindow: wm.isDockWindow,
-      forceQuit,
-      setDockExpanded: wm.setDockExpanded,
-      setDockSize: wm.setDockSize
+    .catch((err) => {
+      console.error('[app] 초기화 실패:', err)
     })
-
-    // 위임 시 에이전트 동적 생성 후 독 크기 자동 조정
-    setDockResizeCallback(wm.resizeDock)
-
-    // 퍼미션 서버 시작
-    startPermissionServer().catch((err) => {
-      console.error('[permission-server] 시작 실패:', err)
-    })
-
-    // 저장된 독 크기 복원
-    const savedSettings = store.getSettings()
-    wm.restoreDockSize(savedSettings.dockSize)
-
-    // 총괄 1명 체제
-    seedDirectorIfEmpty()
-    migrateHierarchyIfNeeded()
-    migrateSystemPrompts()
-    const staleRemoved = cleanStaleTasks()
-    if (staleRemoved > 0) console.log(`[startup] 오래된 태스크 ${staleRemoved}건 정리`)
-
-    // 프로세스 워치독 + 모니터링 루프 시작
-    startWatchdog()
-    startMonitoring()
-
-    wm.createDockWindow()
-
-    // 첫 실행이면 셋업 위자드, 아니면 CLI 확인
-    const settings = store.getSettings()
-    if (!settings.setupCompleted) {
-      wm.createSetupWindow()
-    } else {
-      await checkCliAndNotify()
-    }
-
-    // 시딩 후 독 크기 조정
-    setTimeout(() => {
-      const count = agentManager.listAgents().length
-      if (count > 0) wm.resizeDock(count)
-    }, 500)
-    setTimeout(createTray, 1000)
-
-    // 2초마다 독 생존 확인
-    setInterval(() => {
-      if (!isQuitting) {
-        const dock = wm.getDockWindow()
-        if (!dock || dock.isDestroyed()) wm.createDockWindow()
-      }
-    }, 2000)
-
-    // 60초마다 만료된 임시 에이전트 정리
-    setInterval(() => {
-      if (!isQuitting) cleanupExpiredAgents()
-    }, 60000)
-
-    // CLI 업데이트 체크
-    setTimeout(() => {
-      if (!isQuitting) broadcastCliUpdate()
-    }, 10000)
-    setInterval(() => {
-      if (!isQuitting) broadcastCliUpdate()
-    }, 24 * 60 * 60 * 1000)
-
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) wm.createDockWindow()
-    })
-  })
 
   // 앱 종료 차단 — forceQuit()으로만 종료 가능
   app.on('window-all-closed', () => {

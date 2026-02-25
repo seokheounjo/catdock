@@ -71,10 +71,18 @@ export function startPermissionServer(): Promise<number> {
             // 렌더러에 퍼미션 요청 브로드캐스트
             broadcast('permission:request', permReq)
 
-            responsePromise.then((allowed) => {
-              res.writeHead(200, { 'Content-Type': 'application/json' })
-              res.end(JSON.stringify({ allowed }))
-            })
+            responsePromise
+              .then((allowed) => {
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ allowed }))
+              })
+              .catch((err) => {
+                console.error('[permission-server] 응답 실패:', err)
+                if (!res.writableEnded) {
+                  res.writeHead(500, { 'Content-Type': 'application/json' })
+                  res.end(JSON.stringify({ error: String(err) }))
+                }
+              })
           } catch (err) {
             res.writeHead(400, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ error: String(err) }))

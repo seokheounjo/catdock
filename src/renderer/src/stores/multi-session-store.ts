@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { ChatMessage } from '../../../shared/types'
 
 // 에이전트별 세션 상태
-interface AgentSessionState {
+export interface AgentSessionState {
   messages: ChatMessage[]
   streaming: boolean
   streamingContent: string
