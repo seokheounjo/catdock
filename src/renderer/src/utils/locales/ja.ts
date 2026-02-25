@@ -317,7 +317,7 @@ const ja: LocaleMessages = {
     step2Title: '作業ディレクトリ設定',
     step2Desc: 'エージェントが作業するデフォルトフォルダを指定',
     step3Title: '準備完了！',
-    step3Desc: 'デフォルトエージェント6名が既に準備されています',
+    step3Desc: '総括(Director)がタスクに合わせてチームを自動編成します',
     startSetup: '開始する',
     cliTitle: 'Claude Code CLI',
     cliDesc: 'エージェントと会話するにはClaude Code CLIが必要です。',
@@ -345,7 +345,7 @@ const ja: LocaleMessages = {
     notInstalledNote: '未インストール（後でインストール可能）',
     workingDirSummary: '作業ディレクトリ',
     defaultDir: 'デフォルト使用',
-    agentTeam: 'エージェントチーム: 6名準備完了',
+    agentTeam: '総括エージェント準備完了',
     howToStart: '使い方:',
     howToStartDesc:
       'ドック下部のエージェントアバターをクリックするとチャットウィンドウが開きます。歯車アイコンでダッシュボード、+アイコンでエージェント追加やグループチャットを作成できます。',

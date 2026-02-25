@@ -317,7 +317,7 @@ const en: LocaleMessages = {
     step2Title: 'Working Directory Setup',
     step2Desc: 'Set the default folder for agents to work in',
     step3Title: 'Ready to Go!',
-    step3Desc: '6 default agents are already prepared',
+    step3Desc: 'Director will automatically assemble teams for your tasks',
     startSetup: 'Get Started',
     cliTitle: 'Claude Code CLI',
     cliDesc: 'Claude Code CLI is required to chat with agents.',
@@ -344,7 +344,7 @@ const en: LocaleMessages = {
     notInstalledNote: 'Not installed (can install later)',
     workingDirSummary: 'Working Directory',
     defaultDir: 'Using default',
-    agentTeam: 'Agent team: 6 members ready',
+    agentTeam: 'Director agent ready',
     howToStart: 'How to start:',
     howToStartDesc:
       'Click an agent avatar in the dock to open a chat window. Use the gear icon for the dashboard, and the + icon to add agents or create group chats.',

@@ -334,7 +334,7 @@ const ko = {
     step2Title: '작업 디렉토리 설정',
     step2Desc: '에이전트가 작업할 기본 폴더 지정',
     step3Title: '바로 시작!',
-    step3Desc: '기본 에이전트 6명이 이미 준비되어 있습니다',
+    step3Desc: '총괄(Director)이 작업에 맞게 팀을 자동 편성합니다',
     startSetup: '시작하기',
     cliTitle: 'Claude Code CLI',
     cliDesc: '에이전트와 대화하려면 Claude Code CLI가 필요합니다.',
@@ -361,7 +361,7 @@ const ko = {
     notInstalledNote: '미설치 (나중에 설치 가능)',
     workingDirSummary: '작업 디렉토리',
     defaultDir: '기본값 사용',
-    agentTeam: '에이전트 팀: 6명 준비됨',
+    agentTeam: '총괄 에이전트 준비됨',
     howToStart: '시작 방법:',
     howToStartDesc:
       '하단 독에서 에이전트 아바타를 클릭하면 대화창이 열립니다. 톱니바퀴 아이콘으로 대시보드를, + 아이콘으로 에이전트 추가/그룹 채팅을 만들 수 있습니다.',

@@ -316,7 +316,7 @@ const zh: LocaleMessages = {
     step2Title: '工作目录设置',
     step2Desc: '设置智能体默认工作文件夹',
     step3Title: '准备就绪！',
-    step3Desc: '已准备好 6 名默认智能体',
+    step3Desc: '总监(Director)会根据任务自动组建团队',
     startSetup: '开始设置',
     cliTitle: 'Claude Code CLI',
     cliDesc: '需要 Claude Code CLI 才能与智能体对话。',
@@ -342,7 +342,7 @@ const zh: LocaleMessages = {
     notInstalledNote: '未安装（可稍后安装）',
     workingDirSummary: '工作目录',
     defaultDir: '使用默认值',
-    agentTeam: '智能体团队：6 名成员已就绪',
+    agentTeam: '总监智能体已就绪',
     howToStart: '使用方法：',
     howToStartDesc:
       '点击 Dock 底部的智能体头像即可打开聊天窗口。使用齿轮图标打开仪表盘，使用 + 图标添加智能体或创建群组聊天。',
