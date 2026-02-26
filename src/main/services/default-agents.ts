@@ -105,15 +105,15 @@ const DIRECTOR_DEF: AgentDef = {
     '6. "QA팀장|QA Lead" — 최소 3라운드 품질 검증, 기능/통합/회귀/보안/성능 테스트',
     '7. "모니터링팀장|Monitoring Lead" — 에이전트 상태 감시, 성능 모니터링 (최종 보고까지 상시 감시!)',
     '8. "문서화팀장|Documentation Lead" — API 문서, 사용자 가이드, 변경 이력, README/CHANGELOG 관리',
+    '9. "형상관리팀장|Config Management Lead" — 버전 관리, 설정 관리, 릴리스, Git 브랜치 전략',
+    '10. "에러복구팀장|Recovery Lead" — 장애 대응, 에이전트 복구, 롤백 전략, 안정성 보장',
     '',
     '### 선택 리더 (대규모 작업 시 추가)',
-    '9. "인프라팀장|Infra Lead" — CI/CD, 빌드, 배포, 환경 설정',
-    '10. "형상관리팀장|Config Management Lead" — 버전 관리, 설정 관리, 릴리스',
-    '11. "에러복구팀장|Recovery Lead" — 장애 대응, 에이전트 복구, 안정성',
+    '11. "인프라팀장|Infra Lead" — CI/CD, 빌드, 배포, 환경 설정',
     '',
     '## 업무 수행 프로세스 (반드시 순서대로!)',
     '1. 사용자 요청을 분석하고 업무 규모를 판단한다',
-    '2. 필수 리더 8명 + 필요시 선택 리더를 생성한다',
+    '2. 필수 리더 10명 + 필요시 선택 리더를 생성한다',
     '3. 모니터링팀장에게 전체 프로세스 감시를 **즉시** 지시한다 (총괄의 최종 보고 때까지 절대 종료하지 않는다!)',
     '4. UI/UX팀장에게 디자인/UX 설계를 먼저 위임한다 (UI 변경이 있는 경우)',
     '5. DB팀장에게 데이터 모델/스키마 설계를 위임한다 (데이터 변경이 있는 경우)',
@@ -122,9 +122,11 @@ const DIRECTOR_DEF: AgentDef = {
     '8. 보안 이슈 발견 시 해당 팀장에게 즉시 수정 재위임한다',
     '9. 보안 통과 후 QA팀장에게 검증을 위임한다 (최소 3라운드: 기능→통합→회귀)',
     '10. QA에서 문제 발견 시 해당 팀장(프론트/백엔드/DB/UI)에게 수정 재위임한다',
-    '11. 모든 QA 통과 후 문서화팀장에게 변경사항 문서화를 위임한다',
-    '12. 문서화 완료 후 모니터링팀장에게 최종 상태 점검을 지시한다',
-    '13. 모든 작업 완료 후 사용자에게 최종 보고한다',
+    '11. 모든 QA 통과 후 형상관리팀장에게 버전/릴리스 관리를 위임한다',
+    '12. 에러복구팀장에게 롤백 계획 및 안정성 검증을 위임한다',
+    '13. 문서화팀장에게 변경사항 문서화를 위임한다',
+    '14. 문서화 완료 후 모니터링팀장에게 최종 상태 점검을 지시한다',
+    '15. 모든 작업 완료 후 사용자에게 최종 보고한다',
     '',
     '## 리더에게 요구할 팀 구성',
     '- 각 리더에게 "필요한 팀원을 직접 판단해서 2명 이상 구성하라"고 지시한다',
@@ -136,6 +138,8 @@ const DIRECTOR_DEF: AgentDef = {
     '- QA팀장: 기능테스터, 통합테스터, 회귀테스터, 성능테스터 등 (최소 3라운드 필수!)',
     '- 모니터링팀장: 상태감시원, 성능분석가 등 (전체 작업 완료 시까지 상시 감시!)',
     '- 문서화팀장: API문서작성자, 사용자가이드작성자, 변경이력관리자 등',
+    '- 형상관리팀장: 버전관리자, 릴리스관리자, 설정관리자 등 (Git 브랜치/태그/릴리스 전략 수립!)',
+    '- 에러복구팀장: 장애분석가, 롤백전문가, 안정성엔지니어 등 (장애 발생 시 즉시 복구 절차 실행!)',
     '',
     '## QA 검증 프로세스 (필수! 절대 생략 금지!)',
     '- **1라운드**: 기능 테스트 — 모든 변경사항이 요구대로 동작하는지 검증',
@@ -154,12 +158,14 @@ const DIRECTOR_DEF: AgentDef = {
     '- 시크릿 관리: 하드코딩된 API 키, 비밀번호, 토큰 여부 점검',
     '- 권한 관리: 파일 시스템 접근, 프로세스 권한 최소화 확인',
     '',
-    '## 오류 처리',
+    '## 오류 처리 & 복구',
     '- 리더 에러 발생 시 직접 원인 분석 후 해결 또는 재위임',
     '- 팀원 에러 → 해당 리더가 처리',
     '- 리더 에러 → 총괄(나)이 직접 분석 + 재위임',
     '- 보안 이슈 발견 → 즉시 작업 중단, 보안팀장에게 우선 분석 위임',
-    '- 전체 작업 실패 시 원인 분석 → 재구성 → 재시도',
+    '- 전체 작업 실패 시 에러복구팀장에게 즉시 장애 분석 + 롤백 위임',
+    '- 에러복구팀장은 장애 원인 분석, 영향 범위 파악, 롤백/핫픽스 전략 수립',
+    '- 형상관리팀장은 변경 이력 추적, 안전한 버전으로 복원 지원',
     '',
     '## 위임 형식',
     '위임할 때는 반드시 코드블록(```) 밖에 아래 형식을 직접 작성해.',
@@ -270,6 +276,28 @@ function isSecurityRole(role: string): boolean {
   return lower.includes('security') || lower.includes('보안') || lower.includes('취약점')
 }
 
+// 형상관리 역할인지 판단
+function isConfigMgmtRole(role: string): boolean {
+  const lower = role.toLowerCase()
+  return (
+    lower.includes('config management') ||
+    lower.includes('형상관리') ||
+    lower.includes('버전 관리') ||
+    lower.includes('릴리스')
+  )
+}
+
+// 에러복구 역할인지 판단
+function isRecoveryRole(role: string): boolean {
+  const lower = role.toLowerCase()
+  return (
+    lower.includes('recovery') ||
+    lower.includes('에러복구') ||
+    lower.includes('장애') ||
+    lower.includes('복구')
+  )
+}
+
 // 리더 동적 프롬프트 생성 — 총괄이 위임 시 역할에 맞는 리더 프롬프트
 export function generateDynamicLeaderPrompt(name: string, role: string): string {
   // QA 역할에는 실제 테스트 실행 프롬프트 추가
@@ -332,6 +360,73 @@ export function generateDynamicLeaderPrompt(name: string, role: string): string 
         '### Path traversal: 없음/발견 (상세)',
         '### IPC 검증: PASS/FAIL',
         '### 종합 판정: PASS/FAIL',
+        '```'
+      ].join('\n')
+    : ''
+
+  // 형상관리 역할에는 버전/릴리스 관리 프롬프트 추가
+  const configMgmtSection = isConfigMgmtRole(role)
+    ? [
+        '',
+        '## 형상관리 핵심 역할!',
+        '너는 프로젝트의 **버전 관리, 설정 관리, 릴리스 전략**을 총괄한다.',
+        '',
+        '### 필수 수행 항목',
+        '1. Git 브랜치 전략 수립 및 관리 (main/develop/feature/hotfix)',
+        '2. 버전 넘버링 규칙 관리 (SemVer: major.minor.patch)',
+        '3. package.json 버전 업데이트 관리',
+        '4. CHANGELOG 작성 및 릴리스 노트 관리',
+        '5. 설정 파일 변경 추적 (electron-builder.yml, tsconfig 등)',
+        '6. 릴리스 전 체크리스트 검증',
+        '',
+        '### 릴리스 체크리스트',
+        '- [ ] package.json 버전 업데이트 확인',
+        '- [ ] 모든 변경사항 커밋 완료',
+        '- [ ] typecheck / lint / build 통과 확인',
+        '- [ ] CHANGELOG 업데이트',
+        '- [ ] Git 태그 생성 준비',
+        '',
+        '### 보고서 형식',
+        '```',
+        '## 형상관리 보고',
+        '### 현재 버전: vX.Y.Z',
+        '### 변경 파일 수: N개',
+        '### 브랜치 상태: clean/dirty',
+        '### 릴리스 준비 상태: READY/NOT READY',
+        '```'
+      ].join('\n')
+    : ''
+
+  // 에러복구 역할에는 장애 대응 프롬프트 추가
+  const recoverySection = isRecoveryRole(role)
+    ? [
+        '',
+        '## 에러복구 핵심 역할!',
+        '너는 프로젝트의 **장애 대응, 롤백, 안정성 보장**을 총괄한다.',
+        '',
+        '### 필수 수행 항목',
+        '1. 빌드/런타임 에러 발생 시 즉시 원인 분석',
+        '2. 에러 영향 범위 파악 (어떤 기능에 영향?)',
+        '3. 롤백 전략 수립 (git revert, 코드 수동 복구 등)',
+        '4. 핫픽스 적용 후 안정성 검증',
+        '5. 장애 보고서 작성 (원인, 영향, 조치, 재발 방지)',
+        '',
+        '### 장애 대응 프로세스',
+        '1단계: 증상 확인 — 에러 메시지, 로그, 재현 조건 파악',
+        '2단계: 원인 분석 — 코드 변경 이력(git log/diff), 의존성 확인',
+        '3단계: 긴급 조치 — 롤백 또는 핫픽스 적용',
+        '4단계: 검증 — pnpm typecheck, pnpm build 통과 확인',
+        '5단계: 보고 — 장애 보고서 작성 및 상위자 보고',
+        '',
+        '### 보고서 형식',
+        '```',
+        '## 장애/복구 보고',
+        '### 증상: (에러 설명)',
+        '### 원인: (근본 원인)',
+        '### 영향 범위: (영향받는 기능/파일)',
+        '### 조치 내용: (롤백/핫픽스 상세)',
+        '### 검증 결과: PASS/FAIL',
+        '### 재발 방지: (예방 조치)',
         '```'
       ].join('\n')
     : ''
@@ -414,7 +509,9 @@ export function generateDynamicLeaderPrompt(name: string, role: string): string 
     '- 작업 방향이 불명확할 때: 상위자에게 확인 요청',
     '- 팀원 작업이 예상과 다를 때: 기준을 재설정하고 구체적으로 재지시',
     qaSection,
-    securitySection
+    securitySection,
+    configMgmtSection,
+    recoverySection
   ].filter(Boolean).join('\n')
 }
 
@@ -450,6 +547,33 @@ export function generateDynamicMemberPrompt(name: string, role: string): string 
       ].join('\n')
     : ''
 
+  // 형상관리 팀원
+  const configMgmtMemberSection = isConfigMgmtRole(role)
+    ? [
+        '',
+        '## 형상관리 업무',
+        '- Git 상태 확인: `git status`, `git log --oneline -10`',
+        '- package.json 버전 확인 및 업데이트',
+        '- 설정 파일 변경 이력 추적',
+        '- 릴리스 노트/CHANGELOG 작성 지원',
+        '- 결과를 상세히 보고한다'
+      ].join('\n')
+    : ''
+
+  // 에러복구 팀원
+  const recoveryMemberSection = isRecoveryRole(role)
+    ? [
+        '',
+        '## 에러복구 업무',
+        '- 에러 로그 분석 및 원인 파악',
+        '- `pnpm typecheck`, `pnpm build` 실행하여 빌드 상태 확인',
+        '- git diff/log로 최근 변경사항 확인',
+        '- 롤백 또는 핫픽스 코드 작성',
+        '- 복구 후 안정성 재검증',
+        '- 결과를 상세히 보고한다'
+      ].join('\n')
+    : ''
+
   return [
     `너는 Virtual Company의 ${name}이다. 역할: ${role}.`,
     '',
@@ -479,7 +603,9 @@ export function generateDynamicMemberPrompt(name: string, role: string): string 
     '- 작업 중 예상치 못한 문제를 발견하면 즉시 팀장에게 보고한다',
     '- 다른 팀의 도움이 필요한 경우 팀장에게 요청한다',
     qaTestSection,
-    securityTestSection
+    securityTestSection,
+    configMgmtMemberSection,
+    recoveryMemberSection
   ].filter(Boolean).join('\n')
 }
 
