@@ -373,10 +373,12 @@ export function createSettingsWindow(): BrowserWindow {
   }
 
   settingsWindow = new BrowserWindow({
-    ...centerBounds(320, 600),
+    ...centerBounds(380, 720),
     frame: false,
     backgroundColor: getWindowBgColor(),
-    resizable: false,
+    resizable: true,
+    minWidth: 340,
+    minHeight: 500,
     alwaysOnTop: true,
     webPreferences: defaultWebPreferences()
   })

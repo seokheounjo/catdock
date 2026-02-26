@@ -105,7 +105,7 @@ export function SettingsPage() {
       </div>
 
       {/* 메뉴 목록 */}
-      <div className="flex-1 flex flex-col py-1">
+      <div className="flex-1 overflow-y-auto flex flex-col py-1">
         {/* 그룹 채팅 — 토글 섹션 */}
         <button
           className={menuBtn}

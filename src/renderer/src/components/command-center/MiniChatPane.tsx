@@ -25,10 +25,17 @@ export function MiniChatPane({
   onClick,
   mcpHealth
 }: MiniChatPaneProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  // 메시지 변경 시 스크롤 — requestAnimationFrame으로 렌더 후 실행
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = scrollRef.current
+    if (!el) return
+    // 스트리밍 중에는 즉시 스크롤 (smooth하면 따라가지 못함)
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+    })
   }, [messages, streamingContent])
 
   const avatarUrl = generateAvatar(agent.avatar.style, agent.avatar.seed)
@@ -96,7 +103,7 @@ export function MiniChatPane({
       </div>
 
       {/* 메시지 영역 — justify-end로 하단 정렬 */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto min-h-0">
         <div className="flex flex-col justify-end min-h-full py-2 space-y-0.5">
           {messages.length === 0 && !streaming && (
             <div className="flex-1 flex items-center justify-center text-text-muted text-[10px]">

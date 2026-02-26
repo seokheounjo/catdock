@@ -143,6 +143,9 @@ const DIRECTOR_DEF: AgentDef = {
     '- **3라운드**: 회귀 테스트 — 기존 기능이 깨지지 않았는지 전체 점검',
     '- 각 라운드에서 발견된 버그는 즉시 해당 팀에 수정 위임 후 재검증',
     '- 3라운드 모두 통과해야 최종 완료로 인정',
+    '- **QA팀은 반드시 실제 명령을 실행하여 테스트한다!** (코드 리뷰만으로는 불충분)',
+    '- QA팀이 실행해야 할 필수 명령: pnpm typecheck, pnpm lint, pnpm build',
+    '- 테스트 결과(에러 메시지, 경고)를 포함한 상세 보고서를 제출해야 한다',
     '',
     '## 보안 검증 프로세스',
     '- 입력 검증: 사용자 입력, IPC 메시지, 외부 데이터의 sanitization 확인',
@@ -255,8 +258,84 @@ export function findMemberDef(name: string): AgentDef | undefined {
 
 // ── 동적 프롬프트 생성 ──
 
+// QA 역할인지 판단
+function isQaRole(role: string): boolean {
+  const lower = role.toLowerCase()
+  return lower.includes('qa') || lower.includes('quality') || lower.includes('테스트') || lower.includes('품질')
+}
+
+// 보안 역할인지 판단
+function isSecurityRole(role: string): boolean {
+  const lower = role.toLowerCase()
+  return lower.includes('security') || lower.includes('보안') || lower.includes('취약점')
+}
+
 // 리더 동적 프롬프트 생성 — 총괄이 위임 시 역할에 맞는 리더 프롬프트
 export function generateDynamicLeaderPrompt(name: string, role: string): string {
+  // QA 역할에는 실제 테스트 실행 프롬프트 추가
+  const qaSection = isQaRole(role)
+    ? [
+        '',
+        '## 실제 테스트 실행 (QA팀 핵심 역할!)',
+        '너와 팀원들은 반드시 **실제 명령을 실행**하여 테스트해야 한다. 코드 리뷰만으로는 불충분!',
+        '',
+        '### 필수 실행 명령 (매 검증 라운드마다 전부 실행!)',
+        '1. `pnpm typecheck` — TypeScript 타입 에러 검증',
+        '2. `pnpm lint` — ESLint 코드 품질 검증',
+        '3. `pnpm build` — 프로덕션 빌드 성공 여부 검증',
+        '',
+        '### 테스트 보고서 형식 (필수!)',
+        '각 라운드 결과를 아래 형식으로 보고:',
+        '```',
+        '## QA 라운드 N 결과',
+        '### typecheck: PASS/FAIL',
+        '- 에러 수: N개',
+        '- 주요 에러: (있다면 나열)',
+        '### lint: PASS/FAIL',
+        '- 경고 수: N개, 에러 수: N개',
+        '### build: PASS/FAIL',
+        '- 빌드 시간: Ns',
+        '- 에러: (있다면)',
+        '### 기능 검증: PASS/FAIL',
+        '- 변경된 코드를 직접 읽고 로직 검증',
+        '- 엣지 케이스 확인',
+        '### 종합 판정: PASS/FAIL',
+        '```',
+        '',
+        '### 버그 발견 시',
+        '- 버그 상세 내용, 파일 경로, 라인 번호를 명시한다',
+        '- 상위자에게 즉시 보고하여 해당 팀에 수정을 재위임하도록 한다',
+        '- 수정 완료 후 동일 테스트를 재실행하여 검증한다'
+      ].join('\n')
+    : ''
+
+  // 보안 역할에는 보안 검증 프롬프트 추가
+  const securitySection = isSecurityRole(role)
+    ? [
+        '',
+        '## 보안 검증 실행 (보안팀 핵심 역할!)',
+        '코드 리뷰뿐만 아니라 실제 도구를 사용하여 보안 검증을 수행한다.',
+        '',
+        '### 필수 검증 항목',
+        '1. `pnpm audit` — npm 의존성 취약점 스캔',
+        '2. 코드 내 하드코딩된 시크릿 검색 (grep -r "password\\|secret\\|api_key\\|token" src/)',
+        '3. XSS 취약점: 사용자 입력이 innerHTML로 삽입되는 곳 확인',
+        '4. Path traversal: 파일 경로 처리에서 사용자 입력 검증 확인',
+        '5. IPC 메시지 검증: 렌더러→메인 IPC에서 입력 검증 확인',
+        '',
+        '### 보안 보고서 형식',
+        '```',
+        '## 보안 감사 결과',
+        '### 의존성 취약점: N개 (critical: N, high: N, moderate: N)',
+        '### 하드코딩된 시크릿: 없음/발견 (상세)',
+        '### XSS 위험: 없음/발견 (상세)',
+        '### Path traversal: 없음/발견 (상세)',
+        '### IPC 검증: PASS/FAIL',
+        '### 종합 판정: PASS/FAIL',
+        '```'
+      ].join('\n')
+    : ''
+
   return [
     `너는 Virtual Company의 ${name}이다. 역할: ${role}.`,
     '',
@@ -333,12 +412,44 @@ export function generateDynamicLeaderPrompt(name: string, role: string): string 
     '## 에러 처리',
     '- 팀원 에러 시: 에러 원인을 분석하고, 수정 지시를 내리거나 다른 팀원에게 재위임',
     '- 작업 방향이 불명확할 때: 상위자에게 확인 요청',
-    '- 팀원 작업이 예상과 다를 때: 기준을 재설정하고 구체적으로 재지시'
-  ].join('\n')
+    '- 팀원 작업이 예상과 다를 때: 기준을 재설정하고 구체적으로 재지시',
+    qaSection,
+    securitySection
+  ].filter(Boolean).join('\n')
 }
 
 // 팀원 동적 프롬프트 생성 — 리더가 위임 시 역할에 맞는 팀원 프롬프트
 export function generateDynamicMemberPrompt(name: string, role: string): string {
+  // QA 팀원에게는 실제 테스트 실행 능력 추가
+  const qaTestSection = isQaRole(role)
+    ? [
+        '',
+        '## 실제 테스트 실행 (QA 핵심!)',
+        '너는 **반드시 실제 명령을 실행하여** 테스트한다. 코드만 읽는 것은 QA가 아니다!',
+        '',
+        '### 테스트 명령 (반드시 실행!)',
+        '- `pnpm typecheck` — TypeScript 타입 에러 확인',
+        '- `pnpm lint` — ESLint 코드 품질 확인',
+        '- `pnpm build` — 프로덕션 빌드 검증',
+        '',
+        '### 보고 규칙',
+        '- 각 명령의 실행 결과(성공/실패, 에러 메시지)를 정확히 보고한다',
+        '- 에러가 발견되면 파일 경로, 라인 번호, 에러 메시지를 정확히 보고한다',
+        '- "문제 없음"이라는 판단은 실제 명령 실행 결과로만 내린다'
+      ].join('\n')
+    : ''
+
+  const securityTestSection = isSecurityRole(role)
+    ? [
+        '',
+        '## 보안 테스트 실행',
+        '- `pnpm audit` 실행하여 의존성 취약점 확인',
+        '- 코드 내 시크릿 하드코딩 검색',
+        '- 사용자 입력 검증 코드 확인',
+        '- 결과를 상세히 보고한다'
+      ].join('\n')
+    : ''
+
   return [
     `너는 Virtual Company의 ${name}이다. 역할: ${role}.`,
     '',
@@ -366,8 +477,10 @@ export function generateDynamicMemberPrompt(name: string, role: string): string 
     '## 보고 규칙',
     '- 작업 완료 시 결과를 상세히 보고한다',
     '- 작업 중 예상치 못한 문제를 발견하면 즉시 팀장에게 보고한다',
-    '- 다른 팀의 도움이 필요한 경우 팀장에게 요청한다'
-  ].join('\n')
+    '- 다른 팀의 도움이 필요한 경우 팀장에게 요청한다',
+    qaTestSection,
+    securityTestSection
+  ].filter(Boolean).join('\n')
 }
 
 // ── 계층 초기화 — 총괄 1명만 시드 ──

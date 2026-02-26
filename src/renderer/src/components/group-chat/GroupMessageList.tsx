@@ -22,14 +22,19 @@ export function GroupMessageList({
   streamingAgentName
 }: GroupMessageListProps) {
   const { t } = useI18n()
+  const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = scrollRef.current
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+    })
   }, [messages, streamingContent])
 
   return (
-    <div className="chat-content flex-1 overflow-y-auto py-4 space-y-1">
+    <div ref={scrollRef} className="chat-content flex-1 overflow-y-auto py-4 space-y-1">
       {messages.length === 0 && !streaming && (
         <div className="flex flex-col items-center justify-center h-full text-text-muted">
           <div className="text-4xl mb-3">💬</div>
