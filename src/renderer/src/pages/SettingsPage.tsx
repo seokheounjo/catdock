@@ -418,15 +418,44 @@ export function SettingsPage() {
               </>
             )}
             {appUpdate?.state === 'error' && (
-              <>
-                <span className="text-xs text-red-400">{t('settings.appUpdateError')}</span>
-                <button
-                  className="ml-auto px-2 py-0.5 text-xs rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20"
-                  onClick={() => window.api.app.checkAppUpdate()}
-                >
-                  {t('settings.appUpdateCheck')}
-                </button>
-              </>
+              <div className="flex flex-col gap-1 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-400">{t('settings.appUpdateError')}</span>
+                  <button
+                    className="ml-auto px-2 py-0.5 text-xs rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20"
+                    onClick={() => window.api.app.checkAppUpdate()}
+                  >
+                    {t('settings.appUpdateCheck')}
+                  </button>
+                </div>
+                {appUpdate.message && (
+                  <div className="flex items-start gap-1.5 p-2 rounded bg-red-500/10 border border-red-500/20">
+                    <span className="text-[10px] text-red-300 break-all flex-1 font-mono leading-relaxed select-text">
+                      {appUpdate.message}
+                    </span>
+                    <button
+                      className="shrink-0 px-1.5 py-0.5 text-[10px] rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20 hover:text-text"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(appUpdate.message || '')
+                        } catch {
+                          const ta = document.createElement('textarea')
+                          ta.value = appUpdate.message || ''
+                          ta.style.position = 'fixed'
+                          ta.style.opacity = '0'
+                          document.body.appendChild(ta)
+                          ta.select()
+                          document.execCommand('copy')
+                          document.body.removeChild(ta)
+                        }
+                      }}
+                      title="Copy error"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             {(!appUpdate || appUpdate.state === 'not-available') && (
               <>
