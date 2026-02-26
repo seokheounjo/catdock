@@ -178,6 +178,8 @@ interface AppApi {
   checkAppUpdate(): Promise<void>
   downloadAppUpdate(): Promise<void>
   installAppUpdate(): Promise<void>
+  getGhToken(): Promise<{ hasToken: boolean; token: string }>
+  saveGhToken(token: string): Promise<{ success: boolean; message: string }>
 }
 
 interface Api {

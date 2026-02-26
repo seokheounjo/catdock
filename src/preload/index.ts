@@ -227,7 +227,11 @@ const api = {
       ipcRenderer.invoke('dock:set-visible-count', count),
     checkAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:check-app-update'),
     downloadAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:download-app-update'),
-    installAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:install-app-update')
+    installAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:install-app-update'),
+    getGhToken: (): Promise<{ hasToken: boolean; token: string }> =>
+      ipcRenderer.invoke('app:get-gh-token'),
+    saveGhToken: (token: string): Promise<{ success: boolean; message: string }> =>
+      ipcRenderer.invoke('app:save-gh-token', token)
   },
 
   // Events from main

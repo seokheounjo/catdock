@@ -137,7 +137,16 @@ const zh: LocaleMessages = {
     leaderTemplate: '仅限领导',
     memberTemplate: '成员用',
     workingDirPlaceholder: '选择默认项目文件夹...',
-    defaultCliProvider: '默认 CLI 提供者'
+    defaultCliProvider: '默认 CLI 提供者',
+    ghToken: 'GitHub 令牌 (私有仓库更新)',
+    ghTokenPlaceholder: 'ghp_... 或 github_pat_...',
+    ghTokenSet: '令牌已设置',
+    ghTokenNotSet: '未设置令牌 — 无法从私有仓库更新',
+    ghTokenSave: '保存',
+    ghTokenClear: '删除',
+    ghTokenSaved: '令牌保存成功',
+    ghTokenCleared: '令牌已删除',
+    ghTokenHint: '在 Settings > Developer settings > Personal access tokens 中生成'
   },
 
   agentEditor: {

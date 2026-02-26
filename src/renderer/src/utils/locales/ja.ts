@@ -137,7 +137,16 @@ const ja: LocaleMessages = {
     leaderTemplate: 'リーダー専用',
     memberTemplate: 'メンバー用',
     workingDirPlaceholder: 'デフォルトプロジェクトフォルダを選択...',
-    defaultCliProvider: 'デフォルトCLIプロバイダー'
+    defaultCliProvider: 'デフォルトCLIプロバイダー',
+    ghToken: 'GitHubトークン (プライベートリポ更新)',
+    ghTokenPlaceholder: 'ghp_... または github_pat_...',
+    ghTokenSet: 'トークン設定済み',
+    ghTokenNotSet: 'トークン未設定 — プライベートリポの更新不可',
+    ghTokenSave: '保存',
+    ghTokenClear: '削除',
+    ghTokenSaved: 'トークン保存完了',
+    ghTokenCleared: 'トークンが削除されました',
+    ghTokenHint: 'Settings > Developer settings > Personal access tokensで発行'
   },
 
   agentEditor: {

@@ -117,3 +117,58 @@ export function installAppUpdate(): void {
   if (is.dev) return
   autoUpdater.quitAndInstall(false, true)
 }
+
+// ── GitHub Token 관리 (private 레포 업데이트용) ──
+
+function getTokenPath(): string {
+  return path.join(app.getPath('userData'), 'gh-token.txt')
+}
+
+/** 저장된 GH 토큰 조회 (마스킹 여부 선택) */
+export function getGitHubToken(masked: boolean = true): { hasToken: boolean; token: string } {
+  const tokenPath = getTokenPath()
+  try {
+    if (fs.existsSync(tokenPath)) {
+      const token = fs.readFileSync(tokenPath, 'utf-8').trim()
+      if (token) {
+        return {
+          hasToken: true,
+          token: masked ? token.slice(0, 8) + '...' + token.slice(-4) : token
+        }
+      }
+    }
+  } catch {
+    // 무시
+  }
+  // 환경변수 체크
+  const envToken = process.env.GH_TOKEN || process.env.GITHUB_TOKEN
+  if (envToken) {
+    return {
+      hasToken: true,
+      token: masked ? envToken.slice(0, 8) + '...' + envToken.slice(-4) : envToken
+    }
+  }
+  return { hasToken: false, token: '' }
+}
+
+/** GH 토큰 저장 + 즉시 환경변수 반영 */
+export function saveGitHubToken(token: string): { success: boolean; message: string } {
+  const tokenPath = getTokenPath()
+  try {
+    const trimmed = token.trim()
+    if (!trimmed) {
+      // 토큰 삭제
+      if (fs.existsSync(tokenPath)) fs.unlinkSync(tokenPath)
+      delete process.env.GH_TOKEN
+      console.log('[app-updater] GH 토큰 삭제됨')
+      return { success: true, message: '토큰이 삭제되었습니다.' }
+    }
+    fs.writeFileSync(tokenPath, trimmed, 'utf-8')
+    process.env.GH_TOKEN = trimmed
+    console.log('[app-updater] GH 토큰 저장 및 적용됨')
+    return { success: true, message: '토큰이 저장되었습니다.' }
+  } catch (err) {
+    console.error('[app-updater] GH 토큰 저장 실패:', err)
+    return { success: false, message: (err as Error).message }
+  }
+}

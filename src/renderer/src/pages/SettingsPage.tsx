@@ -20,6 +20,10 @@ export function SettingsPage() {
   const [appUpdateChecked, setAppUpdateChecked] = useState(false)
   const [groupChatOpen, setGroupChatOpen] = useState(false)
   const [conversations, setConversations] = useState<ConversationConfig[]>([])
+  const [ghTokenInfo, setGhTokenInfo] = useState<{ hasToken: boolean; token: string } | null>(null)
+  const [ghTokenInput, setGhTokenInput] = useState('')
+  const [ghTokenEditing, setGhTokenEditing] = useState(false)
+  const [ghTokenMsg, setGhTokenMsg] = useState('')
 
   useEffect(() => {
     fetchSettings()
@@ -37,6 +41,7 @@ export function SettingsPage() {
     // 앱 업데이트 자동 확인
     window.api.app.checkAppUpdate().catch(() => {})
     window.api.conversation.list().then(setConversations).catch(() => {})
+    window.api.app.getGhToken().then(setGhTokenInfo).catch(() => {})
 
     const unsubs = [
       window.api.on('dock:size-changed', (size: unknown) => setDockSize(size as DockSize)),
@@ -453,6 +458,92 @@ export function SettingsPage() {
               </>
             )}
           </div>
+        </div>
+
+        {/* GitHub Token 설정 */}
+        <div className="px-4 py-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-text-muted shrink-0">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22" />
+            </svg>
+            <span className="text-xs text-text-muted flex-1">{t('settings.ghToken')}</span>
+            {ghTokenInfo?.hasToken && !ghTokenEditing && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">
+                {t('settings.ghTokenSet')}
+              </span>
+            )}
+            {!ghTokenInfo?.hasToken && !ghTokenEditing && (
+              <span className="text-[10px] text-orange-400">
+                {t('settings.ghTokenNotSet')}
+              </span>
+            )}
+          </div>
+          {ghTokenEditing ? (
+            <div className="space-y-1.5">
+              <input
+                type="password"
+                value={ghTokenInput}
+                onChange={(e) => setGhTokenInput(e.target.value)}
+                placeholder={t('settings.ghTokenPlaceholder')}
+                className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-xs text-text outline-none focus:border-accent font-mono"
+                autoFocus
+              />
+              <div className="flex items-center gap-1.5">
+                <button
+                  className="px-2 py-0.5 text-xs rounded bg-accent text-white border-none cursor-pointer hover:opacity-80"
+                  onClick={async () => {
+                    const result = await window.api.app.saveGhToken(ghTokenInput)
+                    if (result.success) {
+                      setGhTokenMsg(t('settings.ghTokenSaved'))
+                      setGhTokenEditing(false)
+                      setGhTokenInput('')
+                      window.api.app.getGhToken().then(setGhTokenInfo).catch(() => {})
+                    }
+                    setTimeout(() => setGhTokenMsg(''), 3000)
+                  }}
+                >
+                  {t('settings.ghTokenSave')}
+                </button>
+                {ghTokenInfo?.hasToken && (
+                  <button
+                    className="px-2 py-0.5 text-xs rounded bg-red-500/20 text-red-400 border-none cursor-pointer hover:bg-red-500/30"
+                    onClick={async () => {
+                      await window.api.app.saveGhToken('')
+                      setGhTokenMsg(t('settings.ghTokenCleared'))
+                      setGhTokenEditing(false)
+                      setGhTokenInput('')
+                      window.api.app.getGhToken().then(setGhTokenInfo).catch(() => {})
+                      setTimeout(() => setGhTokenMsg(''), 3000)
+                    }}
+                  >
+                    {t('settings.ghTokenClear')}
+                  </button>
+                )}
+                <button
+                  className="px-2 py-0.5 text-xs rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20"
+                  onClick={() => { setGhTokenEditing(false); setGhTokenInput('') }}
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className="text-[10px] text-text-muted">{t('settings.ghTokenHint')}</div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {ghTokenInfo?.hasToken && (
+                <span className="text-[10px] text-text-muted font-mono">{ghTokenInfo.token}</span>
+              )}
+              <button
+                className="ml-auto px-2 py-0.5 text-xs rounded bg-white/10 text-text-muted border-none cursor-pointer hover:bg-white/20"
+                onClick={() => setGhTokenEditing(true)}
+              >
+                {ghTokenInfo?.hasToken ? t('settings.editTemplate') : t('settings.ghTokenSave')}
+              </button>
+            </div>
+          )}
+          {ghTokenMsg && (
+            <div className="text-[10px] text-green-400 animate-fade-in">{ghTokenMsg}</div>
+          )}
         </div>
 
         <div className="h-px bg-white/10 mx-4" />

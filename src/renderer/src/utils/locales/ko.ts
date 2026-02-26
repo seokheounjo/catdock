@@ -145,7 +145,16 @@ const ko = {
     memberTemplate: '멤버용',
     // 작업 디렉토리 플레이스홀더
     workingDirPlaceholder: '기본 프로젝트 폴더 선택...',
-    defaultCliProvider: '기본 CLI 프로바이더'
+    defaultCliProvider: '기본 CLI 프로바이더',
+    ghToken: 'GitHub 토큰 (Private 레포 업데이트)',
+    ghTokenPlaceholder: 'ghp_... 또는 github_pat_...',
+    ghTokenSet: '토큰 설정됨',
+    ghTokenNotSet: '토큰 미설정 — Private 레포 업데이트 불가',
+    ghTokenSave: '저장',
+    ghTokenClear: '삭제',
+    ghTokenSaved: '토큰 저장 완료',
+    ghTokenCleared: '토큰이 삭제되었습니다',
+    ghTokenHint: 'Settings > Developer settings > Personal access tokens에서 발급'
   },
 
   // 에이전트 에디터

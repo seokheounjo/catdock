@@ -636,4 +636,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('app:install-app-update', () => {
     appUpdater.installAppUpdate()
   })
+
+  // ── GitHub Token (private 레포 업데이트용) ──
+
+  ipcMain.handle('app:get-gh-token', () => {
+    return appUpdater.getGitHubToken(true) // 마스킹된 토큰 반환
+  })
+
+  ipcMain.handle('app:save-gh-token', (_e, token: string) => {
+    return appUpdater.saveGitHubToken(token)
+  })
 }

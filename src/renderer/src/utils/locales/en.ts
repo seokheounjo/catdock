@@ -137,7 +137,16 @@ const en: LocaleMessages = {
     leaderTemplate: 'Leader Only',
     memberTemplate: 'For Members',
     workingDirPlaceholder: 'Select a default project folder...',
-    defaultCliProvider: 'Default CLI Provider'
+    defaultCliProvider: 'Default CLI Provider',
+    ghToken: 'GitHub Token (Private Repo Update)',
+    ghTokenPlaceholder: 'ghp_... or github_pat_...',
+    ghTokenSet: 'Token configured',
+    ghTokenNotSet: 'No token — Cannot update from private repo',
+    ghTokenSave: 'Save',
+    ghTokenClear: 'Clear',
+    ghTokenSaved: 'Token saved',
+    ghTokenCleared: 'Token cleared',
+    ghTokenHint: 'Generate at Settings > Developer settings > Personal access tokens'
   },
 
   agentEditor: {
