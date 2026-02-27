@@ -82,6 +82,134 @@ export function hasDelegation(text: string): boolean {
   return /\[DELEGATE:[^\]]+\]/i.test(cleaned)
 }
 
+// ── MCP 블록 파싱 ──
+
+export interface McpAddBlock {
+  name: string
+  command: string
+  args: string[]
+  cwd: string
+  env: Record<string, string>
+}
+
+// [MCP:ADD|name|command|args|cwd] 또는 [MCP:ADD|name|command|args|cwd|KEY=val,KEY2=val2] 블록 파싱
+export function parseMcpAddBlocks(text: string): McpAddBlock[] {
+  const cleaned = stripCodeBlocks(text)
+  const blocks: McpAddBlock[] = []
+  // 5필드(env 포함) 또는 4필드(기존) 매칭
+  const regex = /\[MCP:ADD\|([^|]+)\|([^|]+)\|([^|]*)\|([^|\]]*?)(?:\|([^\]]*))?\]/gi
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(cleaned)) !== null) {
+    const name = match[1].trim()
+    const command = match[2].trim()
+    const args = match[3].trim()
+      ? match[3].split(',').map((s) => s.trim()).filter(Boolean)
+      : []
+    const cwd = match[4].trim()
+    const env: Record<string, string> = {}
+
+    // 5번째 필드: KEY=value,KEY2=value2 파싱
+    if (match[5] && match[5].trim()) {
+      for (const pair of match[5].split(',')) {
+        const eqIdx = pair.indexOf('=')
+        if (eqIdx > 0) {
+          const key = pair.slice(0, eqIdx).trim()
+          const val = pair.slice(eqIdx + 1).trim()
+          if (key) env[key] = val
+        }
+      }
+    }
+
+    if (name && command) {
+      blocks.push({ name, command, args, cwd, env })
+    }
+  }
+
+  return blocks
+}
+
+// [MCP:REMOVE|name] 블록 파싱
+export function parseMcpRemoveBlocks(text: string): string[] {
+  const cleaned = stripCodeBlocks(text)
+  const names: string[] = []
+  const regex = /\[MCP:REMOVE\|([^\]]+)\]/gi
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(cleaned)) !== null) {
+    const name = match[1].trim()
+    if (name) names.push(name)
+  }
+
+  return names
+}
+
+// MCP 블록 존재 여부 확인
+export function hasMcpBlocks(text: string): boolean {
+  const cleaned = stripCodeBlocks(text)
+  return /\[MCP:(ADD|REMOVE)\|/i.test(cleaned)
+}
+
+// JSON 형식의 MCP 설정 파싱 (사용자가 직접 붙여넣기)
+// { "mcpServers": { "name": { "command": "...", "args": [...], "env": {...} } } }
+export function parseJsonMcpConfig(text: string): McpAddBlock[] {
+  const blocks: McpAddBlock[] = []
+
+  // JSON 블록 추출 — 코드블록 안이든 밖이든 { "mcpServers" 패턴 찾기
+  const jsonPatterns = [
+    /```(?:json)?\s*(\{[\s\S]*?"mcpServers"[\s\S]*?\})\s*```/gi,
+    /(\{\s*"mcpServers"\s*:\s*\{[\s\S]*?\}\s*\})/gi
+  ]
+
+  const jsonCandidates: string[] = []
+  for (const pattern of jsonPatterns) {
+    let m: RegExpExecArray | null
+    while ((m = pattern.exec(text)) !== null) {
+      jsonCandidates.push(m[1])
+    }
+  }
+
+  for (const jsonStr of jsonCandidates) {
+    try {
+      const parsed = JSON.parse(jsonStr)
+      const servers = parsed.mcpServers || parsed.McpServers || parsed.servers
+      if (!servers || typeof servers !== 'object') continue
+
+      for (const [name, cfg] of Object.entries(servers)) {
+        const c = cfg as Record<string, unknown>
+        if (!c.command || typeof c.command !== 'string') continue
+
+        const args: string[] = Array.isArray(c.args)
+          ? (c.args as string[]).map(String)
+          : []
+        const env: Record<string, string> = {}
+        if (c.env && typeof c.env === 'object') {
+          for (const [k, v] of Object.entries(c.env as Record<string, unknown>)) {
+            env[k] = String(v)
+          }
+        }
+
+        blocks.push({
+          name,
+          command: c.command,
+          args,
+          cwd: typeof c.cwd === 'string' ? c.cwd : '',
+          env
+        })
+      }
+    } catch {
+      // JSON 파싱 실패 — 무시
+    }
+  }
+
+  return blocks
+}
+
+// 사용자 메시지에서 직접 MCP 설정을 감지할 수 있는지 확인
+export function hasDirectMcpConfig(text: string): boolean {
+  return /\[MCP:(ADD|REMOVE)\|/i.test(text) || /["']?mcpServers["']?\s*:/i.test(text)
+}
+
 // [REMOVE:Name] 블록 파싱 — 리더가 불필요한 팀원 삭제 요청
 export function parseRemoveBlocks(text: string): string[] {
   const cleaned = stripCodeBlocks(text)

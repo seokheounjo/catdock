@@ -142,6 +142,22 @@ export function useChat(agentId: string | null) {
       })
     )
 
+    // MCP 설정 변경 이벤트
+    unsubs.push(
+      window.api.on('mcp:config-changed', (data: unknown) => {
+        const d = data as { agentId?: string; serverName?: string; added?: number; removed?: number }
+        if (d.agentId === agentId || !d.agentId) {
+          addMessage({
+            id: `mcp-change-${Date.now()}`,
+            agentId: agentId || '',
+            role: 'system',
+            content: `MCP 설정 변경됨${d.added ? ` (+${d.added})` : ''}${d.removed ? ` (-${d.removed})` : ''}`,
+            timestamp: Date.now()
+          })
+        }
+      })
+    )
+
     // 퍼미션 요청 이벤트
     unsubs.push(
       window.api.on('permission:request', (data: unknown) => {

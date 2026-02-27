@@ -49,10 +49,16 @@ export class AiderAdapter implements CliAdapter {
     return args
   }
 
-  spawnProcess(_config: AgentConfig, args: string[], opts: CliSpawnOptions): CliSpawnResult {
+  spawnProcess(config: AgentConfig, args: string[], opts: CliSpawnOptions): CliSpawnResult {
+    const env = { ...opts.env }
+    // 로컬 모델 (openai/) 사용 시 OPENAI_API_BASE 자동 설정
+    if (config.model.startsWith('openai/') && !env['OPENAI_API_BASE']) {
+      env['OPENAI_API_BASE'] = 'http://localhost:1234/v1'
+    }
+
     const proc = spawn('aider', args, {
       cwd: opts.cwd,
-      env: opts.env,
+      env,
       signal: opts.signal,
       shell: process.platform === 'win32',
       stdio: ['pipe', 'pipe', 'pipe']

@@ -16,9 +16,16 @@ import {
   TaskDelegation,
   McpServerConfig,
   McpHealthResult,
+  McpDiscoveryResult,
+  DiscoveredMcpServer,
+  DiscoveredLocalModel,
+  LlmDiscoveryResult,
+  LocalLlmSource,
+  CliProfile,
   RoleTemplate,
   ErrorRecoveryEvent
 } from '../shared/types'
+import type { ModelTier } from '../shared/constants'
 
 interface AgentApi {
   list(): Promise<AgentConfig[]>
@@ -168,6 +175,29 @@ interface McpApi {
   setAgent(agentId: string, servers: McpServerConfig[]): Promise<void>
   getHealth(): Promise<Record<string, McpHealthResult[]>>
   checkNow(): Promise<Record<string, McpHealthResult[]>>
+  discoverDirectory(dir: string): Promise<DiscoveredMcpServer[]>
+  discoverAll(): Promise<McpDiscoveryResult>
+  getDiscovered(): Promise<DiscoveredMcpServer[]>
+  importDiscovered(name: string, target: string): Promise<boolean>
+}
+
+interface LlmApi {
+  discoverAll(): Promise<LlmDiscoveryResult>
+  getDiscovered(): Promise<DiscoveredLocalModel[]>
+  checkSource(source: LocalLlmSource): Promise<{ available: boolean; version?: string; error?: string }>
+}
+
+interface ProfileApi {
+  list(): Promise<CliProfile[]>
+  listForProvider(provider: CliProvider): Promise<CliProfile[]>
+  create(profile: Omit<CliProfile, 'id' | 'createdAt'>): Promise<CliProfile>
+  update(id: string, updates: Partial<CliProfile>): Promise<CliProfile | null>
+  delete(id: string): Promise<boolean>
+  getUsage(): Promise<Record<string, number>>
+}
+
+interface ModelApi {
+  getAvailable(provider: CliProvider): Promise<{ value: string; label: string; tier: ModelTier }[]>
 }
 
 interface AppApi {
@@ -175,11 +205,6 @@ interface AppApi {
   setDockExpanded(expanded: boolean): Promise<void>
   setDockSize(size: DockSize): Promise<void>
   setDockVisibleCount(count: number): Promise<void>
-  checkAppUpdate(): Promise<void>
-  downloadAppUpdate(): Promise<void>
-  installAppUpdate(): Promise<void>
-  getGhToken(): Promise<{ hasToken: boolean; token: string }>
-  saveGhToken(token: string): Promise<{ success: boolean; message: string }>
 }
 
 interface Api {
@@ -196,6 +221,9 @@ interface Api {
   errorRecovery: ErrorRecoveryApi
   cli: CliApi
   mcp: McpApi
+  llm: LlmApi
+  profile: ProfileApi
+  model: ModelApi
   app: AppApi
   on(channel: string, callback: (...args: unknown[]) => void): () => void
 }

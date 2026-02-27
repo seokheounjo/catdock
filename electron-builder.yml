@@ -24,6 +24,8 @@ nsis:
   createStartMenuShortcut: true
   oneClick: false
   allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: true
+  include: build/installer.nsh
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   notarize: false
@@ -33,9 +35,3 @@ linux:
   maintainer: virtual-company
   category: Utility
 npmRebuild: false
-publish:
-  provider: github
-  owner: seokheounjo
-  repo: catdock
-  private: true
-  releaseType: release

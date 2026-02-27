@@ -7,10 +7,13 @@ import {
   AgentRole,
   CliProvider,
   CliCheckResult,
+  CliProfile,
   PermissionMode,
   McpServerConfig,
+  DiscoveredMcpServer,
   RoleTemplate
 } from '../../../../shared/types'
+import type { ModelTier } from '../../../../shared/constants'
 import {
   MODEL_OPTIONS,
   PERMISSION_MODES,
@@ -80,6 +83,18 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
   // 역할 템플릿
   const [roleTemplates, setRoleTemplates] = useState<RoleTemplate[]>([])
 
+  // 발견된 MCP 서버
+  const [discoveredMcp, setDiscoveredMcp] = useState<DiscoveredMcpServer[]>([])
+
+  // CLI 프로필
+  const [cliProfileId, setCliProfileId] = useState<string>('auto')
+  const [cliProfiles, setCliProfiles] = useState<CliProfile[]>([])
+
+  // 동적 모델 목록 (클라우드 + 로컬)
+  const [dynamicModels, setDynamicModels] = useState<
+    { value: string; label: string; tier: ModelTier }[]
+  >([])
+
   // 자동 채움 피드백 배너
   const [autoFillBanner, setAutoFillBanner] = useState<string | null>(null)
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -89,6 +104,8 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
     window.api.agent.list().then(setAllAgents)
     window.api.settings.getRoleTemplates().then(setRoleTemplates)
     window.api.cli.checkAllProviders().then(setProviderStatus)
+    window.api.mcp.getDiscovered().then(setDiscoveredMcp).catch(() => {})
+    window.api.profile.list().then(setCliProfiles).catch(() => {})
     // 새 에이전트 생성 시 글로벌 기본 모델/권한/턴 적용
     if (!editAgentId) {
       window.api.settings.get().then((s) => {
@@ -99,6 +116,15 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
       })
     }
   }, [editAgentId])
+
+  // 프로바이더 변경 시 동적 모델 목록 로드
+  useEffect(() => {
+    window.api.model.getAvailable(cliProvider).then(setDynamicModels).catch(() => {
+      setDynamicModels(PROVIDER_MODEL_OPTIONS[cliProvider] ?? [])
+    })
+    // 프로바이더별 프로필 로드
+    window.api.profile.listForProvider(cliProvider).then(setCliProfiles).catch(() => {})
+  }, [cliProvider])
 
   // 템플릿 적용 헬퍼
   const applyTemplate = useCallback(
@@ -153,6 +179,7 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
           setHierarchyRole(c.hierarchy?.role ?? 'member')
           setReportsTo(c.hierarchy?.reportsTo ?? '')
           setCliProvider(c.cliProvider ?? 'claude')
+          setCliProfileId(c.cliProfileId ?? 'auto')
 
           // 모델: MODEL_OPTIONS에 있으면 선택, 없으면 custom
           const isKnown = MODEL_OPTIONS.some((m) => m.value === c.model)
@@ -178,10 +205,20 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
     }
   }, [editAgentId])
 
-  // 프로바이더별 모델 옵션
+  // 프로바이더별 모델 옵션 (동적 로드 결과 우선, fallback은 상수)
   const currentModelOptions = useMemo(
-    () => PROVIDER_MODEL_OPTIONS[cliProvider] ?? MODEL_OPTIONS,
-    [cliProvider]
+    () => (dynamicModels.length > 0 ? dynamicModels : (PROVIDER_MODEL_OPTIONS[cliProvider] ?? MODEL_OPTIONS)),
+    [cliProvider, dynamicModels]
+  )
+
+  // 클라우드 / 로컬 모델 분리
+  const cloudModels = useMemo(
+    () => currentModelOptions.filter((m) => m.tier !== 'local'),
+    [currentModelOptions]
+  )
+  const localModels = useMemo(
+    () => currentModelOptions.filter((m) => m.tier === 'local'),
+    [currentModelOptions]
   )
 
   // 프로바이더별 기능 지원 여부
@@ -211,6 +248,7 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
       workingDirectory,
       model: resolvedModel,
       cliProvider: cliProvider !== 'claude' ? cliProvider : undefined,
+      cliProfileId: cliProfileId !== 'auto' ? cliProfileId : undefined,
       group: group || undefined,
       hierarchy:
         hierarchyRole === 'director'
@@ -589,11 +627,24 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                 }}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
               >
-                {currentModelOptions.map((m) => (
-                  <option key={m.value} value={m.value} className="bg-surface">
-                    {m.label} ({m.tier})
-                  </option>
-                ))}
+                {cloudModels.length > 0 && (
+                  <optgroup label={`── ${t('agentEditor.cloudModels')} ──`}>
+                    {cloudModels.map((m) => (
+                      <option key={m.value} value={m.value} className="bg-surface">
+                        {m.label} ({m.tier})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {localModels.length > 0 && (
+                  <optgroup label={`── ${t('agentEditor.localModels')} ──`}>
+                    {localModels.map((m) => (
+                      <option key={m.value} value={m.value} className="bg-surface">
+                        {m.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
                 <option value="custom" className="bg-surface">
                   {t('agentEditor.customModelId')}
                 </option>
@@ -612,6 +663,29 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                   placeholder="model-id..."
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent"
                 />
+              </label>
+            )}
+
+            {/* CLI 프로필 선택 (프로필 존재 시만 표시) */}
+            {cliProfiles.length > 0 && (
+              <label className="block">
+                <span className="text-xs text-text-muted mb-1 block">
+                  {t('agentEditor.cliProfile')}
+                </span>
+                <select
+                  value={cliProfileId}
+                  onChange={(e) => setCliProfileId(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-text text-sm outline-none focus:border-accent appearance-none cursor-pointer"
+                >
+                  <option value="auto" className="bg-surface">
+                    {t('agentEditor.profileAuto')}
+                  </option>
+                  {cliProfiles.map((p) => (
+                    <option key={p.id} value={p.id} className="bg-surface">
+                      {p.name}{p.isDefault ? ' ★' : ''}
+                    </option>
+                  ))}
+                </select>
               </label>
             )}
 
@@ -831,6 +905,59 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                   />
                 </div>
               ))
+            )}
+
+            {/* 발견된 MCP 서버 (프로젝트/홈 디렉토리에서 자동 감지) */}
+            {discoveredMcp.length > 0 && (
+              <>
+                <div className="border-b border-white/10 my-3" />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-text-muted font-medium">{t('agentEditor.discoveredMcp')}</span>
+                </div>
+                {discoveredMcp.map((server) => (
+                  <div
+                    key={`disc-${server.name}-${server.sourcePath}`}
+                    className="rounded-lg border border-green-500/20 bg-green-500/5 p-3 space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-text font-medium">{server.name}</span>
+                        <span className="text-[9px] px-1 py-0.5 rounded bg-green-500/20 text-green-400">
+                          {t('agentEditor.discoveredBadge')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (editAgent) {
+                            await window.api.mcp.importDiscovered(server.name, editAgent.id)
+                            // 새로고침
+                            const updated = await window.api.mcp.getAgent(editAgent.id)
+                            setMcpServers(updated)
+                          } else {
+                            // 새 에이전트 — 로컬 상태에 추가
+                            const exists = mcpServers.some((s) => s.name === server.name)
+                            if (!exists) {
+                              setMcpServers([...mcpServers, {
+                                name: server.name,
+                                command: server.command,
+                                args: server.args,
+                                cwd: server.cwd,
+                                enabled: true
+                              }])
+                            }
+                          }
+                        }}
+                        className="text-[10px] text-accent hover:text-accent-hover bg-transparent border-none cursor-pointer"
+                      >
+                        {t('agentEditor.enableForAgent')}
+                      </button>
+                    </div>
+                    <div className="text-[10px] text-text-muted truncate">
+                      {server.command} {(server.args || []).join(' ')}
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         )}

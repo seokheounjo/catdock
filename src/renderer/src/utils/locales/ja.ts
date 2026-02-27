@@ -96,15 +96,6 @@ const ja: LocaleMessages = {
     dockSize: 'ドックサイズ',
     quit: '終了',
     cliUpdate: 'CLIアップデート (v{version})',
-    appUpdateChecking: 'アプリのアップデートを確認中...',
-    appUpdateAvailable: '新バージョン v{version} が利用可能',
-    appUpdateDownloading: 'ダウンロード中... {percent}%',
-    appUpdateReady: 'v{version} インストール準備完了 — 再起動',
-    appUpdateLatest: '最新バージョンです',
-    appUpdateError: 'アップデート確認に失敗',
-    appUpdateCheck: 'アップデートを確認',
-    appUpdateDownload: 'ダウンロード',
-    appUpdateInstall: '再起動してインストール',
     groupChatMembers: '名',
     noGroupChats: 'グループチャットがありません',
     newGroupChat: '新しいルームを作成',
@@ -138,15 +129,29 @@ const ja: LocaleMessages = {
     memberTemplate: 'メンバー用',
     workingDirPlaceholder: 'デフォルトプロジェクトフォルダを選択...',
     defaultCliProvider: 'デフォルトCLIプロバイダー',
-    ghToken: 'GitHubトークン (プライベートリポ更新)',
-    ghTokenPlaceholder: 'ghp_... または github_pat_...',
-    ghTokenSet: 'トークン設定済み',
-    ghTokenNotSet: 'トークン未設定 — プライベートリポの更新不可',
-    ghTokenSave: '保存',
-    ghTokenClear: '削除',
-    ghTokenSaved: 'トークン保存完了',
-    ghTokenCleared: 'トークンが削除されました',
-    ghTokenHint: 'Settings > Developer settings > Personal access tokensで発行'
+    discoveredMcp: '検出されたMCPサーバー',
+    rescanMcp: '再スキャン',
+    enableMcp: '有効化',
+    noDiscoveredMcp: '検出されたMCPサーバーはありません',
+    mcpSourceProject: 'プロジェクト',
+    mcpSourceHome: 'ホームディレクトリ',
+    // ローカルLLM
+    localLlm: 'ローカルLLM',
+    llmScan: 'ローカルLLMスキャン',
+    llmRescan: '再スキャン',
+    noLocalLlm: 'ローカルモデルが見つかりません',
+    llmInstalled: '実行中',
+    llmNotInstalled: '未インストール',
+    // CLIプロフィール
+    cliProfiles: 'CLIプロフィール（マルチアカウント）',
+    addProfile: 'プロフィール追加',
+    profileName: 'プロフィール名',
+    profileConfigDir: 'Configディレクトリ',
+    profileEnvVars: '環境変数オーバーライド',
+    noProfiles: '登録されたプロフィールはありません',
+    deleteProfile: 'プロフィール削除',
+    defaultProfile: 'デフォルトプロフィール',
+    profileUsage: '使用中のエージェント: {count}個'
   },
 
   agentEditor: {
@@ -205,7 +210,14 @@ const ja: LocaleMessages = {
     cliProvider: 'CLIプロバイダー',
     cliInstalled: 'インストール済',
     cliNotInstalled: '未インストール',
-    notSupportedByProvider: 'このプロバイダーでは未対応'
+    notSupportedByProvider: 'このプロバイダーでは未対応',
+    discoveredMcp: 'プロジェクトMCPサーバー',
+    discoveredBadge: '自動検出',
+    enableForAgent: 'このエージェントに追加',
+    cliProfile: 'CLIプロフィール',
+    profileAuto: '自動（ラウンドロビン）',
+    localModels: 'ローカルモデル',
+    cloudModels: 'クラウドモデル'
   },
 
   mcp: {
@@ -248,7 +260,12 @@ const ja: LocaleMessages = {
     userMessage: 'ユーザー',
     agentMessage: 'エージェント',
     sentAt: '{time}に送信',
-    filePrefix: 'ファイル'
+    filePrefix: 'ファイル',
+    planFirst: '計画優先',
+    executeNow: '即実行',
+    planFirstTooltip: '分析後に確認質問をしてからチーム編成',
+    executeNowTooltip: '即座に分析し必要なチームだけ編成して実行',
+    mcpConfigChanged: 'MCP設定が変更されました'
   },
 
   groupChat: {

@@ -96,15 +96,6 @@ const zh: LocaleMessages = {
     dockSize: 'Dock 大小',
     quit: '退出',
     cliUpdate: 'CLI 更新 (v{version})',
-    appUpdateChecking: '正在检查应用更新...',
-    appUpdateAvailable: '新版本 v{version} 可用',
-    appUpdateDownloading: '下载中... {percent}%',
-    appUpdateReady: 'v{version} 准备安装 — 重启',
-    appUpdateLatest: '已是最新版本',
-    appUpdateError: '更新检查失败',
-    appUpdateCheck: '检查更新',
-    appUpdateDownload: '下载',
-    appUpdateInstall: '重启并安装',
     groupChatMembers: '人',
     noGroupChats: '暂无群组聊天',
     newGroupChat: '创建新房间',
@@ -138,15 +129,29 @@ const zh: LocaleMessages = {
     memberTemplate: '成员用',
     workingDirPlaceholder: '选择默认项目文件夹...',
     defaultCliProvider: '默认 CLI 提供者',
-    ghToken: 'GitHub 令牌 (私有仓库更新)',
-    ghTokenPlaceholder: 'ghp_... 或 github_pat_...',
-    ghTokenSet: '令牌已设置',
-    ghTokenNotSet: '未设置令牌 — 无法从私有仓库更新',
-    ghTokenSave: '保存',
-    ghTokenClear: '删除',
-    ghTokenSaved: '令牌保存成功',
-    ghTokenCleared: '令牌已删除',
-    ghTokenHint: '在 Settings > Developer settings > Personal access tokens 中生成'
+    discoveredMcp: '已发现的MCP服务器',
+    rescanMcp: '重新扫描',
+    enableMcp: '启用',
+    noDiscoveredMcp: '未发现MCP服务器',
+    mcpSourceProject: '项目',
+    mcpSourceHome: '主目录',
+    // 本地LLM
+    localLlm: '本地LLM',
+    llmScan: '扫描本地LLM',
+    llmRescan: '重新扫描',
+    noLocalLlm: '未发现本地模型',
+    llmInstalled: '运行中',
+    llmNotInstalled: '未安装',
+    // CLI配置文件
+    cliProfiles: 'CLI配置文件（多账户）',
+    addProfile: '添加配置文件',
+    profileName: '配置文件名称',
+    profileConfigDir: 'Config目录',
+    profileEnvVars: '环境变量覆盖',
+    noProfiles: '未注册配置文件',
+    deleteProfile: '删除配置文件',
+    defaultProfile: '默认配置文件',
+    profileUsage: '正在使用的代理: {count}个'
   },
 
   agentEditor: {
@@ -204,7 +209,14 @@ const zh: LocaleMessages = {
     cliProvider: 'CLI 提供者',
     cliInstalled: '已安装',
     cliNotInstalled: '未安装',
-    notSupportedByProvider: '此提供者不支持'
+    notSupportedByProvider: '此提供者不支持',
+    discoveredMcp: '项目MCP服务器',
+    discoveredBadge: '自动检测',
+    enableForAgent: '添加到此代理',
+    cliProfile: 'CLI配置文件',
+    profileAuto: '自动（轮询）',
+    localModels: '本地模型',
+    cloudModels: '云模型'
   },
 
   mcp: {
@@ -247,7 +259,12 @@ const zh: LocaleMessages = {
     userMessage: '用户',
     agentMessage: '智能体',
     sentAt: '发送于 {time}',
-    filePrefix: '文件'
+    filePrefix: '文件',
+    planFirst: '先规划',
+    executeNow: '立即执行',
+    planFirstTooltip: '分析后先提确认问题再组建团队',
+    executeNowTooltip: '立即分析并只组建必要的团队',
+    mcpConfigChanged: 'MCP配置已更改'
   },
 
   groupChat: {

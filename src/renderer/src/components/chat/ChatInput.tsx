@@ -12,9 +12,11 @@ interface ChatInputProps {
   onAbort: () => void
   streaming: boolean
   disabled?: boolean
+  agentRole?: string
+  onSendWithMode?: (message: string, mode: 'plan-first' | 'execute-now') => void
 }
 
-export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onSendWithMode }: ChatInputProps) {
   const { t } = useI18n()
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState<FileAttachment | null>(null)
@@ -94,6 +96,23 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
     [attachFile]
   )
 
+  const buildFinalMessage = (): string => {
+    let finalMessage = ''
+    if (attachment) {
+      finalMessage += `[${t('chat.filePrefix')}: ${attachment.fileName}]\n\`\`\`\n${attachment.content}\n\`\`\`\n\n`
+    }
+    finalMessage += input.trim()
+    return finalMessage
+  }
+
+  const resetInput = () => {
+    setInput('')
+    setAttachment(null)
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+    }
+  }
+
   const handleSubmit = () => {
     if (streaming) {
       onAbort()
@@ -102,19 +121,21 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
     if (!input.trim() && !attachment) return
     if (disabled) return
 
-    let finalMessage = ''
-    if (attachment) {
-      finalMessage += `[${t('chat.filePrefix')}: ${attachment.fileName}]\n\`\`\`\n${attachment.content}\n\`\`\`\n\n`
-    }
-    finalMessage += input.trim()
+    onSend(buildFinalMessage())
+    resetInput()
+  }
 
-    onSend(finalMessage)
-    setInput('')
-    setAttachment(null)
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
+  const handleSendWithMode = (mode: 'plan-first' | 'execute-now') => {
+    if (streaming || disabled) return
+    if (!input.trim() && !attachment) return
+    if (onSendWithMode) {
+      onSendWithMode(buildFinalMessage(), mode)
+      resetInput()
     }
   }
+
+  const isDirector = agentRole === 'director'
+  const hasContent = !!(input.trim() || attachment)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -216,46 +237,80 @@ export function ChatInput({ onSend, onAbort, streaming, disabled }: ChatInputPro
             {t('chat.ariaStreaming')}
           </span>
         )}
-        <button
-          onClick={handleSubmit}
-          disabled={disabled && !streaming}
-          aria-label={
-            streaming
-              ? t('chat.ariaAbort')
-              : input.trim() || attachment
-                ? t('chat.ariaSend')
-                : t('chat.ariaEmptySend')
-          }
-          className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none
-                      cursor-pointer transition-all duration-200
-                      focus:outline-2 focus:outline-accent focus:outline-offset-2 focus:ring-2 focus:ring-accent/50
-                      ${
-                        streaming
-                          ? 'bg-danger hover:bg-danger/80 text-white focus:bg-danger/70'
-                          : input.trim() || attachment
-                            ? 'bg-accent hover:bg-accent-hover text-white focus:bg-accent-hover'
-                            : 'bg-white/10 text-text-muted cursor-not-allowed'
-                      }`}
-          title={streaming ? t('chat.stop') : t('chat.send')}
-        >
-          {streaming ? (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-              <rect x="2" y="2" width="10" height="10" rx="1.5" />
-            </svg>
-          ) : (
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 16 16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
+        {/* Director: 듀얼 버튼 (계획 먼저 / 바로 실행) */}
+        {isDirector && !streaming && onSendWithMode ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => handleSendWithMode('plan-first')}
+              disabled={disabled || !hasContent}
+              className={`h-8 px-2.5 rounded-lg flex items-center justify-center border-none
+                          cursor-pointer transition-all duration-200 text-[11px] font-medium
+                          focus:outline-2 focus:outline-accent focus:outline-offset-2
+                          ${hasContent
+                            ? 'bg-white/10 hover:bg-white/20 text-text-secondary'
+                            : 'bg-white/5 text-text-muted cursor-not-allowed'
+                          }`}
+              title={t('chat.planFirstTooltip')}
             >
-              <path d="M2 8h12M9 3l5 5-5 5" />
-            </svg>
-          )}
-        </button>
+              {t('chat.planFirst')}
+            </button>
+            <button
+              onClick={() => handleSendWithMode('execute-now')}
+              disabled={disabled || !hasContent}
+              className={`h-8 px-2.5 rounded-lg flex items-center justify-center border-none
+                          cursor-pointer transition-all duration-200 text-[11px] font-medium
+                          focus:outline-2 focus:outline-accent focus:outline-offset-2
+                          ${hasContent
+                            ? 'bg-accent hover:bg-accent-hover text-white'
+                            : 'bg-white/10 text-text-muted cursor-not-allowed'
+                          }`}
+              title={t('chat.executeNowTooltip')}
+            >
+              {t('chat.executeNow')}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            disabled={disabled && !streaming}
+            aria-label={
+              streaming
+                ? t('chat.ariaAbort')
+                : hasContent
+                  ? t('chat.ariaSend')
+                  : t('chat.ariaEmptySend')
+            }
+            className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none
+                        cursor-pointer transition-all duration-200
+                        focus:outline-2 focus:outline-accent focus:outline-offset-2 focus:ring-2 focus:ring-accent/50
+                        ${
+                          streaming
+                            ? 'bg-danger hover:bg-danger/80 text-white focus:bg-danger/70'
+                            : hasContent
+                              ? 'bg-accent hover:bg-accent-hover text-white focus:bg-accent-hover'
+                              : 'bg-white/10 text-text-muted cursor-not-allowed'
+                        }`}
+            title={streaming ? t('chat.stop') : t('chat.send')}
+          >
+            {streaming ? (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                <rect x="2" y="2" width="10" height="10" rx="1.5" />
+              </svg>
+            ) : (
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <path d="M2 8h12M9 3l5 5-5 5" />
+              </svg>
+            )}
+          </button>
+        )}
       </div>
     </div>
   )

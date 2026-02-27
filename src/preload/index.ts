@@ -11,8 +11,15 @@ import {
   TaskDelegation,
   McpServerConfig,
   McpHealthResult,
+  McpDiscoveryResult,
+  DiscoveredMcpServer,
+  DiscoveredLocalModel,
+  LlmDiscoveryResult,
+  LocalLlmSource,
+  CliProfile,
   RoleTemplate
 } from '../shared/types'
+import type { ModelTier } from '../shared/constants'
 
 const api = {
   // Agent CRUD
@@ -214,7 +221,44 @@ const api = {
       ipcRenderer.invoke('mcp:set-agent', agentId, servers),
     getHealth: (): Promise<Record<string, McpHealthResult[]>> =>
       ipcRenderer.invoke('mcp:get-health'),
-    checkNow: (): Promise<Record<string, McpHealthResult[]>> => ipcRenderer.invoke('mcp:check-now')
+    checkNow: (): Promise<Record<string, McpHealthResult[]>> => ipcRenderer.invoke('mcp:check-now'),
+    discoverDirectory: (dir: string): Promise<DiscoveredMcpServer[]> =>
+      ipcRenderer.invoke('mcp:discover-directory', dir),
+    discoverAll: (): Promise<McpDiscoveryResult> => ipcRenderer.invoke('mcp:discover-all'),
+    getDiscovered: (): Promise<DiscoveredMcpServer[]> => ipcRenderer.invoke('mcp:get-discovered'),
+    importDiscovered: (name: string, target: string): Promise<boolean> =>
+      ipcRenderer.invoke('mcp:import-discovered', name, target)
+  },
+
+  // LLM Discovery
+  llm: {
+    discoverAll: (): Promise<LlmDiscoveryResult> => ipcRenderer.invoke('llm:discover-all'),
+    getDiscovered: (): Promise<DiscoveredLocalModel[]> => ipcRenderer.invoke('llm:get-discovered'),
+    checkSource: (
+      source: LocalLlmSource
+    ): Promise<{ available: boolean; version?: string; error?: string }> =>
+      ipcRenderer.invoke('llm:check-source', source)
+  },
+
+  // CLI Profiles
+  profile: {
+    list: (): Promise<CliProfile[]> => ipcRenderer.invoke('profile:list'),
+    listForProvider: (provider: CliProvider): Promise<CliProfile[]> =>
+      ipcRenderer.invoke('profile:list-for-provider', provider),
+    create: (profile: Omit<CliProfile, 'id' | 'createdAt'>): Promise<CliProfile> =>
+      ipcRenderer.invoke('profile:create', profile),
+    update: (id: string, updates: Partial<CliProfile>): Promise<CliProfile | null> =>
+      ipcRenderer.invoke('profile:update', id, updates),
+    delete: (id: string): Promise<boolean> => ipcRenderer.invoke('profile:delete', id),
+    getUsage: (): Promise<Record<string, number>> => ipcRenderer.invoke('profile:get-usage')
+  },
+
+  // Model (통합 모델 목록)
+  model: {
+    getAvailable: (
+      provider: CliProvider
+    ): Promise<{ value: string; label: string; tier: ModelTier }[]> =>
+      ipcRenderer.invoke('model:get-available', provider)
   },
 
   // App
@@ -225,13 +269,6 @@ const api = {
     setDockSize: (size: DockSize): Promise<void> => ipcRenderer.invoke('app:set-dock-size', size),
     setDockVisibleCount: (count: number): Promise<void> =>
       ipcRenderer.invoke('dock:set-visible-count', count),
-    checkAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:check-app-update'),
-    downloadAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:download-app-update'),
-    installAppUpdate: (): Promise<void> => ipcRenderer.invoke('app:install-app-update'),
-    getGhToken: (): Promise<{ hasToken: boolean; token: string }> =>
-      ipcRenderer.invoke('app:get-gh-token'),
-    saveGhToken: (token: string): Promise<{ success: boolean; message: string }> =>
-      ipcRenderer.invoke('app:save-gh-token', token)
   },
 
   // Events from main

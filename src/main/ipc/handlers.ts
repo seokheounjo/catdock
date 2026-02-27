@@ -14,7 +14,7 @@ import {
   checkAllProviders
 } from '../services/cli-builder'
 import * as errorRecovery from '../services/error-recovery'
-import * as appUpdater from '../services/app-updater'
+
 import { randomAvatar } from '../services/default-agents'
 import { respondToPermission } from '../services/permission-server'
 import * as taskManager from '../services/task-manager'
@@ -34,6 +34,11 @@ import { v4 as uuid } from 'uuid'
 import { statSync, readFileSync as fsReadFileSync } from 'fs'
 import { basename } from 'path'
 import * as mcpHealth from '../services/mcp-health'
+import * as mcpDiscovery from '../services/mcp-discovery'
+import * as llmDiscovery from '../services/llm-discovery'
+import * as cliProfileManager from '../services/cli-profile-manager'
+import { DiscoveredMcpServer, LocalLlmSource, CliProfile } from '../../shared/types'
+import { PROVIDER_MODEL_OPTIONS } from '../../shared/constants'
 
 // 윈도우 함수는 나중에 index.ts에서 주입
 let windowFns: {
@@ -513,6 +518,65 @@ export function registerIpcHandlers(): void {
     return mcpHealth.getAllHealthResults()
   })
 
+  // ── MCP 자동 감지 ──
+
+  ipcMain.handle('mcp:discover-directory', (_e, dir: string) => {
+    return mcpDiscovery.discoverMcpInDirectory(dir)
+  })
+
+  ipcMain.handle('mcp:discover-all', () => {
+    const projectRoot = store.getProjectRoot() || store.getSettings().defaultWorkingDirectory || ''
+    const result = mcpDiscovery.discoverAll(projectRoot)
+    store.setDiscoveredMcpServers(result.servers)
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('mcp:discovered', result)
+    )
+    return result
+  })
+
+  ipcMain.handle('mcp:get-discovered', () => {
+    return store.getDiscoveredMcpServers()
+  })
+
+  ipcMain.handle('mcp:import-discovered', (_e, serverName: string, target: string) => {
+    const discovered = store.getDiscoveredMcpServers()
+    const server = discovered.find((s: DiscoveredMcpServer) => s.name === serverName)
+    if (!server) return false
+
+    const mcpConfig = {
+      name: server.name,
+      command: server.command,
+      args: server.args,
+      env: server.env,
+      cwd: server.cwd,
+      enabled: true
+    }
+
+    if (target === 'global') {
+      // 글로벌 MCP에 추가
+      const settings = settingsManager.getSettings()
+      const globalServers = [...(settings.globalMcpServers || [])].filter(
+        (s) => s.name !== serverName
+      )
+      globalServers.push(mcpConfig)
+      settingsManager.updateSettings({ globalMcpServers: globalServers })
+    } else {
+      // 특정 에이전트에 추가
+      const agent = store.getAgent(target)
+      if (!agent) return false
+      const agentMcp = [...(agent.mcpConfig || [])].filter(
+        (s) => s.name !== serverName
+      )
+      agentMcp.push(mcpConfig)
+      agentManager.updateAgent(target, { mcpConfig: agentMcp })
+    }
+
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('mcp:config-changed', { serverName, target })
+    )
+    return true
+  })
+
   // ── App ──
 
   ipcMain.handle('app:quit', () => {
@@ -623,27 +687,76 @@ export function registerIpcHandlers(): void {
     return checkForCliUpdate()
   })
 
-  // ── 앱 업데이트 (electron-updater) ──
+  // ── 로컬 LLM 자동 감지 ──
 
-  ipcMain.handle('app:check-app-update', async () => {
-    await appUpdater.checkForAppUpdate()
+  ipcMain.handle('llm:discover-all', async () => {
+    const result = await llmDiscovery.discoverAllLocalModels()
+    if (result.models.length > 0) {
+      store.updateSettings({ discoveredLocalModels: result.models })
+    }
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('llm:discovered', result)
+    )
+    return result
   })
 
-  ipcMain.handle('app:download-app-update', async () => {
-    await appUpdater.downloadAppUpdate()
+  ipcMain.handle('llm:get-discovered', () => {
+    return store.getSettings().discoveredLocalModels ?? []
   })
 
-  ipcMain.handle('app:install-app-update', () => {
-    appUpdater.installAppUpdate()
+  ipcMain.handle('llm:check-source', async (_e, source: LocalLlmSource) => {
+    return llmDiscovery.checkSourceAvailable(source)
   })
 
-  // ── GitHub Token (private 레포 업데이트용) ──
+  // ── CLI 프로필 ──
 
-  ipcMain.handle('app:get-gh-token', () => {
-    return appUpdater.getGitHubToken(true) // 마스킹된 토큰 반환
+  ipcMain.handle('profile:list', () => {
+    return cliProfileManager.getProfiles()
   })
 
-  ipcMain.handle('app:save-gh-token', (_e, token: string) => {
-    return appUpdater.saveGitHubToken(token)
+  ipcMain.handle('profile:list-for-provider', (_e, provider: CliProvider) => {
+    return cliProfileManager.getProfilesForProvider(provider)
+  })
+
+  ipcMain.handle('profile:create', (_e, profile: Omit<CliProfile, 'id' | 'createdAt'>) => {
+    const created = cliProfileManager.createProfile(profile)
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('profile:changed', cliProfileManager.getProfiles())
+    )
+    return created
+  })
+
+  ipcMain.handle('profile:update', (_e, id: string, updates: Partial<CliProfile>) => {
+    const updated = cliProfileManager.updateProfile(id, updates)
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('profile:changed', cliProfileManager.getProfiles())
+    )
+    return updated
+  })
+
+  ipcMain.handle('profile:delete', (_e, id: string) => {
+    const deleted = cliProfileManager.deleteProfile(id)
+    BrowserWindow.getAllWindows().forEach((w) =>
+      w.webContents.send('profile:changed', cliProfileManager.getProfiles())
+    )
+    return deleted
+  })
+
+  ipcMain.handle('profile:get-usage', () => {
+    return cliProfileManager.getProfileUsage()
+  })
+
+  // ── 통합 모델 목록 (기본 + 로컬) ──
+
+  ipcMain.handle('model:get-available', (_e, provider: CliProvider) => {
+    const cloudModels = PROVIDER_MODEL_OPTIONS[provider] ?? []
+    // 로컬 모델은 aider 프로바이더에서만 사용 가능
+    if (provider !== 'aider') return cloudModels
+    const localModels = (store.getSettings().discoveredLocalModels ?? []).map((m) => ({
+      value: m.id,
+      label: `${m.name}${m.size ? ` (${m.size})` : ''}`,
+      tier: 'local' as const
+    }))
+    return [...cloudModels, ...localModels]
   })
 }

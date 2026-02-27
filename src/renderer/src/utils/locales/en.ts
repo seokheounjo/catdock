@@ -96,15 +96,6 @@ const en: LocaleMessages = {
     dockSize: 'Dock Size',
     quit: 'Quit',
     cliUpdate: 'CLI Update (v{version})',
-    appUpdateChecking: 'Checking for app updates...',
-    appUpdateAvailable: 'New version v{version} available',
-    appUpdateDownloading: 'Downloading... {percent}%',
-    appUpdateReady: 'v{version} ready to install — Restart',
-    appUpdateLatest: 'Up to date',
-    appUpdateError: 'Update check failed',
-    appUpdateCheck: 'Check for updates',
-    appUpdateDownload: 'Download',
-    appUpdateInstall: 'Restart to install',
     groupChatMembers: ' members',
     noGroupChats: 'No group chats yet',
     newGroupChat: 'Create new room',
@@ -138,15 +129,29 @@ const en: LocaleMessages = {
     memberTemplate: 'For Members',
     workingDirPlaceholder: 'Select a default project folder...',
     defaultCliProvider: 'Default CLI Provider',
-    ghToken: 'GitHub Token (Private Repo Update)',
-    ghTokenPlaceholder: 'ghp_... or github_pat_...',
-    ghTokenSet: 'Token configured',
-    ghTokenNotSet: 'No token — Cannot update from private repo',
-    ghTokenSave: 'Save',
-    ghTokenClear: 'Clear',
-    ghTokenSaved: 'Token saved',
-    ghTokenCleared: 'Token cleared',
-    ghTokenHint: 'Generate at Settings > Developer settings > Personal access tokens'
+    discoveredMcp: 'Discovered MCP Servers',
+    rescanMcp: 'Rescan',
+    enableMcp: 'Enable',
+    noDiscoveredMcp: 'No MCP servers discovered',
+    mcpSourceProject: 'Project',
+    mcpSourceHome: 'Home Dir',
+    // Local LLM
+    localLlm: 'Local LLM',
+    llmScan: 'Scan Local LLMs',
+    llmRescan: 'Rescan',
+    noLocalLlm: 'No local models discovered',
+    llmInstalled: 'Running',
+    llmNotInstalled: 'Not installed',
+    // CLI Profiles
+    cliProfiles: 'CLI Profiles (Multi-account)',
+    addProfile: 'Add Profile',
+    profileName: 'Profile Name',
+    profileConfigDir: 'Config Directory',
+    profileEnvVars: 'Environment Variable Overrides',
+    noProfiles: 'No profiles configured',
+    deleteProfile: 'Delete Profile',
+    defaultProfile: 'Default Profile',
+    profileUsage: 'Agents using: {count}'
   },
 
   agentEditor: {
@@ -205,7 +210,15 @@ const en: LocaleMessages = {
     cliProvider: 'CLI Provider',
     cliInstalled: 'Installed',
     cliNotInstalled: 'Not installed',
-    notSupportedByProvider: 'Not supported by this provider'
+    notSupportedByProvider: 'Not supported by this provider',
+    discoveredMcp: 'Project MCP Servers',
+    discoveredBadge: 'Auto-detected',
+    enableForAgent: 'Add to this agent',
+    // Profile & Local Models
+    cliProfile: 'CLI Profile',
+    profileAuto: 'Auto (Round Robin)',
+    localModels: 'Local Models',
+    cloudModels: 'Cloud Models'
   },
 
   mcp: {
@@ -248,7 +261,12 @@ const en: LocaleMessages = {
     userMessage: 'User',
     agentMessage: 'Agent',
     sentAt: 'Sent at {time}',
-    filePrefix: 'File'
+    filePrefix: 'File',
+    planFirst: 'Plan First',
+    executeNow: 'Execute Now',
+    planFirstTooltip: 'Ask clarifying questions before assembling teams',
+    executeNowTooltip: 'Analyze and immediately assemble needed teams',
+    mcpConfigChanged: 'MCP configuration changed'
   },
 
   groupChat: {

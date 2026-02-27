@@ -66,6 +66,56 @@ export interface McpServerConfig {
   enabled: boolean
 }
 
+// ── 로컬 LLM 자동 감지 ──
+
+export type LocalLlmSource = 'ollama' | 'lmstudio' | 'openai-compatible'
+
+export interface DiscoveredLocalModel {
+  id: string                    // 'ollama/qwen3:32b'
+  name: string                  // 'Qwen3 32B'
+  source: LocalLlmSource
+  modelId: string               // raw: 'qwen3:32b'
+  size?: string                 // '19GB'
+  parameterCount?: string       // '32B'
+  baseUrl?: string              // 'http://localhost:1234/v1'
+  isRunning: boolean
+  discoveredAt: number
+}
+
+export interface LlmDiscoveryResult {
+  models: DiscoveredLocalModel[]
+  sources: { source: LocalLlmSource; available: boolean; version?: string; error?: string }[]
+  scannedAt: number
+}
+
+// ── CLI 프로필 (다중 계정) ──
+
+export interface CliProfile {
+  id: string
+  name: string                  // 'Claude 계정 1'
+  provider: CliProvider
+  configDir?: string            // CLAUDE_CONFIG_DIR
+  envOverrides?: Record<string, string>
+  isDefault: boolean
+  createdAt: number
+}
+
+// ── MCP 자동 감지 ──
+
+export type McpServerSource = 'manual' | 'discovered-project' | 'discovered-home'
+
+export interface DiscoveredMcpServer extends McpServerConfig {
+  source: McpServerSource
+  sourcePath: string
+  discoveredAt: number
+}
+
+export interface McpDiscoveryResult {
+  servers: DiscoveredMcpServer[]
+  scannedPaths: string[]
+  scannedAt: number
+}
+
 // ── 프로세스 상태 ──
 
 export type ProcessStatus = 'stopped' | 'starting' | 'running' | 'terminating' | 'crashed'
@@ -100,6 +150,7 @@ export interface AgentConfig {
   maxTurns?: number
   mcpConfig?: McpServerConfig[]
   teamMcpConfig?: McpServerConfig[] // 리더가 설정, 팀 전체에 적용
+  cliProfileId?: string
   cliFlags?: {
     verbose?: boolean
     debug?: boolean
@@ -171,6 +222,7 @@ export type ActivityType =
   | 'task-delegated'
   | 'upward-report'
   | 'chain-report'
+  | 'mcp-configured'
 
 export interface ActivityEvent {
   id: string
@@ -243,6 +295,8 @@ export interface GlobalSettings {
   language?: 'ko' | 'en' | 'ja' | 'zh'
   agentLanguage?: 'ko' | 'en' | 'ja' | 'zh'
   defaultCliProvider?: CliProvider
+  cliProfiles?: CliProfile[]
+  discoveredLocalModels?: DiscoveredLocalModel[]
 }
 
 // ── 그룹 대화 ──

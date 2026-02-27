@@ -10,7 +10,8 @@ import {
   ConversationMessage,
   GlobalSettings,
   ActivityEvent,
-  TaskDelegation
+  TaskDelegation,
+  DiscoveredMcpServer
 } from '../../shared/types'
 
 // ── 프로젝트 데이터 스키마 (projects/<hash>/config.json) ──
@@ -30,6 +31,7 @@ interface StoreSchema {
   activities: ActivityEvent[]
   tasks: TaskDelegation[]
   archivedAgents: ArchivedAgent[]
+  discoveredMcpServers?: DiscoveredMcpServer[]
 }
 
 const projectDefaults: StoreSchema = {
@@ -436,6 +438,19 @@ export function deleteTask(id: string): boolean {
 
 export function getTasksForAgent(agentId: string): TaskDelegation[] {
   return getTasks().filter((t) => t.toAgentId === agentId || t.fromAgentId === agentId)
+}
+
+// ── MCP 자동 감지 서버 ──
+
+export function getDiscoveredMcpServers(): DiscoveredMcpServer[] {
+  const d = load()
+  return d.discoveredMcpServers || []
+}
+
+export function setDiscoveredMcpServers(servers: DiscoveredMcpServer[]): void {
+  const d = load()
+  d.discoveredMcpServers = servers
+  save()
 }
 
 // 존재하지 않는 에이전트의 태스크 정리

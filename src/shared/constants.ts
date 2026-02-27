@@ -1,4 +1,4 @@
-import type { CliProvider, RoleTemplate, PermissionMode } from './types'
+import type { CliProvider, LocalLlmSource, RoleTemplate, PermissionMode } from './types'
 
 // ── CLI 프로바이더 옵션 ──
 
@@ -14,9 +14,11 @@ export const CLI_PROVIDER_OPTIONS: {
   { value: 'q', label: 'Amazon Q', description: 'Amazon Q Developer CLI' }
 ]
 
+export type ModelTier = 'premium' | 'standard' | 'fast' | 'local'
+
 export const PROVIDER_MODEL_OPTIONS: Record<
   CliProvider,
-  { value: string; label: string; tier: 'premium' | 'standard' | 'fast' }[]
+  { value: string; label: string; tier: ModelTier }[]
 > = {
   claude: [
     { value: 'claude-opus-4-6', label: 'Opus 4.6', tier: 'premium' },
@@ -40,6 +42,14 @@ export const PROVIDER_MODEL_OPTIONS: Record<
   ],
   q: [{ value: 'default', label: 'Default', tier: 'standard' }]
 }
+
+// ── 로컬 LLM 소스 ──
+
+export const LOCAL_LLM_SOURCES: { source: LocalLlmSource; label: string; defaultPort: number }[] = [
+  { source: 'ollama', label: 'Ollama', defaultPort: 11434 },
+  { source: 'lmstudio', label: 'LM Studio', defaultPort: 1234 },
+  { source: 'openai-compatible', label: 'OpenAI Compatible', defaultPort: 8080 }
+]
 
 // ── 모델 옵션 (Claude 전용 — 하위호환) ──
 
@@ -92,6 +102,50 @@ export const CAT_BREEDS_LIST = [
   'british-shorthair'
 ] as const
 
+// ── 프론트엔드 디자인 가이드 (역할 템플릿용) ──
+
+const FRONTEND_DESIGN_GUIDE = `
+
+## Frontend Design Guide
+
+Goal: Build pages that look like they were designed by a professional designer. Avoid AI-generated aesthetic.
+
+### Design Principles
+1. Extreme typography contrast — Headings 48-72px bold, body 16-18px light. Max 2-3 sizes per screen.
+2. Minimal color — Dark/monochrome base + 1 accent color only. NO purple-blue gradients, NO neon glow.
+3. Generous whitespace — 120-200px between sections. Don't fear empty space.
+4. Asymmetric layouts — Avoid 50:50 splits. Use 60:40, 70:30 variations.
+5. No meaningless decoration — No grid backgrounds, particles, orbs, or floating shapes without purpose.
+6. Real content first — Use actual app screenshots, code examples, product mockups. No abstract illustration spam.
+7. Restrained micro-interactions — Scroll animations on 1-2 key sections only.
+
+### Free Component Libraries (copy-paste)
+- Magic UI (magicui.design): 150+ animated components. Bento Grid, Safari mockup, Animated Beam, Shimmer Button, Number Ticker, Marquee, Hero Video Dialog. Install: npx shadcn@latest add "https://magicui.design/r/{component}"
+- Aceternity UI (ui.aceternity.com): 200+ components. Hero Parallax, 3D Card, Lamp Effect, Macbook Scroll. Section blocks: Hero, Pricing, Testimonials, Feature, CTA, Navbar, Footer.
+- shadcn/ui (ui.shadcn.com): Base components (Button, Card, Dialog, Table, Tabs, Toast).
+- HyperUI (hyperui.dev): Tailwind marketing components (CTA, banners, blog cards, contact forms).
+
+### Fonts
+- Korean: Pretendard (CDN free)
+- English: Geist (Vercel free) or Inter (Google Fonts)
+
+### Icons: Lucide (lucide.dev)
+### Illustrations: unDraw (undraw.co), Storyset (storyset.com)
+
+### Landing Page Structure (recommended)
+1. Hero — One-line headline + subtext + CTA + app screenshot/mockup
+2. Logo cloud — Supported technologies/providers
+3. Key features — Bento Grid or Feature Cards (3-4)
+4. Detailed features — Screenshot + text alternating (asymmetric)
+5. Usage flow — Timeline or Animated Beam
+6. Social proof — Testimonials or Stats
+7. CTA — Final call to action + download/start button
+8. Footer
+
+### Design References (for layout/structure)
+- Linear.app, Raycast.com, Cursor.com, Warp.dev
+`
+
 // ── 역할 템플릿 (빌트인) ──
 
 
@@ -103,7 +157,7 @@ export const BUILTIN_ROLE_TEMPLATES: RoleTemplate[] = [
     isBuiltin: true,
     isLeaderTemplate: false,
     systemPrompt:
-      'You are a senior frontend developer. Focus on React, TypeScript, CSS, and UI/UX best practices.',
+      'You are a senior frontend developer. Focus on React, TypeScript, CSS, and UI/UX best practices. When building UI pages, always follow the design guide below to produce professional, designer-quality output.' + FRONTEND_DESIGN_GUIDE,
     defaultModel: 'claude-sonnet-4-20250514',
     defaultPermissionMode: 'acceptEdits' as PermissionMode,
     defaultMaxTurns: 25
@@ -147,7 +201,7 @@ export const BUILTIN_ROLE_TEMPLATES: RoleTemplate[] = [
     isBuiltin: true,
     isLeaderTemplate: false,
     systemPrompt:
-      'You are a UI/UX designer. Focus on design systems, user experience, and visual consistency.',
+      'You are a UI/UX designer. Focus on design systems, user experience, and visual consistency. When designing or reviewing UI, always follow the design guide below to ensure professional quality.' + FRONTEND_DESIGN_GUIDE,
     defaultModel: 'claude-sonnet-4-20250514',
     defaultPermissionMode: 'plan' as PermissionMode,
     defaultMaxTurns: 25
@@ -237,7 +291,7 @@ export const BUILTIN_ROLE_TEMPLATES: RoleTemplate[] = [
     isBuiltin: true,
     isLeaderTemplate: true,
     systemPrompt:
-      'You are a tech lead with team management authority. Coordinate your team, delegate tasks, review code, and make architecture decisions. You can assign work to subordinates and track their progress.',
+      'You are a tech lead with team management authority. Coordinate your team, delegate tasks, review code, and make architecture decisions. You can assign work to subordinates and track their progress. When the team works on frontend/UI tasks, ensure they follow the design guide below.' + FRONTEND_DESIGN_GUIDE,
     defaultModel: 'claude-opus-4-6',
     defaultPermissionMode: 'bypassPermissions' as PermissionMode,
     defaultMaxTurns: 50

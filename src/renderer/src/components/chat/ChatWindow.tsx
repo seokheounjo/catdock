@@ -67,7 +67,18 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
       {permissionRequest && (
         <PermissionDialog request={permissionRequest} onRespond={respondToPermission} />
       )}
-      <ChatInput onSend={sendMessage} onAbort={abort} streaming={streaming} />
+      <ChatInput
+        onSend={sendMessage}
+        onAbort={abort}
+        streaming={streaming}
+        agentRole={agent.hierarchy?.role}
+        onSendWithMode={(msg, mode) => {
+          const prefix = mode === 'plan-first'
+            ? '[MODE:plan-first]\n'
+            : '[MODE:execute-now]\n'
+          sendMessage(prefix + msg)
+        }}
+      />
     </div>
   )
 }

@@ -6,9 +6,11 @@ import {
   buildCleanEnv,
   validateWorkingDirectory
 } from './cli-builder'
+import { resolveProfileForAgent, buildProfileEnv } from './cli-profile-manager'
 import { buildMcpConfigFile } from './mcp-manager'
 import { logActivity } from './activity-logger'
-import { hasDelegation, executeDelegation, setSendMessageAndCapture, executeRemoveBlocks } from './delegation-manager'
+import { hasDelegation, executeDelegation, setSendMessageAndCapture, executeRemoveBlocks, hasMcpBlocks, parseMcpAddBlocks, parseMcpRemoveBlocks, parseJsonMcpConfig, hasDirectMcpConfig } from './delegation-manager'
+import { buildMcpConfigFile as rebuildMcpConfigFile } from './mcp-manager'
 import { handleAgentError, setSessionCallbacks, setFindBackupDirector } from './error-recovery'
 import * as watchdog from './process-watchdog'
 import { v4 as uuid } from 'uuid'
@@ -207,16 +209,208 @@ function sendChainReport(agentId: string, _originalReport: string, leaderJudgmen
   })
 }
 
+// ── MCP 블록 실행 ── Director/Leader 응답에서 MCP 서버 추가/제거
+function executeMcpBlocks(agentId: string, response: string): void {
+  const addBlocks = parseMcpAddBlocks(response)
+  const removeNames = parseMcpRemoveBlocks(response)
+
+  if (addBlocks.length === 0 && removeNames.length === 0) return
+
+  const config = store.getAgent(agentId)
+  if (!config) return
+
+  let mcpConfig = [...(config.mcpConfig || [])]
+
+  // MCP 서버 추가
+  for (const block of addBlocks) {
+    // 기존에 같은 이름이 있으면 교체
+    mcpConfig = mcpConfig.filter((s) => s.name !== block.name)
+    mcpConfig.push({
+      name: block.name,
+      command: block.command,
+      args: block.args.length > 0 ? block.args : undefined,
+      env: Object.keys(block.env).length > 0 ? block.env : undefined,
+      cwd: block.cwd || undefined,
+      enabled: true
+    })
+    console.log(`[mcp-blocks] ${config.name}: MCP 서버 추가 — ${block.name} (${block.command})${Object.keys(block.env).length > 0 ? ` env: ${Object.keys(block.env).join(',')}` : ''}`)
+  }
+
+  // MCP 서버 제거
+  for (const name of removeNames) {
+    const before = mcpConfig.length
+    mcpConfig = mcpConfig.filter((s) => s.name !== name)
+    if (mcpConfig.length < before) {
+      console.log(`[mcp-blocks] ${config.name}: MCP 서버 제거 — ${name}`)
+    }
+  }
+
+  // 에이전트 config 업데이트
+  agentManager.updateAgent(agentId, { mcpConfig })
+
+  // MCP config 파일 재빌드
+  try {
+    rebuildMcpConfigFile(agentId)
+  } catch {
+    // MCP 파일 빌드 실패는 무시 — 다음 세션에서 자동 재빌드됨
+  }
+
+  // UI에 변경 알림
+  BrowserWindow.getAllWindows().forEach((w) => {
+    w.webContents.send('mcp:config-changed', { agentId, added: addBlocks.length, removed: removeNames.length })
+  })
+
+  logActivity('mcp-configured', agentId, config.name,
+    `MCP 설정 변경: +${addBlocks.length} -${removeNames.length}`)
+}
+
+// ── 사용자 메시지에서 직접 MCP 설정 처리 ──
+// [MCP:ADD|...] 블록이나 JSON { "mcpServers": {...} } 형식 감지 후 즉시 등록
+interface DirectMcpResult {
+  handled: boolean
+  registeredCount: number
+  names: string[]
+}
+
+function handleDirectMcpInput(
+  agentId: string,
+  message: string,
+  _session: ReturnType<typeof getSession>
+): DirectMcpResult {
+  const result: DirectMcpResult = { handled: false, registeredCount: 0, names: [] }
+
+  // 1) [MCP:ADD|...] / [MCP:REMOVE|...] 블록 파싱
+  const addBlocks = parseMcpAddBlocks(message)
+  const removeNames = parseMcpRemoveBlocks(message)
+
+  // 2) JSON 형식 MCP config 파싱 (붙여넣기)
+  const jsonBlocks = parseJsonMcpConfig(message)
+
+  const allAddBlocks = [...addBlocks, ...jsonBlocks]
+
+  if (allAddBlocks.length === 0 && removeNames.length === 0) return result
+
+  const config = store.getAgent(agentId)
+  if (!config) return result
+
+  let mcpConfig = [...(config.mcpConfig || [])]
+
+  // MCP 서버 추가
+  for (const block of allAddBlocks) {
+    mcpConfig = mcpConfig.filter((s) => s.name !== block.name)
+    mcpConfig.push({
+      name: block.name,
+      command: block.command,
+      args: block.args.length > 0 ? block.args : undefined,
+      env: Object.keys(block.env).length > 0 ? block.env : undefined,
+      cwd: block.cwd || undefined,
+      enabled: true
+    })
+    result.names.push(block.name)
+    console.log(`[mcp-direct] 사용자 직접 등록: ${block.name} (${block.command})`)
+  }
+
+  // MCP 서버 제거
+  for (const name of removeNames) {
+    const before = mcpConfig.length
+    mcpConfig = mcpConfig.filter((s) => s.name !== name)
+    if (mcpConfig.length < before) {
+      result.names.push(`-${name}`)
+      console.log(`[mcp-direct] 사용자 직접 제거: ${name}`)
+    }
+  }
+
+  result.registeredCount = allAddBlocks.length + removeNames.length
+  result.handled = true
+
+  // 에이전트 config 업데이트
+  agentManager.updateAgent(agentId, { mcpConfig })
+
+  // MCP config 파일 재빌드
+  try {
+    rebuildMcpConfigFile(agentId)
+  } catch {
+    // 무시
+  }
+
+  // UI 브로드캐스트
+  BrowserWindow.getAllWindows().forEach((w) => {
+    w.webContents.send('mcp:config-changed', {
+      agentId,
+      added: allAddBlocks.length,
+      removed: removeNames.length
+    })
+  })
+
+  logActivity('mcp-configured', agentId, config.name,
+    `사용자 직접 MCP 설정: +${allAddBlocks.length} -${removeNames.length}`)
+
+  return result
+}
+
+// ── 모드 추출 ── [MODE:plan-first] 또는 [MODE:execute-now] 접두사 파싱
+function extractMode(message: string): { mode: 'plan-first' | 'execute-now' | null; cleanMessage: string } {
+  const planMatch = message.match(/^\[MODE:plan-first\]\n?/)
+  if (planMatch) {
+    return { mode: 'plan-first', cleanMessage: message.slice(planMatch[0].length) }
+  }
+  const execMatch = message.match(/^\[MODE:execute-now\]\n?/)
+  if (execMatch) {
+    return { mode: 'execute-now', cleanMessage: message.slice(execMatch[0].length) }
+  }
+  return { mode: null, cleanMessage: message }
+}
+
+// 모드에 따른 지시문 삽입
+function applyModePrefix(mode: 'plan-first' | 'execute-now' | null, message: string): string {
+  if (mode === 'plan-first') {
+    return `[지시: 먼저 요청을 분석하고 2-3개 확인 질문을 한 뒤, 사용자 답변 후 필요한 팀만 편성하여 작업을 시작하라. 불필요한 팀은 만들지 마라.]\n\n${message}`
+  }
+  if (mode === 'execute-now') {
+    return `[지시: 요청을 분석하여 즉시 필요한 팀만 편성하고 작업을 시작하라. 불필요한 질문 없이 바로 실행하라.]\n\n${message}`
+  }
+  return message
+}
+
 export async function sendMessage(agentId: string, userMessage: string): Promise<void> {
   const config = store.getAgent(agentId)
   if (!config) throw new Error(`Agent ${agentId} not found`)
 
+  // 모드 추출 및 적용
+  const { mode, cleanMessage } = extractMode(userMessage)
+  const processedMessage = config.hierarchy?.role === 'director'
+    ? applyModePrefix(mode, cleanMessage)
+    : cleanMessage
+  // 모드가 있으면 처리된 메시지 사용, 없으면 원본 유지
+  const finalUserMessage = mode ? processedMessage : userMessage
+
   const session = getSession(agentId)
+
+  // ── 사용자 메시지에서 직접 MCP 설정 감지 & 등록 ──
+  if (hasDirectMcpConfig(cleanMessage)) {
+    const directMcpResult = handleDirectMcpInput(agentId, cleanMessage, session)
+    if (directMcpResult.handled && directMcpResult.registeredCount > 0) {
+      // 등록 완료 시스템 메시지 추가
+      const sysMsg: ChatMessage = {
+        id: uuid(),
+        agentId,
+        role: 'system',
+        content: `MCP 서버 ${directMcpResult.registeredCount}개 직접 등록 완료: ${directMcpResult.names.join(', ')}`,
+        timestamp: Date.now()
+      }
+      session.messages.push(sysMsg)
+      broadcastToChat(agentId, 'session:message', sysMsg)
+      store.saveSessionHistory(agentId, session.messages)
+
+      // MCP만 등록하고 AI 호출 없이 끝낼 수도 있지만,
+      // 사용자가 추가 지시를 같이 보낼 수 있으므로 AI 호출은 계속 진행
+    }
+  }
 
   // 에이전트가 바쁘면 메시지를 큐에 추가
   if (isAgentBusy(agentId)) {
     if (!messageQueues.has(agentId)) messageQueues.set(agentId, [])
-    messageQueues.get(agentId)!.push(userMessage)
+    messageQueues.get(agentId)!.push(finalUserMessage)
 
     const queueCount = messageQueues.get(agentId)!.length
     const queueMsg: ChatMessage = {
@@ -234,12 +428,13 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
 
   session.abortController = new AbortController()
 
-  // Add user message
+  // Add user message (UI에는 모드 접두사 없는 깨끗한 메시지 표시)
+  const displayMessage = mode ? cleanMessage : userMessage
   const userMsg: ChatMessage = {
     id: uuid(),
     agentId,
     role: 'user',
-    content: userMessage,
+    content: displayMessage,
     timestamp: Date.now()
   }
   session.messages.push(userMsg)
@@ -270,19 +465,19 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
   broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'working' })
 
   try {
-    const response = await runClaudeSession(config, session, userMessage)
+    const response = await runClaudeSession(config, session, finalUserMessage)
 
     // ── 상향 보고 체인: member → leader → director
     // 1) 일반 사용자 메시지 → 상위자에게 보고 (member/leader 모두)
     // 2) 자동 보고 메시지 수신 시 (leader가 member 보고를 받은 경우) → director에게 체인 보고
-    const isMemberReport = userMessage.includes('[📋 자동 보고]')
+    const isMemberReport = finalUserMessage.includes('[📋 자동 보고]')
     const isDirectReport = reportMessageIds.has(userMsg.id)
 
     if (config.hierarchy?.role !== 'director' && response) {
       if (!isDirectReport && !isMemberReport) {
         // 일반 사용자 지시 → 상위자에게 보고
         try {
-          sendUpwardReport(agentId, userMessage, response)
+          sendUpwardReport(agentId, finalUserMessage, response)
         } catch (reportErr) {
           console.error('[upward-report] 보고 실패:', reportErr)
         }
@@ -303,6 +498,15 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
         executeRemoveBlocks(agentId, response)
       } catch (removeErr) {
         console.error('[remove-blocks] 팀원 삭제 실패:', removeErr)
+      }
+    }
+
+    // [MCP:ADD|...] / [MCP:REMOVE|...] 블록 처리
+    if (canManageTeam && response && hasMcpBlocks(response)) {
+      try {
+        executeMcpBlocks(agentId, response)
+      } catch (mcpErr) {
+        console.error('[mcp-blocks] MCP 블록 처리 실패:', mcpErr)
       }
     }
 
@@ -417,6 +621,9 @@ async function runCliSession(
     }
 
     const cleanEnv = buildCleanEnv()
+    // 프로필 환경변수 주입
+    const profile = resolveProfileForAgent(config)
+    const envWithProfile = profile ? buildProfileEnv(cleanEnv, profile) : cleanEnv
 
     // 프로세스 시작 상태
     broadcastProcessInfo(agentId, {
@@ -428,7 +635,7 @@ async function runCliSession(
     try {
       const spawnResult = adapter.spawnProcess(config, args, {
         cwd,
-        env: cleanEnv,
+        env: envWithProfile,
         signal: session.abortController.signal
       })
       proc = spawnResult.process

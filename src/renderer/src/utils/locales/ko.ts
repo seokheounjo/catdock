@@ -99,15 +99,6 @@ const ko = {
     dockSize: '독 크기',
     quit: '종료',
     cliUpdate: 'CLI 업데이트 (v{version})',
-    appUpdateChecking: '앱 업데이트 확인 중...',
-    appUpdateAvailable: '새 버전 v{version} 사용 가능',
-    appUpdateDownloading: '다운로드 중... {percent}%',
-    appUpdateReady: 'v{version} 설치 준비 완료 — 재시작',
-    appUpdateLatest: '최신 버전 사용 중',
-    appUpdateError: '업데이트 확인 실패',
-    appUpdateCheck: '업데이트 확인',
-    appUpdateDownload: '다운로드',
-    appUpdateInstall: '재시작하여 설치',
     groupChatMembers: '명',
     noGroupChats: '그룹 채팅이 없습니다',
     newGroupChat: '새 방 만들기',
@@ -146,15 +137,29 @@ const ko = {
     // 작업 디렉토리 플레이스홀더
     workingDirPlaceholder: '기본 프로젝트 폴더 선택...',
     defaultCliProvider: '기본 CLI 프로바이더',
-    ghToken: 'GitHub 토큰 (Private 레포 업데이트)',
-    ghTokenPlaceholder: 'ghp_... 또는 github_pat_...',
-    ghTokenSet: '토큰 설정됨',
-    ghTokenNotSet: '토큰 미설정 — Private 레포 업데이트 불가',
-    ghTokenSave: '저장',
-    ghTokenClear: '삭제',
-    ghTokenSaved: '토큰 저장 완료',
-    ghTokenCleared: '토큰이 삭제되었습니다',
-    ghTokenHint: 'Settings > Developer settings > Personal access tokens에서 발급'
+    discoveredMcp: '발견된 MCP 서버',
+    rescanMcp: '다시 스캔',
+    enableMcp: '활성화',
+    noDiscoveredMcp: '발견된 MCP 서버가 없습니다',
+    mcpSourceProject: '프로젝트',
+    mcpSourceHome: '홈 디렉토리',
+    // 로컬 LLM
+    localLlm: '로컬 LLM',
+    llmScan: '로컬 LLM 스캔',
+    llmRescan: '다시 스캔',
+    noLocalLlm: '발견된 로컬 모델이 없습니다',
+    llmInstalled: '실행 중',
+    llmNotInstalled: '미설치',
+    // CLI 프로필
+    cliProfiles: 'CLI 프로필 (다중 계정)',
+    addProfile: '프로필 추가',
+    profileName: '프로필 이름',
+    profileConfigDir: 'Config 디렉토리',
+    profileEnvVars: '환경변수 오버라이드',
+    noProfiles: '등록된 프로필이 없습니다',
+    deleteProfile: '프로필 삭제',
+    defaultProfile: '기본 프로필',
+    profileUsage: '사용 중인 에이전트: {count}개'
   },
 
   // 에이전트 에디터
@@ -214,7 +219,15 @@ const ko = {
     cliProvider: 'CLI 프로바이더',
     cliInstalled: '설치됨',
     cliNotInstalled: '미설치',
-    notSupportedByProvider: '이 프로바이더에서 미지원'
+    notSupportedByProvider: '이 프로바이더에서 미지원',
+    discoveredMcp: '프로젝트 MCP 서버',
+    discoveredBadge: '자동 감지',
+    enableForAgent: '이 에이전트에 추가',
+    // 프로필 & 로컬 모델
+    cliProfile: 'CLI 프로필',
+    profileAuto: '자동 (라운드 로빈)',
+    localModels: '로컬 모델',
+    cloudModels: '클라우드 모델'
   },
 
   // MCP 서버 편집기
@@ -259,7 +272,12 @@ const ko = {
     userMessage: '사용자',
     agentMessage: '에이전트',
     sentAt: '{time}에 전송됨',
-    filePrefix: '파일'
+    filePrefix: '파일',
+    planFirst: '계획 먼저',
+    executeNow: '바로 실행',
+    planFirstTooltip: '분석 후 확인 질문을 하고 답변 후 팀 편성',
+    executeNowTooltip: '즉시 분석하여 필요한 팀만 편성하고 실행',
+    mcpConfigChanged: 'MCP 설정이 변경되었습니다'
   },
 
   // 그룹 채팅

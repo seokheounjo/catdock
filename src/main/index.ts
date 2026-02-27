@@ -25,7 +25,9 @@ import { startPermissionServer, stopPermissionServer } from './services/permissi
 import { startWatchdog, stopWatchdog } from './services/process-watchdog'
 import { startMonitoring, stopMonitoring } from './services/monitoring-loop'
 import { setDockResizeCallback } from './services/delegation-manager'
-import { initAutoUpdater, checkForAppUpdate } from './services/app-updater'
+
+import { discoverAll } from './services/mcp-discovery'
+import { discoverAllLocalModels } from './services/llm-discovery'
 import * as wm from './window-manager'
 
 // ★ GPU 비활성화 → transparent: true 윈도우 크래시 방지
@@ -291,6 +293,41 @@ if (gotLock) {
       const staleRemoved = cleanStaleTasks()
       if (staleRemoved > 0) console.log(`[startup] 오래된 태스크 ${staleRemoved}건 정리`)
 
+      // MCP 자동 감지 — 프로젝트 디렉토리에서 MCP 설정 파일 스캔
+      try {
+        const projectRoot = store.getProjectRoot() || detectProjectRoot()
+        const discovery = discoverAll(projectRoot)
+        if (discovery.servers.length > 0) {
+          store.setDiscoveredMcpServers(discovery.servers)
+          console.log(`[startup] MCP 자동 감지: ${discovery.servers.length}개 서버 발견`)
+          // UI에 알림 (독 윈도우 생성 후 전송될 수 있도록 지연)
+          setTimeout(() => {
+            BrowserWindow.getAllWindows().forEach((w) =>
+              w.webContents.send('mcp:discovered', discovery)
+            )
+          }, 2000)
+        }
+      } catch (err) {
+        console.error('[startup] MCP 자동 감지 실패:', err)
+      }
+
+      // 로컬 LLM 자동 감지 (MCP 감지 후 3초 지연)
+      setTimeout(() => {
+        discoverAllLocalModels()
+          .then((result) => {
+            if (result.models.length > 0) {
+              store.updateSettings({ discoveredLocalModels: result.models })
+              console.log(`[startup] 로컬 LLM 자동 감지: ${result.models.length}개 모델 발견`)
+              BrowserWindow.getAllWindows().forEach((w) =>
+                w.webContents.send('llm:discovered', result)
+              )
+            }
+          })
+          .catch((err) => {
+            console.error('[startup] 로컬 LLM 자동 감지 실패:', err)
+          })
+      }, 3000)
+
       // 프로세스 워치독 + 모니터링 루프 시작
       startWatchdog()
       startMonitoring()
@@ -334,18 +371,6 @@ if (gotLock) {
           if (!isQuitting) broadcastCliUpdate()
         },
         24 * 60 * 60 * 1000
-      )
-
-      // 앱 자동 업데이트 (electron-updater)
-      initAutoUpdater()
-      setTimeout(() => {
-        if (!isQuitting) checkForAppUpdate().catch(() => {})
-      }, 30000)
-      setInterval(
-        () => {
-          if (!isQuitting) checkForAppUpdate().catch(() => {})
-        },
-        4 * 60 * 60 * 1000
       )
 
       app.on('activate', () => {
