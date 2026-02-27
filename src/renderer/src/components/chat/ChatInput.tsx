@@ -118,13 +118,14 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
   }
 
   const handleSubmit = () => {
-    if (streaming) {
-      onAbort()
+    if (!input.trim() && !attachment) {
+      // 내용 없이 Enter → 스트리밍 중이면 중지, 아니면 무시
+      if (streaming) onAbort()
       return
     }
-    if (!input.trim() && !attachment) return
     if (disabled) return
 
+    // 스트리밍 중이어도 내용이 있으면 전송 (백엔드 큐에 추가됨)
     onSend(buildFinalMessage())
     resetInput()
   }
@@ -274,46 +275,58 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
             </button>
           </div>
         ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={disabled && !streaming}
-            aria-label={
-              streaming
-                ? t('chat.ariaAbort')
-                : hasContent
-                  ? t('chat.ariaSend')
-                  : t('chat.ariaEmptySend')
-            }
-            className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none
-                        cursor-pointer transition-all duration-200
-                        focus:outline-2 focus:outline-accent focus:outline-offset-2 focus:ring-2 focus:ring-accent/50
-                        ${
-                          streaming
-                            ? 'bg-danger hover:bg-danger/80 text-white focus:bg-danger/70'
-                            : hasContent
-                              ? 'bg-accent hover:bg-accent-hover text-white focus:bg-accent-hover'
-                              : 'bg-white/10 text-text-muted cursor-not-allowed'
-                        }`}
-            title={streaming ? t('chat.stop') : t('chat.send')}
-          >
-            {streaming ? (
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                <rect x="2" y="2" width="10" height="10" rx="1.5" />
-              </svg>
-            ) : (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
+          <div className="flex items-center gap-1 shrink-0">
+            {/* 스트리밍 중 + 내용 있으면: 전송 버튼 + 중지 버튼 둘 다 표시 */}
+            {streaming && hasContent && (
+              <button
+                onClick={() => { onSend(buildFinalMessage()); resetInput() }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center border-none
+                           cursor-pointer transition-all duration-200
+                           bg-accent hover:bg-accent-hover text-white
+                           focus:outline-2 focus:outline-accent focus:outline-offset-2"
+                title={t('chat.send')}
+                aria-label={t('chat.ariaSend')}
               >
-                <path d="M2 8h12M9 3l5 5-5 5" />
-              </svg>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M2 8h12M9 3l5 5-5 5" />
+                </svg>
+              </button>
             )}
-          </button>
+            <button
+              onClick={handleSubmit}
+              disabled={disabled && !streaming}
+              aria-label={
+                streaming
+                  ? hasContent ? t('chat.ariaAbort') : t('chat.ariaAbort')
+                  : hasContent
+                    ? t('chat.ariaSend')
+                    : t('chat.ariaEmptySend')
+              }
+              className={`w-8 h-8 rounded-lg flex items-center justify-center border-none
+                          cursor-pointer transition-all duration-200
+                          focus:outline-2 focus:outline-accent focus:outline-offset-2 focus:ring-2 focus:ring-accent/50
+                          ${
+                            streaming
+                              ? 'bg-danger hover:bg-danger/80 text-white focus:bg-danger/70'
+                              : hasContent
+                                ? 'bg-accent hover:bg-accent-hover text-white focus:bg-accent-hover'
+                                : 'bg-white/10 text-text-muted cursor-not-allowed'
+                          }`}
+              title={streaming ? t('chat.stop') : t('chat.send')}
+            >
+              {streaming ? (
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                  <rect x="2" y="2" width="10" height="10" rx="1.5" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+                  stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M2 8h12M9 3l5 5-5 5" />
+                </svg>
+              )}
+            </button>
+          </div>
         )}
       </div>
     </div>
