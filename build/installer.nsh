@@ -29,3 +29,26 @@
     Sleep 2000
   ${EndIf}
 !macroend
+
+; 언인스톨 시 찌꺼기 완전 제거
+; electron-builder의 deleteAppDataOnUninstall은 $APPDATA\{appName}만 처리
+; 추가로 Electron 캐시, updater 캐시, 기타 잔여 파일 정리
+
+!macro customUnInstall
+  ; 1. Electron 사용자 데이터 전체 삭제 ($APPDATA\virtual-company)
+  ;    Local Storage, Session Storage, Cache, Code Cache, GPUCache 등 포함
+  RMDir /r "$APPDATA\virtual-company"
+
+  ; 2. auto-updater 캐시 삭제 (구버전 잔여)
+  RMDir /r "$LOCALAPPDATA\virtual-company-updater"
+
+  ; 3. Electron crash reports
+  RMDir /r "$APPDATA\virtual-company\Crashpad"
+
+  ; 4. 바탕화면 바로가기 정리 (공용 데스크톱 포함)
+  Delete "$DESKTOP\Virtual Company.lnk"
+
+  ; 5. 시작 메뉴 바로가기 정리
+  RMDir /r "$SMPROGRAMS\Virtual Company"
+  Delete "$SMPROGRAMS\Virtual Company.lnk"
+!macroend

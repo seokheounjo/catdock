@@ -236,6 +236,14 @@ if (gotLock) {
     .then(async () => {
       electronApp.setAppUserModelId('com.virtual-company.app')
 
+      // ★ 클립보드 단축키 (Ctrl+C/V/X/Z/A) 활성화를 위한 앱 메뉴 등록
+      // frame: false 윈도우에서는 메뉴바가 보이지 않지만, 키보드 단축키는 동작함
+      Menu.setApplicationMenu(
+        Menu.buildFromTemplate([
+          { role: 'editMenu' }
+        ])
+      )
+
       // 프로젝트 루트 설정 — 저장된 경로 없으면 폴더 선택 다이얼로그
       const saved = store.getSettings().defaultWorkingDirectory
       if (!saved) {

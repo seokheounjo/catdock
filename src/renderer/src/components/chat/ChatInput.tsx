@@ -81,17 +81,21 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
     [attachFile]
   )
 
-  // 경로 붙여넣기 감지
+  // 경로 붙여넣기 감지 — 확장자가 있는 명확한 파일 경로만 첨부
   const handlePaste = useCallback(
     async (e: React.ClipboardEvent) => {
       const text = e.clipboardData.getData('text/plain').trim()
-      // 파일 경로 패턴 감지 (Windows / Unix)
+      // 조건: 단일행, 500자 미만, 파일 경로 형식, 확장자 포함
       const isFilePath =
-        /^([A-Za-z]:\\|\/|~\/)/.test(text) && !text.includes('\n') && text.length < 500
+        /^([A-Za-z]:\\|\/|~\/)/.test(text) &&
+        !text.includes('\n') &&
+        text.length < 500 &&
+        /\.\w{1,10}$/.test(text)  // 확장자 필수 (.ts, .json 등)
       if (isFilePath) {
         e.preventDefault()
         await attachFile(text)
       }
+      // 일반 텍스트는 기본 동작 (붙여넣기) 수행
     },
     [attachFile]
   )
