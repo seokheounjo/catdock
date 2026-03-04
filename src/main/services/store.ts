@@ -66,7 +66,9 @@ let data: StoreSchema | null = null
 // ── 해시 함수 ──
 
 function hashPath(dir: string): string {
-  return createHash('sha256').update(dir.toLowerCase()).digest('hex').slice(0, 12)
+  // Windows: forward slash → backslash 정규화 후 해싱 (기존 데이터 호환)
+  const normalized = dir.replace(/\//g, '\\').toLowerCase()
+  return createHash('sha256').update(normalized).digest('hex').slice(0, 12)
 }
 
 // ── 프로젝트 루트 관리 ──
