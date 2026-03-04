@@ -200,6 +200,15 @@ interface ModelApi {
   getAvailable(provider: CliProvider): Promise<{ value: string; label: string; tier: ModelTier }[]>
 }
 
+interface ShellApi {
+  openExternal(url: string): Promise<{ success: boolean; error?: string }>
+  openPath(filePath: string): Promise<{ success: boolean; error?: string }>
+  runCommand(
+    command: string,
+    cwd?: string
+  ): Promise<{ success: boolean; stdout?: string; stderr?: string; error?: string }>
+}
+
 interface AppApi {
   quit(): Promise<void>
   setDockExpanded(expanded: boolean): Promise<void>
@@ -224,6 +233,7 @@ interface Api {
   llm: LlmApi
   profile: ProfileApi
   model: ModelApi
+  shell: ShellApi
   app: AppApi
   on(channel: string, callback: (...args: unknown[]) => void): () => void
 }

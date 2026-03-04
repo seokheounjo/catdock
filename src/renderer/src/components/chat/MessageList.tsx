@@ -8,9 +8,10 @@ interface MessageListProps {
   messages: ChatMessage[]
   streaming: boolean
   streamingContent: string
+  onSend?: (text: string) => void
 }
 
-export function MessageList({ messages, streaming, streamingContent }: MessageListProps) {
+export function MessageList({ messages, streaming, streamingContent, onSend }: MessageListProps) {
   const { t } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -33,7 +34,7 @@ export function MessageList({ messages, streaming, streamingContent }: MessageLi
       )}
 
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} />
+        <MessageBubble key={msg.id} message={msg} onSend={onSend} />
       ))}
 
       {streaming && <StreamingText content={streamingContent} />}

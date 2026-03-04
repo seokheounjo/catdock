@@ -9,7 +9,7 @@ import {
 import { resolveProfileForAgent, buildProfileEnv } from './cli-profile-manager'
 import { buildMcpConfigFile } from './mcp-manager'
 import { logActivity } from './activity-logger'
-import { hasDelegation, executeDelegation, setSendMessageAndCapture, executeRemoveBlocks, hasMcpBlocks, parseMcpAddBlocks, parseMcpRemoveBlocks, parseJsonMcpConfig, hasDirectMcpConfig } from './delegation-manager'
+import { hasDelegation, executeDelegation, setSendMessageAndCapture, executeRemoveBlocks, hasMcpBlocks, parseMcpAddBlocks, parseMcpRemoveBlocks, parseJsonMcpConfig, hasDirectMcpConfig, buildOrgContext } from './delegation-manager'
 import { buildMcpConfigFile as rebuildMcpConfigFile } from './mcp-manager'
 import { handleAgentError, setSessionCallbacks, setFindBackupDirector } from './error-recovery'
 import * as watchdog from './process-watchdog'
@@ -33,6 +33,14 @@ interface ActiveSession {
 const activeSessions = new Map<string, ActiveSession>()
 // 위임 재귀 방지 — 현재 위임 종합 중인 에이전트 ID (director/leader)
 const delegatingAgents = new Set<string>()
+
+// 외부에서 위임 상태 확인 (error-recovery에서 사용)
+export function isDelegating(agentId: string): boolean {
+  return delegatingAgents.has(agentId)
+}
+export function isAnyDelegationActive(): boolean {
+  return delegatingAgents.size > 0
+}
 // 위임 시작 시간 추적 — 타임아웃 감지용
 const delegatingStartTimes = new Map<string, number>()
 // 메시지 큐 — 에이전트가 바쁠 때 대기
@@ -66,7 +74,8 @@ setSendMessageAndCapture((agentId: string, message: string) =>
 setSessionCallbacks({
   getErrorLog: (agentId: string) => getErrorLog(agentId),
   sendMessage: (agentId: string, message: string) => sendMessage(agentId, message),
-  abortSession: (agentId: string) => abortSession(agentId)
+  abortSession: (agentId: string) => abortSession(agentId),
+  isAnyDelegationActive: () => isAnyDelegationActive()
 })
 setFindBackupDirector(watchdog.findBackupDirector)
 watchdog.setSendMessage((agentId: string, message: string) => sendMessage(agentId, message))
@@ -465,7 +474,16 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
   broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'working' })
 
   try {
-    const response = await runClaudeSession(config, session, finalUserMessage)
+    // Director에게 보내는 메시지에 현재 조직 현황 주입
+    let cliMessage = finalUserMessage
+    if (config.hierarchy?.role === 'director') {
+      const orgContext = buildOrgContext(agentId)
+      if (orgContext) {
+        cliMessage = `${orgContext}\n${finalUserMessage}`
+      }
+    }
+
+    const response = await runClaudeSession(config, session, cliMessage)
 
     // ── 상향 보고 체인: member → leader → director
     // 1) 일반 사용자 메시지 → 상위자에게 보고 (member/leader 모두)
@@ -510,12 +528,18 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
       }
     }
 
+    // 조직 최적화 요청인 경우 위임 실행 차단 (REMOVE만 처리됨)
+    const isOptimizeOnly = /조직\s*최적화/.test(userMessage)
+    if (isOptimizeOnly && canManageTeam && response) {
+      console.log('[delegation-check] 조직 최적화 모드 — DELEGATE 실행 차단, REMOVE만 처리')
+    }
+
     // director/leader 에이전트이고 위임 블록이 있으면 위임 실행 (재귀 방지)
     const canDelegate = config.hierarchy?.role === 'director' || config.hierarchy?.role === 'leader'
     console.log(
-      `[delegation-check] role=${config.hierarchy?.role}, canDelegate=${canDelegate}, hasDelegation=${response ? hasDelegation(response) : false}, isDelegating=${delegatingAgents.has(agentId)}, responseLen=${response?.length ?? 0}`
+      `[delegation-check] role=${config.hierarchy?.role}, canDelegate=${canDelegate}, hasDelegation=${response ? hasDelegation(response) : false}, isDelegating=${delegatingAgents.has(agentId)}, responseLen=${response?.length ?? 0}, optimizeOnly=${isOptimizeOnly}`
     )
-    if (canDelegate && response && hasDelegation(response) && !delegatingAgents.has(agentId)) {
+    if (canDelegate && response && hasDelegation(response) && !delegatingAgents.has(agentId) && !isOptimizeOnly) {
       // 위임자를 working 상태로 유지 (finishSession에서 idle로 바꿨으므로 다시 설정)
       agentManager.setAgentStatus(agentId, 'working')
       agentManager.setCurrentTask(agentId, '팀원 작업 대기 중...')
@@ -739,7 +763,11 @@ async function runCliSession(
         })
       },
       onToolUse: (toolName: string, toolInput: Record<string, unknown>) => {
-        const toolText = `\n\n**${toolName}** \`${formatToolInput(toolName, toolInput)}\`\n`
+        // 도구 입력을 한 줄로 축약 (최대 80자)
+        const rawInput = formatToolInput(toolName, toolInput)
+        const firstLine = rawInput.split('\n')[0]
+        const shortInput = firstLine.length > 80 ? firstLine.slice(0, 77) + '...' : firstLine
+        const toolText = `\n\n> **${toolName}** \`${shortInput}\`\n`
         fullResponse += toolText
         broadcastToChat(agentId, 'session:stream-delta', {
           id: streamingMsgId,
@@ -752,8 +780,12 @@ async function runCliSession(
         }
       },
       onToolResult: (output: string) => {
-        const preview = output.length > 300 ? output.slice(0, 300) + '...' : output
-        const rt = `\n\`\`\`\n${preview}\n\`\`\`\n`
+        // 도구 결과를 짧게 축약 (최대 150자, 1줄 요약)
+        const trimmed = output.trim()
+        if (!trimmed) return // 빈 결과는 표시하지 않음
+        const firstLine = trimmed.split('\n')[0]
+        const preview = firstLine.length > 150 ? firstLine.slice(0, 147) + '...' : firstLine
+        const rt = `\n> \`${preview}\`\n`
         fullResponse += rt
         broadcastToChat(agentId, 'session:stream-delta', {
           id: streamingMsgId,
@@ -841,6 +873,23 @@ export async function sendMessageAndCapture(agentId: string, userMessage: string
   if (!config) throw new Error(`Agent ${agentId} not found`)
 
   const session = getSession(agentId)
+
+  // ★ error 상태 에이전트 → 세션 리셋 후 진행 (깨끗한 상태로 시작)
+  const currentStatus = agentManager.getAgentState(agentId)?.status
+  if (currentStatus === 'error') {
+    console.log(`[sendMessageAndCapture] ${config.name} error 상태 → 세션 리셋`)
+    if (session.process) {
+      try { session.process.kill() } catch { /* already dead */ }
+      session.process = null
+    }
+    session.abortController.abort()
+    // 새 세션으로 시작 (기존 대화 이력은 유지하되 CLI 세션은 새로 시작)
+    session.cliSessionId = null
+    session.hasConversation = false
+    store.updateSessionId(agentId, '')
+    agentManager.setAgentStatus(agentId, 'idle')
+    broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
+  }
 
   // 이미 실행 중인 프로세스가 있으면 abort
   if (session.process) {

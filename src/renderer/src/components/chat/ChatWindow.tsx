@@ -63,7 +63,7 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
         onClose={() => window.api.window.close()}
         onClear={clear}
       />
-      <MessageList messages={messages} streaming={streaming} streamingContent={streamingContent} />
+      <MessageList messages={messages} streaming={streaming} streamingContent={streamingContent} onSend={sendMessage} />
       {permissionRequest && (
         <PermissionDialog request={permissionRequest} onRespond={respondToPermission} />
       )}

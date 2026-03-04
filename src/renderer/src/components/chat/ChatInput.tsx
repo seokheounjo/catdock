@@ -142,6 +142,11 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
   const isDirector = agentRole === 'director'
   const hasContent = !!(input.trim() || attachment)
 
+  const handleQuickAction = (message: string) => {
+    if (streaming || disabled) return
+    onSend(message)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -193,6 +198,27 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
             aria-label={t('chat.removeAttachment')}
           >
             &times;
+          </button>
+        </div>
+      )}
+
+      {/* Director 전용 퀵 액션 */}
+      {isDirector && !streaming && (
+        <div className="mb-2 flex items-center gap-1.5">
+          <button
+            onClick={() => handleQuickAction('조직 최적화만 수행해줘. 중복/유령 팀장을 정리하고 필요한 팀장만 남겨줘. 다른 작업은 하지 말고 조직 정리 결과만 보고해.')}
+            disabled={disabled}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium
+                       border border-white/10 bg-white/5 text-text-secondary
+                       hover:bg-amber-500/15 hover:border-amber-500/30 hover:text-amber-300
+                       disabled:opacity-40 disabled:cursor-not-allowed
+                       transition-all cursor-pointer"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            조직 최적화
           </button>
         </div>
       )}

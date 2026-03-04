@@ -370,6 +370,35 @@ if (gotLock) {
         if (!isQuitting) cleanupExpiredAgents()
       }, 60000)
 
+      // ★ 자동 테스트: 총괄에게 포트폴리오 작업 지시 (5초 후)
+      setTimeout(async () => {
+        const fs = await import('fs')
+        const logFile = 'C:/Users/user/AppData/Local/Temp/vc-auto-test.log'
+        const log = (msg: string): void => {
+          const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`
+          fs.appendFileSync(logFile, line)
+        }
+        fs.writeFileSync(logFile, `=== Auto Test Start ===\n`)
+
+        const agents = agentManager.listAgents()
+        log(`에이전트 수: ${agents.length}`)
+        const director = agents.find((a) => a.hierarchy?.role === 'director')
+        if (director) {
+          log(`총괄 발견: ${director.id}`)
+          const { sendMessage } = await import('./services/session-manager')
+          const testMsg = `E:\\job\\portfolio 프로젝트. Next.js 16 + React 19 + Tailwind 4 + motion.
+app/v1/page.tsx (다크) app/v2/page.tsx (라이트) 두 버전을 처음부터 다시 작성해라.
+public/images/에 스크린샷 15개 있음.
+모든 섹션: Hero, About, Featured(2개), Projects(7개), Skills, Career, Contact 포함.`
+          log(`메시지 전송 시작`)
+          sendMessage(director.id, testMsg)
+            .then(() => log('메시지 전송 완료'))
+            .catch((err) => log(`전송 실패: ${err}`))
+        } else {
+          log('총괄 에이전트 없음!')
+        }
+      }, 5000)
+
       // CLI 업데이트 체크
       setTimeout(() => {
         if (!isQuitting) broadcastCliUpdate()

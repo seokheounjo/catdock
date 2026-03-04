@@ -11,6 +11,7 @@ interface SessionCallbacks {
   getErrorLog: (agentId: string) => string[]
   sendMessage: (agentId: string, message: string) => Promise<void>
   abortSession: (agentId: string) => void
+  isAnyDelegationActive?: () => boolean
 }
 type FindBackupDirectorFn = (failedDirectorId: string) => AgentConfig | null
 
@@ -27,9 +28,9 @@ export function setFindBackupDirector(fn: FindBackupDirectorFn): void {
 // 진행 중인 복구 이벤트
 const activeRecoveries = new Map<string, ErrorRecoveryEvent>()
 
-// 동일 에이전트에 대한 연속 복구 방지 (쿨다운 15초)
+// 동일 에이전트에 대한 연속 복구 방지 (쿨다운 2분)
 const lastRecoveryTime = new Map<string, number>()
-const RECOVERY_COOLDOWN_MS = 15_000
+const RECOVERY_COOLDOWN_MS = 120_000
 
 // 총괄 자가복구 최대 재시도 횟수
 const MAX_SELF_RECOVERY_ATTEMPTS = 3
@@ -49,7 +50,13 @@ export async function handleAgentError(agentId: string, error: string): Promise<
   // 쿨다운 체크
   const lastTime = lastRecoveryTime.get(agentId)
   if (lastTime && Date.now() - lastTime < RECOVERY_COOLDOWN_MS) {
-    console.log(`[error-recovery] ${agentId} 쿨다운 중 (15초), 복구 스킵`)
+    console.log(`[error-recovery] ${agentId} 쿨다운 중, 복구 스킵`)
+    return
+  }
+
+  // ★ 위임이 진행 중이면 에러 보고 스킵 — 위임 매니저가 직접 처리
+  if (_session?.isAnyDelegationActive?.()) {
+    console.log(`[error-recovery] 위임 진행 중 — ${agentId} 에러 보고 스킵 (위임 매니저 처리)`)
     return
   }
 

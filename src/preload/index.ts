@@ -261,6 +261,19 @@ const api = {
       ipcRenderer.invoke('model:get-available', provider)
   },
 
+  // Shell (ACTION 블록용)
+  shell: {
+    openExternal: (url: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('shell:open-external', url),
+    openPath: (filePath: string): Promise<{ success: boolean; error?: string }> =>
+      ipcRenderer.invoke('shell:open-path', filePath),
+    runCommand: (
+      command: string,
+      cwd?: string
+    ): Promise<{ success: boolean; stdout?: string; stderr?: string; error?: string }> =>
+      ipcRenderer.invoke('shell:run-command', command, cwd)
+  },
+
   // App
   app: {
     quit: (): Promise<void> => ipcRenderer.invoke('app:quit'),

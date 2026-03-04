@@ -1,11 +1,55 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChatMessage } from '../../../../shared/types'
 import { useI18n } from '../../hooks/useI18n'
+import { QuestionBlock } from './QuestionBlock'
+import { ActionBlock } from './ActionBlock'
 
 interface MessageBubbleProps {
   message: ChatMessage
+  onSend?: (text: string) => void
+}
+
+// [QUESTION]...[/QUESTION] 및 [ACTION:TYPE|라벨|대상] 블록을 분리
+type ContentSegment =
+  | { type: 'text'; value: string }
+  | { type: 'question'; value: string }
+  | { type: 'action'; actionType: 'OPEN_URL' | 'RUN_CMD' | 'OPEN_FILE'; label: string; target: string }
+
+function splitSpecialBlocks(content: string): ContentSegment[] {
+  // QUESTION과 ACTION을 모두 매칭하는 통합 정규식
+  const regex = /\[QUESTION\]([\s\S]*?)\[\/QUESTION\]|\[ACTION:(OPEN_URL|RUN_CMD|OPEN_FILE)\|([^|]+)\|([^\]]+)\]/gi
+  const segments: ContentSegment[] = []
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', value: content.slice(lastIndex, match.index) })
+    }
+
+    if (match[1] !== undefined) {
+      // QUESTION 블록
+      segments.push({ type: 'question', value: match[1] })
+    } else if (match[2] !== undefined) {
+      // ACTION 블록
+      segments.push({
+        type: 'action',
+        actionType: match[2].toUpperCase() as 'OPEN_URL' | 'RUN_CMD' | 'OPEN_FILE',
+        label: match[3].trim(),
+        target: match[4].trim()
+      })
+    }
+
+    lastIndex = regex.lastIndex
+  }
+
+  if (lastIndex < content.length) {
+    segments.push({ type: 'text', value: content.slice(lastIndex) })
+  }
+
+  return segments
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -54,10 +98,16 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onSend }: MessageBubbleProps) {
   const { t } = useI18n()
   const isUser = message.role === 'user'
   const isSystem = message.role === 'system'
+
+  // 에이전트 메시지의 QUESTION/ACTION 블록 파싱 (메모이즈)
+  const segments = useMemo(
+    () => (!isUser && !isSystem ? splitSpecialBlocks(message.content) : null),
+    [message.content, isUser, isSystem]
+  )
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp)
@@ -123,9 +173,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       aria-label={`${isUser ? t('chat.userMessage') : t('chat.agentMessage')}, ${formatTime(message.timestamp)}`}
     >
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+        className={`max-w-[85%] rounded-2xl px-5 py-3 leading-relaxed ${
           isUser
-            ? 'bg-bubble-user text-white rounded-br-md'
+            ? 'bg-bubble-user text-white rounded-br-md text-sm'
             : 'bg-bubble-assistant text-text rounded-bl-md border border-white/5'
         }`}
       >
@@ -134,11 +184,45 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             {message.content}
           </p>
         ) : (
-          <div
-            className="prose prose-invert prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_pre]:bg-black/30 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto [&_code]:text-accent [&_code]:text-xs [&_p]:my-1.5 [&_ul]:my-1.5 [&_ol]:my-1.5"
-            role="text"
-          >
-            <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
+          <div role="text">
+            {segments && segments.length > 0 ? (
+              segments.map((seg, i) =>
+                seg.type === 'question' ? (
+                  <QuestionBlock key={i} raw={seg.value} onSend={onSend} />
+                ) : seg.type === 'action' ? (
+                  <ActionBlock key={i} type={seg.actionType} label={seg.label} target={seg.target} />
+                ) : (
+                  <div
+                    key={i}
+                    className="prose prose-invert prose-base max-w-none
+                      [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                      [&_pre]:bg-black/30 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto
+                      [&_code]:text-accent [&_code]:text-sm
+                      [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2
+                      [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2
+                      [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5
+                      [&_li]:my-0.5
+                      [&_table]:text-sm"
+                  >
+                    <Markdown remarkPlugins={[remarkGfm]}>{seg.value}</Markdown>
+                  </div>
+                )
+              )
+            ) : (
+              <div
+                className="prose prose-invert prose-base max-w-none
+                  [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                  [&_pre]:bg-black/30 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto
+                  [&_code]:text-accent [&_code]:text-sm
+                  [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2
+                  [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2
+                  [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5
+                  [&_li]:my-0.5
+                  [&_table]:text-sm"
+              >
+                <Markdown remarkPlugins={[remarkGfm]}>{message.content}</Markdown>
+              </div>
+            )}
           </div>
         )}
         <div className="flex items-center gap-1 mt-1">

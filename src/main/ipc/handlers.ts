@@ -1,4 +1,5 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog, shell, BrowserWindow } from 'electron'
+import { exec } from 'child_process'
 import * as agentManager from '../services/agent-manager'
 import * as sessionManager from '../services/session-manager'
 import * as conversationManager from '../services/conversation-manager'
@@ -575,6 +576,42 @@ export function registerIpcHandlers(): void {
       w.webContents.send('mcp:config-changed', { serverName, target })
     )
     return true
+  })
+
+  // ── Shell (ACTION 블록용) ──
+
+  ipcMain.handle('shell:open-external', async (_e, url: string) => {
+    // http/https만 허용
+    if (!/^https?:\/\//i.test(url)) {
+      return { success: false, error: '허용되지 않는 URL 프로토콜' }
+    }
+    try {
+      await shell.openExternal(url)
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: (err as Error).message }
+    }
+  })
+
+  ipcMain.handle('shell:open-path', async (_e, filePath: string) => {
+    try {
+      shell.showItemInFolder(filePath)
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: (err as Error).message }
+    }
+  })
+
+  ipcMain.handle('shell:run-command', (_e, command: string, cwd?: string) => {
+    return new Promise<{ success: boolean; stdout?: string; stderr?: string; error?: string }>((resolve) => {
+      exec(command, { timeout: 60000, cwd: cwd || undefined }, (err, stdout, stderr) => {
+        if (err) {
+          resolve({ success: false, stdout, stderr, error: err.message })
+        } else {
+          resolve({ success: true, stdout, stderr })
+        }
+      })
+    })
   })
 
   // ── App ──
