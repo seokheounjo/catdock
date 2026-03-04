@@ -1,6 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useI18n } from '../../hooks/useI18n'
 
+/** 전송 모드: shift-enter = Shift+Enter로 전송, button-only = 버튼 클릭으로만 전송 */
+type SendMode = 'shift-enter' | 'button-only'
+
+const SEND_MODE_KEY = 'chatInput:sendMode'
+
+function useSendMode(): [SendMode, (mode: SendMode) => void] {
+  const [mode, setModeState] = useState<SendMode>(() => {
+    try {
+      return (localStorage.getItem(SEND_MODE_KEY) as SendMode) || 'shift-enter'
+    } catch {
+      return 'shift-enter'
+    }
+  })
+  const setMode = useCallback((m: SendMode) => {
+    setModeState(m)
+    try { localStorage.setItem(SEND_MODE_KEY, m) } catch { /* ignore */ }
+  }, [])
+  return [mode, setMode]
+}
+
 interface FileAttachment {
   fileName: string
   fileSize: number
@@ -21,6 +41,7 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState<FileAttachment | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [sendMode, setSendMode] = useSendMode()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -148,9 +169,16 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit()
+    if (e.key === 'Enter') {
+      if (sendMode === 'button-only') {
+        // 버튼 전용 모드: Enter/Shift+Enter 모두 줄바꿈
+        return
+      }
+      // shift-enter 모드: Shift+Enter = 전송, Enter = 줄바꿈
+      if (e.shiftKey) {
+        e.preventDefault()
+        handleSubmit()
+      }
     }
   }
 
@@ -248,13 +276,43 @@ export function ChatInput({ onSend, onAbort, streaming, disabled, agentRole, onS
           </svg>
         </button>
 
+        {/* 🔒 전송 모드 토글 */}
+        <button
+          onClick={() => setSendMode(sendMode === 'shift-enter' ? 'button-only' : 'shift-enter')}
+          className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center border-none
+                     cursor-pointer transition-all duration-200
+                     ${sendMode === 'button-only'
+                       ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                       : 'bg-transparent text-text-muted hover:text-text hover:bg-white/10'
+                     }`}
+          title={sendMode === 'button-only'
+            ? '🔒 버튼 클릭으로만 전송 (클릭하여 해제)'
+            : '🔓 Shift+Enter로 전송 (클릭하여 잠금)'}
+        >
+          {sendMode === 'button-only' ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 019.9-1" />
+            </svg>
+          )}
+        </button>
+
         <textarea
           ref={textareaRef}
           value={input}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={streaming ? t('chat.placeholderStreaming') : t('chat.placeholder')}
+          placeholder={streaming
+            ? t('chat.placeholderStreaming')
+            : sendMode === 'button-only'
+              ? '메시지 입력... (버튼으로만 전송)'
+              : '메시지 입력... (Shift+Enter로 전송)'}
           rows={1}
           disabled={disabled}
           aria-label={t('chat.ariaInput')}
