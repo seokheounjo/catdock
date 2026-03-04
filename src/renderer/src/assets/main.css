@@ -170,6 +170,10 @@ html, body, #root {
 .dock-area { user-select: none; }
 .chat-content { user-select: text; cursor: text; }
 
+/* frameless 윈도우 드래그 영역 */
+.app-drag-region { -webkit-app-region: drag; }
+.app-no-drag { -webkit-app-region: no-drag; }
+
 /* 접근성: 스크린 리더 전용 텍스트 */
 .sr-only {
   position: absolute;
