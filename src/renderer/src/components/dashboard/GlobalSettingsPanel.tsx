@@ -3,6 +3,7 @@ import { useSettingsStore } from '../../stores/settings-store'
 import { MODEL_OPTIONS, PERMISSION_MODES } from '../../../../shared/constants'
 import { RoleTemplate, PermissionMode } from '../../../../shared/types'
 import { useI18n } from '../../hooks/useI18n'
+import { VERSION_DISPLAY } from '../../../../shared/version'
 
 export function GlobalSettingsPanel() {
   const { t } = useI18n()
@@ -174,6 +175,85 @@ export function GlobalSettingsPanel() {
         {/* 구분선 */}
         <div className="h-px bg-white/10" />
 
+        {/* 예산 관리 */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-text">예산 관리</h3>
+          <p className="text-[10px] text-text-muted">에이전트별 월 API 사용 한도를 설정합니다. 초과 시 자동 중지됩니다.</p>
+
+          <label className="block">
+            <span className="text-xs text-text-muted mb-1 block">
+              기본 월 예산 (USD): {settings.defaultBudgetLimitUsd ?? '무제한'}
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                value={settings.defaultBudgetLimitUsd ?? ''}
+                onChange={(e) => {
+                  const val = e.target.value ? Number(e.target.value) : undefined
+                  updateSettings({ defaultBudgetLimitUsd: val })
+                }}
+                placeholder="미설정 시 무제한"
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-text text-sm outline-none focus:border-accent"
+              />
+              <span className="text-xs text-text-muted">USD/월</span>
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="text-xs text-text-muted mb-1 block">
+              경고 임계치: {settings.defaultBudgetWarningPercent ?? 80}%
+            </span>
+            <input
+              type="range"
+              min="50"
+              max="95"
+              step="5"
+              value={settings.defaultBudgetWarningPercent ?? 80}
+              onChange={(e) => updateSettings({ defaultBudgetWarningPercent: Number(e.target.value) })}
+              className="w-full accent-accent"
+            />
+            <div className="flex justify-between text-[10px] text-text-muted">
+              <span>50%</span>
+              <span>80%</span>
+              <span>95%</span>
+            </div>
+          </label>
+        </div>
+
+        {/* 구분선 */}
+        <div className="h-px bg-white/10" />
+
+        {/* 승인 게이트 */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-text">승인 게이트</h3>
+          <p className="text-[10px] text-text-muted">활성화하면 에이전트가 작업 위임이나 에이전트 생성 전에 사용자 승인을 요청합니다.</p>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.requireDelegationApproval ?? false}
+              onChange={(e) => updateSettings({ requireDelegationApproval: e.target.checked })}
+              className="w-4 h-4 rounded accent-accent"
+            />
+            <span className="text-sm text-text">작업 위임 시 승인 필요</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.requireAgentSpawnApproval ?? false}
+              onChange={(e) => updateSettings({ requireAgentSpawnApproval: e.target.checked })}
+              className="w-4 h-4 rounded accent-accent"
+            />
+            <span className="text-sm text-text">에이전트 생성 시 승인 필요</span>
+          </label>
+        </div>
+
+        {/* 구분선 */}
+        <div className="h-px bg-white/10" />
+
         {/* 언어 설정 */}
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-text">{t('settings.language')}</h3>
@@ -320,6 +400,11 @@ export function GlobalSettingsPanel() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* 버전 정보 */}
+      <div className="pt-6 mt-4 border-t border-white/5 text-center">
+        <span className="text-[11px] text-text-muted/50">{VERSION_DISPLAY}</span>
       </div>
 
       {/* 템플릿 편집 모달 */}

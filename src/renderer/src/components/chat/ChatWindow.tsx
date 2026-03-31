@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
-import { AgentConfig, AgentState } from '../../../../shared/types'
+import { useEffect, useState, useCallback } from 'react'
+import { AgentConfig, AgentState, ApprovalRequest } from '../../../../shared/types'
 import { AgentHeader } from './AgentHeader'
 import { MessageList } from './MessageList'
 import { ChatInput } from './ChatInput'
 import { PermissionDialog } from './PermissionDialog'
+import { ApprovalDialog } from './ApprovalDialog'
 import { useChat } from '../../hooks/useChat'
 import { useI18n } from '../../hooks/useI18n'
 
@@ -15,6 +16,7 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
   const { t } = useI18n()
   const [agent, setAgent] = useState<AgentConfig | null>(null)
   const [status, setStatus] = useState<AgentState['status']>('idle')
+  const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null)
   const {
     messages,
     streaming,
@@ -46,6 +48,25 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
     return unsub
   }, [agentId])
 
+  // 승인 요청 리스닝
+  useEffect(() => {
+    const unsub = window.api.on('approval:request', (req: unknown) => {
+      setApprovalRequest(req as ApprovalRequest)
+    })
+    const unsubResolved = window.api.on('approval:resolved', () => {
+      setApprovalRequest(null)
+    })
+    return () => {
+      unsub()
+      unsubResolved()
+    }
+  }, [])
+
+  const handleApprovalRespond = useCallback((requestId: string, approved: boolean) => {
+    window.api.approval.respond(requestId, approved)
+    setApprovalRequest(null)
+  }, [])
+
   if (!agent) {
     return (
       <div className="h-screen bg-chat-bg flex items-center justify-center text-text-muted">
@@ -66,6 +87,9 @@ export function ChatWindow({ agentId }: ChatWindowProps) {
       <MessageList messages={messages} streaming={streaming} streamingContent={streamingContent} onSend={sendMessage} />
       {permissionRequest && (
         <PermissionDialog request={permissionRequest} onRespond={respondToPermission} />
+      )}
+      {approvalRequest && (
+        <ApprovalDialog request={approvalRequest} onRespond={handleApprovalRespond} />
       )}
       <ChatInput
         onSend={sendMessage}

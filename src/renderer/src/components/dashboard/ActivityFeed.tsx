@@ -13,7 +13,11 @@ const typeColors: Record<ActivityType, string> = {
   'task-delegated': 'text-yellow-400',
   'upward-report': 'text-cyan-400',
   'chain-report': 'text-teal-400',
-  'mcp-configured': 'text-emerald-400'
+  'mcp-configured': 'text-emerald-400',
+  'budget-warning': 'text-amber-400',
+  'budget-exceeded': 'text-red-500',
+  'approval-requested': 'text-indigo-400',
+  'approval-resolved': 'text-lime-400'
 }
 
 const typeIcons: Record<ActivityType, string> = {
@@ -26,7 +30,11 @@ const typeIcons: Record<ActivityType, string> = {
   'task-delegated': '\u{1F4CB}',
   'upward-report': '\u{1F4E4}',
   'chain-report': '\u{1F517}',
-  'mcp-configured': '\u{1F50C}'
+  'mcp-configured': '\u{1F50C}',
+  'budget-warning': '\u{1F4B0}',
+  'budget-exceeded': '\u{1F6AB}',
+  'approval-requested': '\u{1F4DD}',
+  'approval-resolved': '\u{2705}'
 }
 
 export function ActivityFeed() {

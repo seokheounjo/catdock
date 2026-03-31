@@ -47,6 +47,9 @@ const delegatingStartTimes = new Map<string, number>()
 const messageQueues = new Map<string, string[]>()
 // 상향 보고 메시지 ID 추적 — 보고에 대한 재보고 방지
 const reportMessageIds = new Set<string>()
+// 상향 보고 쿨다운 — 같은 에이전트의 연속 보고 방지 (API 절약)
+const lastReportTime = new Map<string, number>()
+const REPORT_COOLDOWN_MS = 60_000 // 60초
 
 // 위임 교착 상태 감시 — 10분 이상 위임 중이면 강제 해제
 const DELEGATION_TIMEOUT_MS = 10 * 60 * 1000
@@ -147,6 +150,69 @@ function processNextInQueue(agentId: string): void {
   sendMessage(agentId, nextMessage).catch((err) => {
     console.error(`[message-queue] ${agentId} 큐 메시지 처리 실패:`, err)
   })
+}
+
+// ── 예산 관리 ──
+function checkBudgetThreshold(agentId: string): void {
+  const config = store.getAgent(agentId)
+  if (!config) return
+  const settings = store.getSettings()
+  const budgetLimit = config.budgetLimitUsd ?? settings.defaultBudgetLimitUsd
+  if (!budgetLimit) return // 무제한
+
+  const { monthlyUsd } = store.getAgentCost(agentId)
+  const warningPercent = config.budgetWarningPercent ?? settings.defaultBudgetWarningPercent ?? 80
+  const usagePercent = (monthlyUsd / budgetLimit) * 100
+
+  if (usagePercent >= 100) {
+    const msg: ChatMessage = {
+      id: `budget-exceeded-${Date.now()}`,
+      agentId,
+      role: 'system',
+      content: `⚠️ 월 예산 초과: $${monthlyUsd.toFixed(4)} / $${budgetLimit.toFixed(2)} (${usagePercent.toFixed(0)}%). 이 에이전트의 작업이 일시 중지됩니다.`,
+      timestamp: Date.now()
+    }
+    broadcastToChat(agentId, 'session:message', msg)
+    agentManager.setAgentStatus(agentId, 'error')
+    broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'error' })
+    logActivity('budget-exceeded', agentId, config.name, `월 예산 초과: $${monthlyUsd.toFixed(4)}/$${budgetLimit.toFixed(2)}`)
+    console.log(`[budget] ${config.name} 월 예산 초과 → 자동 중지`)
+  } else if (usagePercent >= warningPercent) {
+    const msg: ChatMessage = {
+      id: `budget-warning-${Date.now()}`,
+      agentId,
+      role: 'system',
+      content: `💰 예산 경고: $${monthlyUsd.toFixed(4)} / $${budgetLimit.toFixed(2)} (${usagePercent.toFixed(0)}%)`,
+      timestamp: Date.now()
+    }
+    broadcastToChat(agentId, 'session:message', msg)
+    console.log(`[budget] ${config.name} 예산 경고: ${usagePercent.toFixed(0)}%`)
+  }
+}
+
+function isBudgetExceeded(agentId: string): boolean {
+  const config = store.getAgent(agentId)
+  if (!config) return false
+  const settings = store.getSettings()
+  const budgetLimit = config.budgetLimitUsd ?? settings.defaultBudgetLimitUsd
+  if (!budgetLimit) return false // 무제한
+  const { monthlyUsd } = store.getAgentCost(agentId)
+  return monthlyUsd >= budgetLimit
+}
+
+// ── 보고 생략 판단 — 경미한 응답은 CLI 호출 낭비 방지 ──
+function shouldSkipReport(_userMessage: string, assistantResponse: string): boolean {
+  // 매우 짧은 응답 — 단순 확인/인사 등
+  if (assistantResponse.length < 150) return true
+
+  // QUESTION 블록 답변 — UI 상호작용일 뿐, 보고할 실질적 내용 없음
+  if (/^\*\*Q\d+:/.test(assistantResponse) && !assistantResponse.includes('[DELEGATE')) return true
+
+  // 작업 실행 지표가 없고 짧은 응답 — 정보성 답변
+  const hasActionIndicators = /\[DELEGATE|파일.*수정|코드.*변경|에러|오류|실패|버그|생성|삭제|배포|설치/.test(assistantResponse)
+  if (!hasActionIndicators && assistantResponse.length < 500) return true
+
+  return false
 }
 
 // ── 상향 보고 ── 상위자에게 보고하고 CLI를 호출하여 판단 + 재위임 가능
@@ -385,6 +451,25 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
   const config = store.getAgent(agentId)
   if (!config) throw new Error(`Agent ${agentId} not found`)
 
+  // ── 예산 초과 차단 ──
+  if (isBudgetExceeded(agentId)) {
+    const settings = store.getSettings()
+    const budgetLimit = config.budgetLimitUsd ?? settings.defaultBudgetLimitUsd ?? 0
+    const { monthlyUsd } = store.getAgentCost(agentId)
+    const session = getSession(agentId)
+    const blockedMsg: ChatMessage = {
+      id: `budget-blocked-${Date.now()}`,
+      agentId,
+      role: 'system',
+      content: `🚫 예산 초과로 작업이 차단되었습니다. (사용: $${monthlyUsd.toFixed(4)} / 한도: $${budgetLimit.toFixed(2)})\n설정에서 예산을 늘리거나 다음 달까지 기다려주세요.`,
+      timestamp: Date.now()
+    }
+    session.messages.push(blockedMsg)
+    broadcastToChat(agentId, 'session:message', blockedMsg)
+    store.saveSessionHistory(agentId, session.messages)
+    return
+  }
+
   // 모드 추출 및 적용
   const { mode, cleanMessage } = extractMode(userMessage)
   const processedMessage = config.hierarchy?.role === 'director'
@@ -493,18 +578,36 @@ export async function sendMessage(agentId: string, userMessage: string): Promise
 
     if (config.hierarchy?.role !== 'director' && response) {
       if (!isDirectReport && !isMemberReport) {
-        // 일반 사용자 지시 → 상위자에게 보고
-        try {
-          sendUpwardReport(agentId, finalUserMessage, response)
-        } catch (reportErr) {
-          console.error('[upward-report] 보고 실패:', reportErr)
+        // 일반 사용자 지시 → 상위자에게 보고 (스마트 생략 + 쿨다운 적용)
+        const now = Date.now()
+        const lastReport = lastReportTime.get(agentId) ?? 0
+        if (now - lastReport < REPORT_COOLDOWN_MS) {
+          console.log(`[upward-report] 쿨다운 중: ${config.name} (${Math.round((REPORT_COOLDOWN_MS - (now - lastReport)) / 1000)}초 남음)`)
+        } else if (shouldSkipReport(finalUserMessage, response)) {
+          console.log(`[upward-report] 보고 생략: ${config.name} (응답이 경미함, ${response.length}자)`)
+        } else {
+          try {
+            lastReportTime.set(agentId, now)
+            sendUpwardReport(agentId, finalUserMessage, response)
+          } catch (reportErr) {
+            console.error('[upward-report] 보고 실패:', reportErr)
+          }
         }
       } else if (isMemberReport && config.hierarchy?.role === 'leader') {
         // 리더가 멤버 보고를 처리한 후 → 총괄에게 판단 결과 체인 보고
-        try {
-          sendChainReport(agentId, userMessage, response)
-        } catch (reportErr) {
-          console.error('[chain-report] 체인 보고 실패:', reportErr)
+        const now = Date.now()
+        const lastChain = lastReportTime.get(`chain-${agentId}`) ?? 0
+        if (now - lastChain < REPORT_COOLDOWN_MS) {
+          console.log(`[chain-report] 쿨다운 중: ${config.name}`)
+        } else if (shouldSkipReport(userMessage, response)) {
+          console.log(`[chain-report] 보고 생략: ${config.name} (판단 결과가 경미함)`)
+        } else {
+          try {
+            lastReportTime.set(`chain-${agentId}`, now)
+            sendChainReport(agentId, userMessage, response)
+          } catch (reportErr) {
+            console.error('[chain-report] 체인 보고 실패:', reportErr)
+          }
         }
       }
     }
@@ -724,6 +827,11 @@ async function runCliSession(
       agentManager.setAgentStatus(agentId, 'idle')
       agentManager.setLastMessage(agentId, finalContent.slice(0, 100))
       agentManager.addAgentCost(agentId, costTotal)
+      // 비용 영속화 + 예산 체크
+      if (costTotal > 0) {
+        store.addAgentCost(agentId, costTotal)
+        checkBudgetThreshold(agentId)
+      }
       broadcastToChat(agentId, 'agent:status-changed', { id: agentId, status: 'idle' })
       broadcastProcessInfo(agentId, { processStatus: 'stopped' })
 
@@ -776,7 +884,11 @@ async function runCliSession(
         })
         const agentConfig = store.getAgent(agentId)
         if (agentConfig) {
-          logActivity('tool-use', agentId, agentConfig.name, `${toolName} 사용`, { toolName })
+          logActivity('tool-use', agentId, agentConfig.name, `${toolName} 사용`, {
+            toolName,
+            toolInput: shortInput,
+            currentCostUsd: costTotal
+          })
         }
       },
       onToolResult: (output: string) => {
@@ -932,6 +1044,7 @@ export async function sendMessageAndCapture(agentId: string, userMessage: string
       !delegatingAgents.has(agentId)
     ) {
       delegatingAgents.add(agentId)
+      delegatingStartTimes.set(agentId, Date.now())
       try {
         await executeDelegation(agentId, response, userMessage)
         // 위임 종합 후 마지막 assistant 메시지 반환
@@ -939,6 +1052,7 @@ export async function sendMessageAndCapture(agentId: string, userMessage: string
         return lastAssistant?.content ?? response
       } finally {
         delegatingAgents.delete(agentId)
+        delegatingStartTimes.delete(agentId)
       }
     }
 

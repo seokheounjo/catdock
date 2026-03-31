@@ -134,6 +134,16 @@ interface PermissionApi {
   respond(requestId: string, allowed: boolean): Promise<void>
 }
 
+interface ApprovalApi {
+  respond(requestId: string, approved: boolean): Promise<void>
+  getPending(): Promise<import('../shared/types').ApprovalRequest[]>
+}
+
+interface CostApi {
+  getForAgent(agentId: string): Promise<{ totalUsd: number; monthlyUsd: number }>
+  getAll(): Promise<Record<string, { totalUsd: number; monthlyUsd: number }>>
+}
+
 interface DelegationApi {
   getActive(): Promise<TaskDelegation[]>
 }
@@ -226,6 +236,8 @@ interface Api {
   activity: ActivityApi
   task: TaskApi
   permission: PermissionApi
+  approval: ApprovalApi
+  cost: CostApi
   delegation: DelegationApi
   errorRecovery: ErrorRecoveryApi
   cli: CliApi

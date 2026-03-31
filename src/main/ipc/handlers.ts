@@ -18,6 +18,7 @@ import * as errorRecovery from '../services/error-recovery'
 
 import { randomAvatar } from '../services/default-agents'
 import { respondToPermission } from '../services/permission-server'
+import { respondToApproval, getPendingApprovals } from '../services/approval-gate'
 import * as taskManager from '../services/task-manager'
 import {
   AgentConfig,
@@ -148,7 +149,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     'agent:spawn-temporary',
-    (
+    async (
       _e,
       config: {
         requestedBy: string
@@ -160,6 +161,21 @@ export function registerIpcHandlers(): void {
         [key: string]: unknown
       }
     ) => {
+      // 승인 게이트: 에이전트 생성 전 사용자 승인
+      const requester = agentManager.listAgents().find((a) => a.id === config.requestedBy)
+      const { requestApproval: reqApproval } = await import('../services/approval-gate')
+      const approved = await reqApproval(
+        'agent-spawn',
+        config.requestedBy,
+        requester?.name ?? 'Unknown',
+        `${requester?.name ?? 'Unknown'}이 임시 에이전트 "${config.name}" (${config.role})을 생성하려 합니다`,
+        { agentName: config.name, agentRole: config.role }
+      )
+      if (!approved) {
+        console.log(`[agent-spawn] 사용자가 에이전트 생성 거부: ${config.name}`)
+        return null
+      }
+
       const { requestedBy, ttlMinutes, ...rest } = config
       const agentConfig = {
         ...rest,
@@ -482,6 +498,26 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('permission:respond', (_e, requestId: string, allowed: boolean) => {
     respondToPermission(requestId, allowed)
+  })
+
+  // ── Approval Gate ──
+
+  ipcMain.handle('approval:respond', (_e, requestId: string, approved: boolean) => {
+    respondToApproval(requestId, approved)
+  })
+
+  ipcMain.handle('approval:get-pending', () => {
+    return getPendingApprovals()
+  })
+
+  // ── Agent Cost ──
+
+  ipcMain.handle('agent:get-cost', (_e, agentId: string) => {
+    return store.getAgentCost(agentId)
+  })
+
+  ipcMain.handle('agent:get-all-costs', () => {
+    return store.getAllAgentCosts()
   })
 
   // ── Delegation ──

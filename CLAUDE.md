@@ -76,7 +76,55 @@ claude -p --output-format stream-json --verbose --include-partial-messages \
 - **타입**: `src/shared/types.ts`에 공유 인터페이스 정의
 - **모델 ID**: `claude-sonnet-4-20250514`, `claude-opus-4-20250514`, `claude-haiku-4-5-20251001`
 
-## 프론트엔드 디자인 가이드
+## 프론트엔드 디자인 워크플로우
+
+### 디자인 소스 선택 (UI 작업 시작 전 필수)
+
+새로운 UI 페이지나 주요 컴포넌트를 구현할 때, **먼저 사용자에게 디자인 소스를 추천하고 선택을 받는다.**
+
+```
+[QUESTION]
+이 UI 작업의 디자인 소스를 선택해주세요:
+- [ ] Figma 디자인 적용 — Figma Make로 디자인 후 MCP로 코드 변환 (디자이너 퀄리티)
+- [ ] 자체 디자인 적용 — 아래 디자인 가이드 + 레퍼런스 기반 직접 구현 (빠른 진행)
+[/QUESTION]
+```
+
+**추천 기준:**
+| 상황 | 추천 |
+|---|---|
+| 랜딩페이지, 마케팅 페이지, 외부 공개 UI | Figma 디자인 |
+| 새로운 레이아웃/복잡한 비주얼 | Figma 디자인 |
+| 기존 컴포넌트 수정, 내부 도구 UI | 자체 디자인 |
+| 버그 수정, 기능 추가 (UI 변경 소규모) | 자체 디자인 |
+
+**Figma 선택 시 진행 순서:**
+1. Figma MCP 서버로 디자인 파일/프레임 URL 참조
+2. **중요: Figma MCP는 CSS를 반환하지 않는다.** 구조+디자인 속성(색상, 폰트, 간격 등)만 반환한다.
+3. Figma 데이터에서 아래 속성을 **반드시 추출하여 Tailwind CSS로 변환**한다:
+   - `fills` → `bg-[색상]`, `text-[색상]` (Hex를 Tailwind 커스텀 또는 가장 가까운 클래스로)
+   - `fontSize`, `fontWeight`, `fontFamily` → `text-[크기]`, `font-[굵기]`
+   - `paddingLeft/Right/Top/Bottom` → `px-[값]`, `py-[값]`, `p-[값]`
+   - `itemSpacing` (Auto Layout) → `gap-[값]`
+   - `cornerRadius` → `rounded-[값]`
+   - `opacity` → `opacity-[값]`
+   - `layoutMode` → `flex flex-col` 또는 `flex flex-row`
+   - `primaryAxisAlignItems`, `counterAxisAlignItems` → `justify-[값]`, `items-[값]`
+   - `width`, `height`, `constraints` → `w-[값]`, `h-[값]`, 반응형 적용
+   - `effects` (shadow) → `shadow-[값]`
+   - `strokes` → `border`, `border-[색상]`
+4. 프로젝트 컨벤션(Pretendard 폰트, accent 컬러 체계)에 맞게 색상/폰트 매핑
+5. 생성된 코드에 **스타일이 누락되지 않았는지 반드시 검증** 후 적용
+
+**Figma 작업 시 흔한 실수 (금지):**
+- ✗ Figma 구조만 가져오고 스타일 없이 빈 `<div>` 나열
+- ✗ 색상/간격/폰트를 무시하고 기본값으로 렌더링
+- ✗ Figma 속성명을 그대로 CSS 속성으로 사용 (Figma는 camelCase, CSS는 kebab-case)
+- ✓ 모든 시각적 속성을 Tailwind 클래스로 변환하여 적용
+
+**자체 디자인 선택 시:** 아래 디자인 가이드를 따른다.
+
+### 디자인 가이드
 
 프론트엔드 UI/페이지를 구현할 때 반드시 아래 원칙과 리소스를 참고한다.
 **목표: "실제 디자이너가 만든 듯한" 퀄리티. AI가 만든 티가 나지 않도록.**

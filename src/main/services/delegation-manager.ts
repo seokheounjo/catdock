@@ -12,6 +12,7 @@ import { v4 as uuid } from 'uuid'
 import * as agentManager from './agent-manager'
 import * as store from './store'
 import { logActivity } from './activity-logger'
+import { requestApproval } from './approval-gate'
 import {
   findMemberDef,
   randomAvatar,
@@ -750,6 +751,20 @@ async function executeOneRound(
     return part.slice(0, MAX_SUMMARY_CHARS) + '\n\n... (응답이 길어 일부 생략됨)'
   })
 
+  // ★ 종합 생략 최적화 — 모든 결과가 사소하면 CLI 호출 없이 로컬 조합
+  const TRIVIAL_THRESHOLD = 200
+  const allTrivial = summaryParts.length > 0 &&
+    summaryParts.length <= 2 &&
+    summaryParts.every((part) => part.length < TRIVIAL_THRESHOLD)
+
+  if (allTrivial) {
+    const localSynthesis = summaryParts.join('\n\n')
+    console.log(
+      `[delegation] 종합 CLI 생략: 모든 결과가 경미함 (${summaryParts.length}건, 각 <${TRIVIAL_THRESHOLD}자)`
+    )
+    return { summaryParts, synthesisResponse: localSynthesis, newFailedIds: roundFailedIds }
+  }
+
   // 위임자에게 종합 요청 (sendMessageAndCapture로 응답 캡처)
   broadcast('delegation:synthesizing', {
     leaderAgentId: delegatorAgentId,
@@ -784,6 +799,22 @@ export async function executeDelegation(
 ): Promise<void> {
   const delegatorConfig = store.getAgent(delegatorAgentId)
   if (!delegatorConfig) return
+
+  // ── 승인 게이트: 위임 전 사용자 승인 요청 ──
+  const blocks = parseDelegationBlocks(delegatorResponse)
+  const targetNames = blocks.map((b) => b.agentName).join(', ')
+  const approved = await requestApproval(
+    'delegation',
+    delegatorAgentId,
+    delegatorConfig.name,
+    `${delegatorConfig.name}이 ${blocks.length}건 작업을 위임하려 합니다 → ${targetNames}`,
+    { targets: targetNames, taskCount: blocks.length }
+  )
+  if (!approved) {
+    console.log(`[delegation] 사용자가 위임을 거부: ${delegatorConfig.name}`)
+    broadcast('delegation:rejected', { leaderAgentId: delegatorAgentId, leaderName: delegatorConfig.name })
+    return
+  }
 
   dlog(`=== executeDelegation 시작: ${delegatorConfig.name} (${delegatorConfig.role}) ===`)
   dlog(`응답 길이: ${delegatorResponse.length}자`)

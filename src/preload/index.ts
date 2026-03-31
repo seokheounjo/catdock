@@ -160,6 +160,24 @@ const api = {
       ipcRenderer.invoke('permission:respond', requestId, allowed)
   },
 
+  // Approval Gate
+  approval: {
+    respond: (requestId: string, approved: boolean): Promise<void> =>
+      ipcRenderer.invoke('approval:respond', requestId, approved),
+    getPending: () =>
+      ipcRenderer.invoke('approval:get-pending') as Promise<
+        import('../shared/types').ApprovalRequest[]
+      >
+  },
+
+  // Agent Cost
+  cost: {
+    getForAgent: (agentId: string): Promise<{ totalUsd: number; monthlyUsd: number }> =>
+      ipcRenderer.invoke('agent:get-cost', agentId),
+    getAll: (): Promise<Record<string, { totalUsd: number; monthlyUsd: number }>> =>
+      ipcRenderer.invoke('agent:get-all-costs')
+  },
+
   // Delegation
   delegation: {
     getActive: () =>

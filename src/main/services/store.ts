@@ -32,6 +32,8 @@ interface StoreSchema {
   tasks: TaskDelegation[]
   archivedAgents: ArchivedAgent[]
   discoveredMcpServers?: DiscoveredMcpServer[]
+  // 에이전트별 누적 비용 (앱 재시작 후에도 유지)
+  agentCosts?: Record<string, { totalUsd: number; monthlyUsd: number; monthKey: string }>
 }
 
 const projectDefaults: StoreSchema = {
@@ -453,6 +455,59 @@ export function setDiscoveredMcpServers(servers: DiscoveredMcpServer[]): void {
   const d = load()
   d.discoveredMcpServers = servers
   save()
+}
+
+// ── 에이전트 비용 관리 ──
+
+function getCurrentMonthKey(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+export function getAgentCost(agentId: string): { totalUsd: number; monthlyUsd: number } {
+  const d = load()
+  const costs = d.agentCosts ?? {}
+  const entry = costs[agentId]
+  if (!entry) return { totalUsd: 0, monthlyUsd: 0 }
+  // 월이 바뀌었으면 월별 비용 리셋
+  if (entry.monthKey !== getCurrentMonthKey()) {
+    return { totalUsd: entry.totalUsd, monthlyUsd: 0 }
+  }
+  return { totalUsd: entry.totalUsd, monthlyUsd: entry.monthlyUsd }
+}
+
+export function addAgentCost(agentId: string, costUsd: number): void {
+  if (costUsd <= 0) return
+  const d = load()
+  if (!d.agentCosts) d.agentCosts = {}
+  const monthKey = getCurrentMonthKey()
+  const prev = d.agentCosts[agentId]
+  if (!prev || prev.monthKey !== monthKey) {
+    // 새 월 또는 첫 기록
+    d.agentCosts[agentId] = {
+      totalUsd: (prev?.totalUsd ?? 0) + costUsd,
+      monthlyUsd: costUsd,
+      monthKey
+    }
+  } else {
+    prev.totalUsd += costUsd
+    prev.monthlyUsd += costUsd
+  }
+  save()
+}
+
+export function getAllAgentCosts(): Record<string, { totalUsd: number; monthlyUsd: number }> {
+  const d = load()
+  const costs = d.agentCosts ?? {}
+  const monthKey = getCurrentMonthKey()
+  const result: Record<string, { totalUsd: number; monthlyUsd: number }> = {}
+  for (const [id, entry] of Object.entries(costs)) {
+    result[id] = {
+      totalUsd: entry.totalUsd,
+      monthlyUsd: entry.monthKey === monthKey ? entry.monthlyUsd : 0
+    }
+  }
+  return result
 }
 
 // 존재하지 않는 에이전트의 태스크 정리

@@ -3,6 +3,7 @@ import { useAgentStore } from '../../stores/agent-store'
 import { AgentSlot } from './AgentSlot'
 import { AgentConfig, AgentStatus, DockSize } from '../../../../shared/types'
 import { useI18n } from '../../hooks/useI18n'
+import { VERSION_DISPLAY } from '../../../../shared/version'
 
 // 접힌 director/leader의 하위 에이전트를 찾아 숨김 처리에 쓰는 유틸
 function getSubordinateIds(
@@ -406,6 +407,11 @@ export function Dock() {
               <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
             </svg>
           </button>
+        </div>
+
+        {/* 버전 표시 */}
+        <div className="text-[9px] text-text-muted/40 text-center mt-1 select-none" title={VERSION_DISPLAY}>
+          {VERSION_DISPLAY}
         </div>
       </div>
 

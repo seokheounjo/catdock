@@ -161,7 +161,7 @@ export function CommandCenterPage() {
       />
 
       {/* 3-column 그리드 */}
-      <div className="flex-1 grid grid-cols-[1fr_1.5fr_1.5fr] gap-2 p-2 min-h-0 overflow-hidden">
+      <div className="flex-1 grid grid-cols-[1fr_1.5fr_1.5fr] gap-2 p-2 min-h-0 overflow-hidden max-w-full">
         {/* 왼쪽: 총괄 채팅 */}
         <div className="min-h-0">
           {director ? (

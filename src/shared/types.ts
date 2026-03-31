@@ -162,6 +162,9 @@ export interface AgentConfig {
   isTemporary?: boolean
   createdBy?: string
   expiresAt?: number
+  // 예산 관리
+  budgetLimitUsd?: number        // 월 예산 한도 (USD). 미설정 시 글로벌 기본값 사용
+  budgetWarningPercent?: number  // 경고 임계치 (기본 80)
 }
 
 export type AgentStatus = 'idle' | 'working' | 'error'
@@ -223,6 +226,10 @@ export type ActivityType =
   | 'upward-report'
   | 'chain-report'
   | 'mcp-configured'
+  | 'budget-warning'
+  | 'budget-exceeded'
+  | 'approval-requested'
+  | 'approval-resolved'
 
 export interface ActivityEvent {
   id: string
@@ -235,6 +242,21 @@ export interface ActivityEvent {
 }
 
 // ── 작업 위임 ──
+
+// ── 승인 게이트 ──
+
+export type ApprovalType = 'delegation' | 'agent-spawn' | 'budget-override'
+
+export interface ApprovalRequest {
+  id: string
+  type: ApprovalType
+  requestedBy: string     // 요청 에이전트 ID
+  requestedByName: string
+  description: string     // 사용자에게 보여줄 설명
+  metadata: Record<string, unknown>
+  timestamp: number
+  status: 'pending' | 'approved' | 'rejected' | 'timeout'
+}
 
 export type TaskStatus =
   | 'pending'
@@ -297,6 +319,12 @@ export interface GlobalSettings {
   defaultCliProvider?: CliProvider
   cliProfiles?: CliProfile[]
   discoveredLocalModels?: DiscoveredLocalModel[]
+  // 예산 관리 — 전역 기본값
+  defaultBudgetLimitUsd?: number      // 에이전트 기본 월 예산 (미설정 시 무제한)
+  defaultBudgetWarningPercent?: number // 기본 경고 임계치 (기본 80)
+  // 승인 게이트
+  requireDelegationApproval?: boolean   // 위임 시 사용자 승인 필요 (기본 false)
+  requireAgentSpawnApproval?: boolean   // 에이전트 생성 시 승인 필요 (기본 false)
 }
 
 // ── 그룹 대화 ──

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useCallback } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChatMessage } from '../../../../shared/types'
@@ -109,6 +109,56 @@ export function MessageBubble({ message, onSend }: MessageBubbleProps) {
     [message.content, isUser, isSystem]
   )
 
+  // 다중 QUESTION 그룹 모드 감지
+  const questionCount = useMemo(
+    () => segments?.filter((s) => s.type === 'question').length ?? 0,
+    [segments]
+  )
+  const isGrouped = questionCount >= 2
+
+  // 그룹 모드 상태
+  const answersRef = useRef<Map<number, string | null>>(new Map())
+  const [allSubmitted, setAllSubmitted] = useState(false)
+  const [, forceUpdate] = useState(0)
+
+  const handleAnswerChange = useCallback((index: number, answer: string | null) => {
+    if (answer === null) {
+      answersRef.current.delete(index)
+    } else {
+      answersRef.current.set(index, answer)
+    }
+    forceUpdate((n) => n + 1)
+  }, [])
+
+  // 질문 제목 추출 (전체 전송 포맷용)
+  const questionTitles = useMemo(() => {
+    if (!segments || !isGrouped) return []
+    let qIdx = 0
+    return segments
+      .filter((s) => s.type === 'question')
+      .map((s) => {
+        qIdx++
+        const firstLine = s.value.trim().split('\n')[0].trim()
+        return `Q${qIdx}: ${firstLine}`
+      })
+  }, [segments, isGrouped])
+
+  const handleBatchSubmit = useCallback(() => {
+    if (!onSend || allSubmitted) return
+    const parts: string[] = []
+    for (let i = 0; i < questionCount; i++) {
+      const answer = answersRef.current.get(i)
+      if (answer) {
+        parts.push(`**${questionTitles[i]}**\n${answer}`)
+      }
+    }
+    if (parts.length === 0) return
+    onSend(parts.join('\n\n'))
+    setAllSubmitted(true)
+  }, [onSend, allSubmitted, questionCount, questionTitles])
+
+  const hasBatchAnswer = answersRef.current.size > 0
+
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp)
     return date.toLocaleString(undefined, {
@@ -186,28 +236,69 @@ export function MessageBubble({ message, onSend }: MessageBubbleProps) {
         ) : (
           <div role="text">
             {segments && segments.length > 0 ? (
-              segments.map((seg, i) =>
-                seg.type === 'question' ? (
-                  <QuestionBlock key={i} raw={seg.value} onSend={onSend} />
-                ) : seg.type === 'action' ? (
-                  <ActionBlock key={i} type={seg.actionType} label={seg.label} target={seg.target} />
-                ) : (
-                  <div
-                    key={i}
-                    className="prose prose-invert prose-base max-w-none
-                      [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
-                      [&_pre]:bg-black/30 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto
-                      [&_code]:text-accent [&_code]:text-sm
-                      [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2
-                      [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2
-                      [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5
-                      [&_li]:my-0.5
-                      [&_table]:text-sm"
-                  >
-                    <Markdown remarkPlugins={[remarkGfm]}>{seg.value}</Markdown>
+              <>
+                {(() => {
+                  let qIdx = -1
+                  return segments.map((seg, i) => {
+                    if (seg.type === 'question') {
+                      qIdx++
+                      return isGrouped ? (
+                        <QuestionBlock
+                          key={i}
+                          raw={seg.value}
+                          onSend={onSend}
+                          grouped
+                          questionIndex={qIdx}
+                          onAnswerChange={handleAnswerChange}
+                          submittedExternally={allSubmitted}
+                        />
+                      ) : (
+                        <QuestionBlock key={i} raw={seg.value} onSend={onSend} />
+                      )
+                    }
+                    if (seg.type === 'action') {
+                      return (
+                        <ActionBlock key={i} type={seg.actionType} label={seg.label} target={seg.target} />
+                      )
+                    }
+                    return (
+                      <div
+                        key={i}
+                        className="prose prose-invert prose-base max-w-none
+                          [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+                          [&_pre]:bg-black/30 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:overflow-x-auto
+                          [&_code]:text-accent [&_code]:text-sm
+                          [&_p]:my-2 [&_ul]:my-2 [&_ol]:my-2
+                          [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2
+                          [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1.5
+                          [&_li]:my-0.5
+                          [&_table]:text-sm"
+                      >
+                        <Markdown remarkPlugins={[remarkGfm]}>{seg.value}</Markdown>
+                      </div>
+                    )
+                  })
+                })()}
+                {/* 다중 QUESTION 그룹 모드: 전체 답변 전송 버튼 */}
+                {isGrouped && !allSubmitted && (
+                  <div className="mt-4 pt-3 border-t border-white/10">
+                    <button
+                      onClick={handleBatchSubmit}
+                      disabled={!hasBatchAnswer}
+                      className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors
+                                 bg-accent text-white hover:bg-accent/80
+                                 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      전체 답변 전송
+                    </button>
                   </div>
-                )
-              )
+                )}
+                {isGrouped && allSubmitted && (
+                  <div className="mt-3 text-center">
+                    <span className="text-xs text-text-muted">전체 답변 완료</span>
+                  </div>
+                )}
+              </>
             ) : (
               <div
                 className="prose prose-invert prose-base max-w-none

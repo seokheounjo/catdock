@@ -58,6 +58,8 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
   const [customModel, setCustomModel] = useState('')
   const [permissionMode, setPermissionMode] = useState<PermissionMode>('acceptEdits')
   const [maxTurns, setMaxTurns] = useState(25)
+  const [budgetLimitUsd, setBudgetLimitUsd] = useState<number | undefined>(undefined)
+  const [budgetWarningPercent, setBudgetWarningPercent] = useState<number | undefined>(undefined)
 
   // Prompt
   const [systemPrompt, setSystemPrompt] = useState('')
@@ -193,6 +195,8 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
 
           setPermissionMode(c.permissionMode ?? 'acceptEdits')
           setMaxTurns(c.maxTurns ?? 25)
+          setBudgetLimitUsd(c.budgetLimitUsd)
+          setBudgetWarningPercent(c.budgetWarningPercent)
           setMcpServers(c.mcpConfig ?? [])
           setTeamMcpServers(c.teamMcpConfig ?? [])
           setVerbose(c.cliFlags?.verbose !== false)
@@ -258,6 +262,8 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
             : { role: 'member' as const, reportsTo: reportsTo || undefined },
       permissionMode,
       maxTurns,
+      budgetLimitUsd,
+      budgetWarningPercent,
       mcpConfig: mcpServers.length > 0 ? mcpServers : undefined,
       teamMcpConfig:
         (hierarchyRole === 'leader' || hierarchyRole === 'director') && teamMcpServers.length > 0
@@ -729,6 +735,40 @@ export function AgentEditor({ onClose, editAgentId }: AgentEditorProps) {
                 <span>50</span>
                 <span>100</span>
               </div>
+            </label>
+
+            {/* 예산 설정 */}
+            <div className="h-px bg-white/10 my-3" />
+            <h4 className="text-xs font-medium text-text mb-2">예산 관리</h4>
+
+            <label className="block">
+              <span className="text-xs text-text-muted mb-1 block">
+                월 예산 한도 (USD)
+              </span>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                value={budgetLimitUsd ?? ''}
+                onChange={(e) => setBudgetLimitUsd(e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="미설정 시 전역 기본값 사용"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-text text-sm outline-none focus:border-accent"
+              />
+            </label>
+
+            <label className="block mt-2">
+              <span className="text-xs text-text-muted mb-1 block">
+                경고 임계치 (%): {budgetWarningPercent ?? '기본값(80)'}
+              </span>
+              <input
+                type="range"
+                min="50"
+                max="95"
+                step="5"
+                value={budgetWarningPercent ?? 80}
+                onChange={(e) => setBudgetWarningPercent(Number(e.target.value))}
+                className="w-full accent-accent"
+              />
             </label>
           </div>
         )}
