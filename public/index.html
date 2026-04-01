@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CatDock — AI Agent Virtual Company Simulator</title>
+<meta name="description" content="AI 에이전트로 가상 회사를 운영하세요. Director, Leader, Member 계층 구조로 실제 프로젝트를 자동 수행합니다.">
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css');
+  :root {
+    --bg: #09090b; --card: #18181b; --border: #27272a;
+    --accent: #7c3aed; --accent-hover: #6d28d9;
+    --text: #fafafa; --muted: #a1a1aa;
+    --green: #22c55e; --amber: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard Variable', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 40px 24px; position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ''; position: absolute; top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle at 50% 50%, rgba(124,58,237,0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(124,58,237,0.1); border: 1px solid rgba(124,58,237,0.2);
+    padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--accent);
+    margin-bottom: 24px;
+  }
+  .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .hero h1 { font-size: clamp(36px, 6vw, 64px); font-weight: 800; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
+  .hero h1 span { color: var(--accent); }
+  .hero .sub { font-size: clamp(16px, 2.5vw, 20px); color: var(--muted); max-width: 600px; line-height: 1.6; margin-bottom: 40px; }
+
+  /* CTA Buttons */
+  .cta-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px; border-radius: 12px; font-size: 15px; font-weight: 600;
+    border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent; color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-outline:hover { border-color: var(--muted); background: rgba(255,255,255,0.03); }
+  .btn svg { width: 18px; height: 18px; }
+
+  /* Stats */
+  .stats {
+    display: flex; gap: 48px; justify-content: center; margin-top: 48px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-value { font-size: 28px; font-weight: 700; }
+  .stat-label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* Features */
+  .features {
+    max-width: 1000px; margin: 0 auto; padding: 80px 24px;
+  }
+  .features h2 {
+    font-size: 32px; font-weight: 700; text-align: center; margin-bottom: 48px;
+  }
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .feature-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; transition: border-color 0.2s;
+  }
+  .feature-card:hover { border-color: rgba(124,58,237,0.4); }
+  .feature-icon { font-size: 28px; margin-bottom: 12px; }
+  .feature-card h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+  .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* Install */
+  .install {
+    max-width: 700px; margin: 0 auto; padding: 80px 24px;
+  }
+  .install h2 { font-size: 32px; font-weight: 700; text-align: center; margin-bottom: 12px; }
+  .install .sub { text-align: center; color: var(--muted); margin-bottom: 40px; font-size: 16px; }
+
+  .install-option {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; margin-bottom: 20px;
+  }
+  .install-option h3 {
+    font-size: 18px; font-weight: 600; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .install-option .tag {
+    font-size: 11px; padding: 2px 8px; border-radius: 4px;
+    font-weight: 600;
+  }
+  .tag-recommend { background: rgba(34,197,94,0.15); color: var(--green); }
+  .tag-dev { background: rgba(245,158,11,0.15); color: var(--amber); }
+
+  .step-list { list-style: none; counter-reset: step; }
+  .step-list li {
+    counter-increment: step; padding: 8px 0; font-size: 14px;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .step-list li::before {
+    content: counter(step);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(124,58,237,0.15); color: var(--accent);
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  code {
+    background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 4px;
+    font-family: 'Fira Code', monospace; font-size: 13px;
+  }
+  .prereq {
+    background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 10px; padding: 16px; margin-bottom: 16px; font-size: 14px;
+  }
+  .prereq strong { color: var(--amber); }
+
+  /* Footer */
+  footer {
+    text-align: center; padding: 40px 24px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 13px;
+  }
+  footer a { color: var(--accent); }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .stats { gap: 24px; }
+    .cta-group { flex-direction: column; align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    v1.7.0 Released
+  </div>
+  <h1>AI 에이전트로<br><span>가상 회사</span>를 운영하세요</h1>
+  <p class="sub">
+    Director, Leader, Member 계층 구조의 AI 에이전트 팀이<br>
+    실제 코드를 읽고, 수정하고, 배포합니다.
+  </p>
+
+  <div class="cta-group">
+    <a href="https://github.com/seokheounjo/catdock/releases/latest/download/virtual-company-1.7.0-setup.exe" class="btn btn-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Windows 다운로드 (.exe)
+    </a>
+    <a href="https://github.com/seokheounjo/catdock" class="btn btn-outline" target="_blank">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+      GitHub
+    </a>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">15+</div>
+      <div class="stat-label">역할 템플릿</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">9</div>
+      <div class="stat-label">윈도우 타입</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">4</div>
+      <div class="stat-label">언어 지원</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">63</div>
+      <div class="stat-label">IPC 채널</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <h2>주요 기능</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F3E2;</div>
+      <h3>계층형 팀 구조</h3>
+      <p>Director &rarr; Leader &rarr; Member 조직도. 자동 위임, 상향 보고, 체인 보고로 실제 회사처럼 운영됩니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4B0;</div>
+      <h3>예산 관리</h3>
+      <p>에이전트별 월 예산 한도 설정. 80% 경고, 100% 자동 중지. API 비용을 완벽하게 통제합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x2705;</div>
+      <h3>승인 게이트</h3>
+      <p>위임이나 에이전트 생성 전 사용자 승인을 요청합니다. 120초 타임아웃으로 자동 거부.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4AC;</div>
+      <h3>1:1 채팅 & 그룹 채팅</h3>
+      <p>에이전트와 개별 대화하거나, 여러 에이전트가 순서대로 토론하는 그룹 채팅을 지원합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F6E1;</div>
+      <h3>오류 자동 복구</h3>
+      <p>Member &rarr; Leader &rarr; Director 다단계 에스컬레이션. 워치독이 멈춘 프로세스를 자동 감지하고 복구합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F50C;</div>
+      <h3>MCP 통합</h3>
+      <p>Global, Team, Agent 3단계 MCP 설정. 헬스체크, 자동 재시도, 장애 보고까지 지원합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F3AE;</div>
+      <h3>커맨드 센터</h3>
+      <p>모든 에이전트를 한 화면에서 모니터링. 계층별 채팅, 실시간 상태, 일괄 명령을 지원합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F4CA;</div>
+      <h3>활동 트레이싱</h3>
+      <p>모든 도구 호출, 위임, 보고, 예산 이벤트를 실시간으로 기록하고 대시보드에서 확인합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#x1F3A8;</div>
+      <h3>Figma 연동</h3>
+      <p>Figma MCP 서버로 디자인 파일을 참조하여 React + Tailwind 코드로 변환합니다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section class="install" id="install">
+  <h2>설치 방법</h2>
+  <p class="sub">3분이면 시작할 수 있습니다.</p>
+
+  <div class="prereq">
+    <strong>사전 준비 (필수)</strong><br>
+    아래 2개를 먼저 설치해주세요:<br>
+    1. <a href="https://nodejs.org" target="_blank">Node.js 18+</a> 다운로드 &amp; 설치<br>
+    2. Claude Code CLI: 터미널에서 <code>npm install -g @anthropic-ai/claude-code</code> 실행 후 <code>claude</code>로 로그인
+  </div>
+
+  <!-- 방법 1: 설치 파일 -->
+  <div class="install-option">
+    <h3>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Windows 설치 파일
+      <span class="tag tag-recommend">권장</span>
+    </h3>
+    <ol class="step-list">
+      <li>위의 <strong>"Windows 다운로드"</strong> 버튼 클릭 (94MB)</li>
+      <li><code>virtual-company-1.7.0-setup.exe</code> 실행</li>
+      <li>설치 경로 선택 &rarr; 설치 완료</li>
+      <li>바탕화면의 <strong>"Virtual Company"</strong> 아이콘 더블클릭</li>
+      <li>셋업 마법사: CLI 확인 &rarr; 작업 디렉토리 선택 &rarr; 완료</li>
+    </ol>
+  </div>
+
+  <!-- 방법 2: 소스에서 -->
+  <div class="install-option">
+    <h3>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      소스에서 실행
+      <span class="tag tag-dev">개발자</span>
+    </h3>
+    <ol class="step-list">
+      <li><code>git clone https://github.com/seokheounjo/catdock.git</code></li>
+      <li><code>cd catdock</code></li>
+      <li><code>npm install -g pnpm</code> (없다면)</li>
+      <li><code>pnpm install</code></li>
+      <li><code>pnpm dev</code></li>
+    </ol>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>CatDock v1.7.0 &mdash; AI Agent Virtual Company Simulator</p>
+  <p style="margin-top:8px">
+    <a href="https://github.com/seokheounjo/catdock" target="_blank">GitHub</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://github.com/seokheounjo/catdock/releases" target="_blank">Releases</a>
+    &nbsp;&middot;&nbsp;
+    <a href="https://github.com/seokheounjo/catdock/blob/main/docs/user-guide.html" target="_blank">사용 설명서</a>
+  </p>
+</footer>
+
+</body>
+</html>

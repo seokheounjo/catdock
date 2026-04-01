@@ -1,0 +1,8 @@
+src/
+out/
+dist/
+node_modules/
+*.ts
+*.tsx
+electron-builder.yml
+tsconfig*.json
