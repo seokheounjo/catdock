@@ -300,8 +300,8 @@
         <a href="https://github.com/seokheounjo/catdock" class="btn btn-ghost" target="_blank">GitHub</a>
       </div>
       <div class="meta">
+        <div class="meta-item"><strong id="catdock-dl">-</strong>다운로드</div>
         <div class="meta-item"><strong>v1.7.0</strong>최신 버전</div>
-        <div class="meta-item"><strong>Electron</strong>React + Tailwind</div>
         <div class="meta-item"><strong>15+</strong>역할 템플릿</div>
         <div class="meta-item"><strong class="free">FREE</strong>오픈소스</div>
       </div>
@@ -331,8 +331,8 @@
         <a href="https://github.com/seokheounjo/wumx" class="btn btn-ghost" target="_blank">GitHub</a>
       </div>
       <div class="meta">
+        <div class="meta-item"><strong id="wumx-dl">-</strong>다운로드</div>
         <div class="meta-item"><strong>v1.0.0</strong>최신 버전</div>
-        <div class="meta-item"><strong>Electron</strong>React + xterm.js</div>
         <div class="meta-item"><strong>62fps</strong>WebGL 렌더링</div>
         <div class="meta-item"><strong class="free">FREE</strong>오픈소스</div>
       </div>
@@ -503,6 +503,22 @@ document.querySelectorAll('nav a[href^="#"]').forEach(a => {
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 });
+
+// ─── GitHub 다운로드 카운터 (통합) ───
+function fetchDownloads(repo, elementId) {
+  fetch(`https://api.github.com/repos/seokheounjo/${repo}/releases`)
+    .then(r => r.json())
+    .then(releases => {
+      if (!Array.isArray(releases)) return;
+      let total = 0;
+      releases.forEach(r => (r.assets || []).forEach(a => total += a.download_count));
+      const el = document.getElementById(elementId);
+      if (el) el.textContent = total.toLocaleString();
+    })
+    .catch(() => {});
+}
+fetchDownloads('catdock', 'catdock-dl');
+fetchDownloads('wumx', 'wumx-dl');
 </script>
 </body>
 </html>
