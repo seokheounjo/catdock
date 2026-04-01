@@ -30,3 +30,4 @@ desktop.ini
 
 # Claude CLI 로컬 설정
 .claude/
+.vercel
