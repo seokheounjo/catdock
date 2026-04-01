@@ -8,6 +8,8 @@
 <meta property="og:title" content="AI Dev Tools — CatDock & wumx">
 <meta property="og:description" content="AI 에이전트로 가상 회사를 운영하고, 여러 AI 코딩 에이전트를 동시에 관리하세요.">
 <meta property="og:type" content="website">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/icon.png" type="image/png">
 <style>
   @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css');
   @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
@@ -165,9 +167,67 @@
   footer .links a { color: var(--muted); }
   footer .links a:hover { color: var(--text); }
 
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes pulse-glow { 0%,100% { opacity: 0.15; } 50% { opacity: 0.3; } }
+  @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+  @keyframes orbit { from { transform: rotate(0deg) translateX(280px) rotate(0deg); } to { transform: rotate(360deg) translateX(280px) rotate(-360deg); } }
+
+  .anim { opacity: 0; transform: translateY(30px); transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+  .anim.visible { opacity: 1; transform: translateY(0); }
+
+  .hero-badge { animation: fadeUp 0.8s ease-out both; }
+  .hero h1 { animation: fadeUp 0.8s ease-out 0.15s both; }
+  .hero .sub { animation: fadeUp 0.8s ease-out 0.3s both; }
+  .product-card .glow { animation: pulse-glow 4s ease-in-out infinite; }
+
+  /* 파티클 캔버스 */
+  #particles { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+  .hero > *:not(#particles) { position: relative; z-index: 1; }
+
+  /* 버튼 빛 효과 */
+  .btn-purple, .btn-blue { position: relative; overflow: hidden; }
+  .btn-purple::after, .btn-blue::after {
+    content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.12) 50%, transparent 60%);
+    background-size: 200% 200%; animation: shimmer 3s infinite; pointer-events: none;
+  }
+
+  /* 카드 호버 */
+  .product-card { transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s; }
+  .product-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+  .card-purple:hover { border-color: rgba(124,58,237,0.4); }
+  .card-blue:hover { border-color: rgba(122,162,247,0.4); }
+  .feat-card { transition: border-color 0.2s, transform 0.2s; }
+  .feat-card:hover { transform: translateY(-2px); }
+  .feat-card .icon { transition: transform 0.3s; display: inline-block; }
+  .feat-card:hover .icon { transform: scale(1.2); }
+
+  /* CTA 배너 */
+  .cta-inner { background-size: 200% 200%; animation: gradient-shift 8s ease infinite; }
+
+  /* Orbit 장식 */
+  .hero-orbit { position: absolute; width: 600px; height: 600px; top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; z-index: 0; }
+  .orbit-ring { position: absolute; inset: 0; border: 1px solid rgba(255,255,255,0.025); border-radius: 50%; }
+  .orbit-ring:nth-child(2) { inset: 40px; }
+  .orbit-ring:nth-child(3) { inset: 80px; }
+  .orbit-dot { position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; border-radius: 50%; margin: -2.5px; }
+  .orbit-dot:nth-child(4) { background: var(--purple); animation: orbit 18s linear infinite; }
+  .orbit-dot:nth-child(5) { background: var(--blue); animation: orbit 24s linear infinite reverse; }
+  .orbit-dot:nth-child(6) { background: var(--cyan); animation: orbit 30s linear infinite; opacity: 0.5; }
+
+  /* 스크롤 프로그레스 */
+  .scroll-bar { position: fixed; top: 56px; left: 0; height: 2px; z-index: 101; background: linear-gradient(90deg, var(--purple), var(--blue)); width: 0%; transition: width 0.05s; }
+
+  /* 다운로드 카운트 표시 */
+  .dl-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--green); margin-top: 8px; }
+  .dl-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse-glow 2s infinite; }
+
   @media (max-width: 768px) {
     .product-grid { grid-template-columns: 1fr; }
     nav .links { display: none; }
+    .hero-orbit { display: none; }
   }
 </style>
 </head>
@@ -186,8 +246,20 @@
   </div>
 </nav>
 
+<!-- 스크롤 프로그레스 -->
+<div class="scroll-bar" id="scrollBar"></div>
+
 <!-- HERO -->
 <section class="hero">
+  <canvas id="particles"></canvas>
+  <div class="hero-orbit">
+    <div class="orbit-ring"></div>
+    <div class="orbit-ring"></div>
+    <div class="orbit-ring"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+    <div class="orbit-dot"></div>
+  </div>
   <div class="hero-badge">
     <strong>NEW</strong> &mdash; CatDock v1.7.0 + wumx v1.0.0 출시
   </div>
@@ -200,7 +272,7 @@
 </section>
 
 <!-- PRODUCT CARDS -->
-<section class="products" id="products">
+<section class="products anim" id="products">
   <h2>Products</h2>
   <div class="product-grid">
 
@@ -270,7 +342,7 @@
 </section>
 
 <!-- FEATURES -->
-<section class="section" id="features">
+<section class="section anim" id="features">
   <h2>왜 이 도구들이 필요한가요?</h2>
   <p class="sub">AI 코딩 에이전트 시대, 혼자서는 감당할 수 없는 복잡성을 관리합니다.</p>
   <div class="feat-grid">
@@ -308,7 +380,7 @@
 </section>
 
 <!-- COMPARE -->
-<section class="section" id="compare">
+<section class="section anim" id="compare">
   <h2>제품 비교</h2>
   <p class="sub">두 제품은 서로 다른 문제를 해결합니다. 함께 사용하면 최강.</p>
   <div class="compare-table">
@@ -330,7 +402,7 @@
 </section>
 
 <!-- CTA BANNER -->
-<div class="cta-banner">
+<div class="cta-banner anim">
   <div class="cta-inner">
     <h2>지금 바로 시작하세요</h2>
     <p>설치 파일 다운로드 &rarr; 실행 &rarr; 끝. 추가 설정 없이 바로 사용할 수 있습니다.</p>
@@ -358,5 +430,79 @@
   </div>
 </footer>
 
+<script>
+// ─── 스크롤 애니메이션 ───
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.anim').forEach(el => observer.observe(el));
+
+// ─── 스크롤 프로그레스 바 ───
+const bar = document.getElementById('scrollBar');
+window.addEventListener('scroll', () => {
+  const pct = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+  bar.style.width = pct + '%';
+  document.querySelector('nav').classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// ─── 파티클 배경 ───
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let particles = [];
+function resize() { canvas.width = canvas.parentElement.offsetWidth; canvas.height = canvas.parentElement.offsetHeight; }
+resize(); window.addEventListener('resize', resize);
+
+for (let i = 0; i < 60; i++) {
+  particles.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    r: Math.random() * 1.5 + 0.5,
+    dx: (Math.random() - 0.5) * 0.3,
+    dy: (Math.random() - 0.5) * 0.3,
+    color: Math.random() > 0.5 ? 'rgba(124,58,237,' : 'rgba(122,162,247,'
+  });
+}
+
+function drawParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    p.x += p.dx; p.y += p.dy;
+    if (p.x < 0) p.x = canvas.width;
+    if (p.x > canvas.width) p.x = 0;
+    if (p.y < 0) p.y = canvas.height;
+    if (p.y > canvas.height) p.y = 0;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + (0.3 + Math.random() * 0.2) + ')';
+    ctx.fill();
+  });
+  // 연결선
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 120) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.03 * (1 - dist / 120)) + ')';
+        ctx.stroke();
+      }
+    }
+  }
+  requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+// ─── 네비 스무스 스크롤 ───
+document.querySelectorAll('nav a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const target = document.querySelector(a.getAttribute('href'));
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
 </body>
 </html>
