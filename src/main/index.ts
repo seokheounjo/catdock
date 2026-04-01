@@ -419,8 +419,14 @@ public/images/에 스크린샷 15개 있음.
     })
 
   // 앱 종료 차단 — forceQuit()으로만 종료 가능
+  // window-all-closed: Electron은 모든 창이 닫히면 기본적으로 app.quit()을 호출함
+  // 빈 핸들러를 등록하면 기본 quit 동작이 비활성화됨
   app.on('window-all-closed', () => {
-    if (!isQuitting) wm.ensureDockVisible()
+    if (!isQuitting) {
+      // 기본 quit을 막고 독을 복원
+      wm.ensureDockVisible()
+    }
+    // isQuitting이 아닌 한 절대 app.quit()을 호출하지 않음
   })
 
   app.on('will-quit', (e) => {
